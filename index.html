@@ -143,6 +143,13 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .mes{font-size:38px;font-weight:200;letter-spacing:-.03em;margin:0 0 14px;text-transform:capitalize;line-height:1.1}
 .mes small{font-size:14px;font-weight:400;color:var(--mute);letter-spacing:0;text-transform:none;margin-left:6px}
 @media(max-width:559px){.yl{width:42px}.xl{margin-left:50px}.bs div i{font-size:9px}}
+.mg{display:grid;gap:24px;grid-template-columns:1fr}
+@media(min-width:860px){.mg{grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:36px;align-items:start}}
+@media(max-width:859px){.mg .c{order:-1}}
+.pm{position:absolute;left:0;right:0;height:0;border-top:1px dashed var(--ink);opacity:.6;z-index:2}
+.lg{font-size:12px;color:var(--mute);margin:6px 0 0}
+.lg b{display:inline-block;width:18px;height:0;border-top:2px solid var(--cat);vertical-align:middle;margin:0 6px 0 0}
+.lg b.f{border-top-width:1px;opacity:.5}
 </style>
 </head>
 <body>
@@ -212,11 +219,12 @@ const cc=n=>{const a=Math.abs(n);return a>=1e6?(n/1e6).toFixed(a>=1e7?0:1).repla
 function ticks(lo,hi){const r=(hi-lo)||1,raw=r/4,p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p,st=(f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p,a=Math.floor(lo/st+1e-9)*st,b=Math.ceil(hi/st-1e-9)*st,t=[];for(let v=a;v<=b+st/2;v+=st)t.push(v);return t;}
 function xlab(labels,n,bars){return labels.map((l,i)=>{if(!l)return'';const k=labels.length,pos=k===n?(i+.5)/n:i/(k-1),tr=pos<.04?'0':pos>.96?'-100%':'-50%';return `<span style="left:${(pos*100).toFixed(2)}%;transform:translateX(${tr})">${l}</span>`;}).join('');}
 function axes(plot,t,lo,hi,f,labels,n){const R=(hi-lo)||1;return `<div class="ch"><div class="yl">${t.map(v=>`<span style="bottom:${((v-lo)/R*100).toFixed(2)}%">${f(v)}</span>`).join('')}</div><div class="pl">${t.map(v=>`<div class="gl" style="bottom:${((v-lo)/R*100).toFixed(2)}%"></div>`).join('')}${plot}</div></div><div class="xl">${xlab(labels,n)}</div>`;}
-function barsAx(vals,labels,f,vl){const t=ticks(0,Math.max(...vals,1)),hi=t[t.length-1];return axes(`<div class="bs${vals.length<=12?' g2':''}">${vals.map(v=>`<div style="height:${Math.max(0,v/hi*100)}%" title="${f(v)}">${vl?`<i>${f(v)}</i>`:''}</div>`).join('')}</div>`,t,0,hi,f,labels,vals.length);}
+function barsAx(vals,labels,f,vl,avg){const t=ticks(0,Math.max(...vals,1)),hi=t[t.length-1];return axes(`<div class="bs${vals.length<=12?' g2':''}">${vals.map(v=>`<div style="height:${Math.max(0,v/hi*100)}%" title="${f(v)}">${vl?`<i>${f(v)}</i>`:''}</div>`).join('')}</div>${avg?`<div class="pm" style="bottom:${(avg/hi*100).toFixed(2)}%" title="promedio"></div>`:''}`,t,0,hi,f,labels,vals.length);}
 function lineAx(v,labels,f){if(v.length<2)return'';const t=ticks(Math.min(...v),Math.max(...v)),lo=t[0],hi=t[t.length-1],R=(hi-lo)||1,pts=v.map((x,i)=>[i/(v.length-1)*100,100-(x-lo)/R*100]),d=pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(2)+' '+q[1].toFixed(2)).join(' ');return axes(`<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="${d} L100 100 L0 100 Z" fill="var(--cat)" opacity=".10"/><path d="${d}" fill="none" stroke="var(--cat)" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`,t,lo,hi,f,labels,v.length);}
+function yearAx(v,labels,f){const n=v.length,ma=v.map((_,i)=>i<29?null:mean(v.slice(i-29,i+1))),t=ticks(Math.min(...v),Math.max(...v)),lo=t[0],hi=t[t.length-1],R=(hi-lo)||1,P=(x,i)=>[(i/(n-1)*100).toFixed(2),(100-(x-lo)/R*100).toFixed(2)],d1=v.map((x,i)=>(i?'L':'M')+P(x,i).join(' ')).join(' '),d2=ma.map((x,i)=>x===null?'':(ma[i-1]===null||i===0?'M':'L')+P(x,i).join(' ')).join(' ');return axes(`<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="${d1}" fill="none" stroke="var(--cat)" stroke-width="1" opacity=".45" vector-effect="non-scaling-stroke"/><path d="${d2}" fill="none" stroke="var(--cat)" stroke-width="2.6" vector-effect="non-scaling-stroke"/></svg>`,t,lo,hi,f,labels,n)+`<p class="lg"><b class="f"></b>Venta de cada día <b style="margin-left:14px"></b>Promedio móvil de 30 días</p>`;}
 const dl=f=>{const d=new Date(f+'T12:00:00');return d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];};
 const dlabs=ds=>[0,1,2,3,4].map(i=>dl(ds[Math.round(i*(ds.length-1)/4)]));
-function cols(titulo,vals,labels,sub,w,f,vl){return `<div class="blk"><h2>${titulo}</h2>${barsAx(vals,labels,f||fmt,vl)}${sub?`<p class="note">${sub}</p>`:''}</div>`;}
+function cols(titulo,vals,labels,sub,w,f,vl,avg){return `<div class="blk"><h2>${titulo}</h2>${barsAx(vals,labels,f||fmt,vl,avg)}${sub?`<p class="note">${sub}</p>`:''}</div>`;}
 function table(titulo,head,body){return `<div class="blk"><h2>${titulo}</h2><table class="tb"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
 
 /* ---- pantallas ---- */
@@ -318,6 +326,7 @@ function pintarIng(){
   const ya=q=>ks.reduce((t,k)=>t+B[k][q],0),yb=ya('b'),yn=ya('n'),yc=ya('c'),yi=ya('i'),yr=ya('r'),yv=ya('v');
   h+=`<div class="dayl" style="margin-top:34px">Acumulado del año</div><div class="mes">${T.slice(0,4)}<small>${dl(ks[0])} al ${dl(T)} · ${ks.length} días con datos</small></div>`;
   h+=kpis([{c:'banco',l:'Ventas brutas acumuladas',v:crc(yb),s:crc(yb/ks.length)+' por día'},{c:'banco',l:'Neto acumulado',v:crc(yn),s:p1(yn/yb)+' de la venta'},{c:'banco',l:'Comisión y retenciones acumuladas',v:crc(yc+yi+yr),s:'comisión '+crc(yc)+' · IVA '+crc(yi)+' · renta '+crc(yr)},{c:'banco',l:'Vouchers acumulados',v:fmt(yv),s:'ticket '+crc(yb/yv)+' bruto · '+crc(yn/yv)+' neto'}]);
+  h+=`<div class="g" data-c="banco"><div class="blk"><h2>Ventas brutas diarias de ${T.slice(0,4)}</h2>${yearAx(ks.map(V),dlabs(ks),v=>'₡'+cc(v))}</div></div>`;
   // ---- meses
   const ms=[...new Set(ks.map(k=>k.slice(0,7)))];
   const comp=ms.filter(m=>m!==mk||ks.filter(k=>k.slice(0,7)===m).length>=new Date(Number(m.slice(0,4)),Number(m.slice(5)),0).getDate());
@@ -328,8 +337,11 @@ function pintarIng(){
     (()=>{const dow=Array(7).fill(0),dn=Array(7).fill(0);ks.forEach(k=>{const i=(dts(k).getDay()+6)%7;dow[i]+=V(k);dn[i]++;});const pr=dow.map((v,i)=>v/Math.max(dn[i],1));return cols('Venta bruta promedio por día de la semana',pr,['L','M','K','J','V','S','D'],'Más alto: '+['lunes','martes','miércoles','jueves','viernes','sábado','domingo'][pr.indexOf(Math.max(...pr))]+' ('+crc(Math.max(...pr))+'). Más bajo: '+['lunes','martes','miércoles','jueves','viernes','sábado','domingo'][pr.indexOf(Math.min(...pr))]+' ('+crc(Math.min(...pr))+').',1,v=>'₡'+cc(v),1);})()+`</div>`;
   // ---- días del mes
   const dsel=ks.filter(k=>k.slice(0,7)===sel),vs=dsel.map(V),bm=Math.max(...vs),wm=Math.min(...vs);
+  const nd=new Date(Number(sel.slice(0,4)),Number(sel.slice(5)),0).getDate(),dv=Array(nd).fill(0);dsel.forEach(k=>dv[Number(k.slice(8))-1]=V(k));
+  const dlb=dv.map((_,i)=>[1,5,10,15,20,25,nd].includes(i+1)?String(i+1):'');
   h+=`<div class="g" data-c="banco"><div class="blk"><h2>Días de ${MES[Number(sel.slice(5))-1]} · ventas brutas</h2><div class="chips">${ms.map(m=>`<button data-mes="${m}" aria-pressed="${m===sel}">${MES[Number(m.slice(5))-1].slice(0,3)}</button>`).join('')}</div>
-   <table class="tb"><thead><tr><th>Día</th><th>Ventas</th><th>Vouchers</th><th>Ticket</th></tr></thead><tbody>${dsel.slice().reverse().map(k=>{const b=B[k];const tg=b.b===bm?'<span class="tag">mejor</span>':b.b===wm?'<span class="tag lo">menor</span>':'';return `<tr><td>${dts(k).getDate()} ${DIA[dts(k).getDay()].slice(0,3)}${tg}${b.rev?'<small>total del comprobante por revisar</small>':''}</td><td>${crc(b.b)}</td><td>${fmt(b.v)}</td><td>${crc(b.b/b.v)}</td></tr>`;}).join('')}</tbody></table></div></div>`;
+   <div class="mg"><div><table class="tb"><thead><tr><th>Día</th><th>Ventas</th><th>Vouchers</th><th>Ticket</th></tr></thead><tbody>${dsel.map(k=>{const b=B[k];const tg=b.b===bm?'<span class="tag">mejor</span>':b.b===wm?'<span class="tag lo">menor</span>':'';return `<tr><td>${Number(k.slice(8))} ${DIA[dts(k).getDay()].slice(0,3)}${tg}${b.rev?'<small>total del comprobante por revisar</small>':''}</td><td>${crc(b.b)}</td><td>${fmt(b.v)}</td><td>${crc(b.b/b.v)}</td></tr>`;}).join('')}</tbody></table></div>
+   <div class="c">${barsAx(dv,dlb,v=>'₡'+cc(v),0,mean(vs))}<p class="lg"><b style="border-top-style:dashed;border-top-width:1px"></b>Promedio del mes ${crc(mean(vs))}</p></div></div></div></div>`;
   // ---- tendencia
   const ma=(n,end)=>{const a=ks.slice(Math.max(0,end-n),end);return mean(a.map(V));};
   const L=ks.length,m7=ma(7,L),m7p=ma(7,L-7),m30=ma(30,L),m30p=ma(30,L-30);
