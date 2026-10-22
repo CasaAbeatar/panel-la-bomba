@@ -9,6 +9,248 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@200;300;400;600&display=swap" rel="stylesheet">
 <style>
+:root{--bg:#fbf8f2;--surface:transparent;--ink:#171212;--mute:#5f574d;--line:#d8d0c2;--acc:#B81622;--on-acc:#fff;--up:#171212;--down:#B81622;--hair:#171212;--amber:#F3A62C;--cat:#171212;--ok:#1F7A4D;--warn:#B8740A;--bad:#B81622}
+[data-c=ventas]{--cat:#1F6B4A}
+[data-c=visitas]{--cat:#1B6B7A}
+[data-c=redes]{--cat:#7A3F78}
+[data-c=sistema]{--cat:#51657A}
+[data-c=ped]{--cat:#B8740A}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:300 16px/1.45 Figtree,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-feature-settings:"tnum" 1}
+.wrap{max-width:760px;margin:0 auto;padding:20px 20px 72px}
+.top{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:26px}
+.who{display:flex;align-items:center;gap:12px;color:var(--mute);font-size:14px}
+.av{width:34px;height:34px;border-radius:50%;border:1px solid var(--acc);color:var(--acc);display:grid;place-items:center;font-weight:600;font-size:14px;background:transparent}
+button{font:inherit;cursor:pointer;border:0;color:var(--ink);background:none}
+.out{border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:13px;letter-spacing:.04em}
+.out:hover{border-color:var(--ink)}
+.tabs{display:flex;gap:26px;margin-bottom:26px;border-bottom:1px solid var(--line)}
+.tabs button{padding:0 0 14px;font-weight:400;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--acc);border-bottom-width:2px}
+.hero{background:transparent;color:#171212;border-top:1px solid var(--hair);padding:26px 0 8px;margin-bottom:26px;position:relative}
+.hero::before{content:'';position:absolute;left:0;top:-1px;width:64px;height:4px;background:var(--cat)}
+.hero .lbl{color:#171212;font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+.hero .num{font-size:clamp(52px,14vw,88px);font-weight:200;letter-spacing:-.04em;line-height:1;margin:14px 0 14px}
+.delta{display:inline-block;font-size:13px;font-weight:400}
+.delta.up,.delta.down{color:#171212;font-weight:600}
+.hero svg{display:block;width:100%;margin:14px 0 0;height:84px}
+.hero svg path{stroke:var(--cat)!important}
+.list{margin-bottom:22px}
+.list h2{font-size:12px;color:var(--mute);font-weight:400;margin:0 0 4px;text-transform:uppercase;letter-spacing:.16em;padding-bottom:12px;border-bottom:1px solid var(--hair)}
+.row{display:flex;align-items:center;gap:14px;padding:18px 0;border-bottom:1px solid var(--line)}
+.ic{width:34px;height:34px;border-radius:50%;border:1px solid var(--acc);display:grid;place-items:center;font-weight:400;font-size:13px;color:var(--acc);flex:none}
+.rt{flex:1;min-width:0}
+.rt b{display:block;font-weight:400}
+.rt span{color:var(--mute);font-size:13px}
+.rt b,.rt span{white-space:nowrap}
+.rv{text-align:right}
+.rv b{display:block;font-size:22px;font-weight:300;letter-spacing:-.02em}
+.spark{width:72px;height:26px;flex:none}
+@media (max-width:440px){.spark{display:none}}
+.center{min-height:100vh;display:grid;place-items:center;padding:20px}
+.login{max-width:360px;width:100%;text-align:center}
+.login .av{width:56px;height:56px;font-size:22px;margin:0 auto 22px}
+.login h1{font-size:34px;font-weight:300;letter-spacing:-.025em;margin:0 0 8px}
+.login p{color:var(--mute);margin:0 0 28px}
+.cta{border:1px solid var(--ink);width:100%;padding:16px;border-radius:999px;font-weight:400;letter-spacing:.06em;font-size:15px}
+.cta:hover{background:var(--ink);color:var(--bg)}
+.err{color:var(--down);margin-top:14px;min-height:1.4em}
+[hidden]{display:none!important}
+a:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+
+.wrap{max-width:1040px}
+.g{display:grid;gap:26px;grid-template-columns:1fr;margin-bottom:26px}
+@media(min-width:860px){.g.c2{grid-template-columns:1fr 1fr;gap:40px}}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);border-top:1px solid var(--hair);border-bottom:1px solid var(--line);margin-bottom:34px}
+@media(min-width:860px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpi{padding:18px 16px 18px 0;border-bottom:1px solid var(--line)}
+.kpi:nth-child(odd){border-right:1px solid var(--line);padding-right:16px}
+.kpi:nth-child(even){padding-left:18px}
+@media(min-width:860px){.kpi{border-bottom:0;padding:22px 20px;border-right:1px solid var(--line)}.kpi:nth-child(odd){padding-right:20px}.kpi:nth-child(even){padding-left:20px}.kpi:first-child{padding-left:0}.kpi:last-child{border-right:0}}
+.kpi .l{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.kpi .v{font-size:32px;font-weight:200;letter-spacing:-.03em;line-height:1.1;margin:8px 0 2px}
+.kpi .s{font-size:13px;color:var(--mute)}
+.blk h2::before,.kpi .l::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cat);margin-right:10px;vertical-align:1px}
+.st{white-space:nowrap}.st::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:7px;vertical-align:1px}
+.st.ok{color:var(--ok)}.st.warn{color:var(--warn)}.st.bad{color:var(--bad)}
+.hero .lbl::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cat);margin-right:10px;vertical-align:1px}
+.tb th:first-child{color:var(--mute)}
+.blk h2{font-size:12px;color:var(--mute);font-weight:400;margin:0 0 4px;text-transform:uppercase;letter-spacing:.16em;padding-bottom:12px;border-bottom:1px solid var(--hair)}
+.br{padding:12px 0 10px;border-bottom:1px solid var(--line)}
+.br .t{display:flex;justify-content:space-between;gap:12px;font-size:15px}
+.br .t b{font-weight:400}
+.br .t i{font-style:normal;font-variant-numeric:tabular-nums}
+.br .s2{font-size:12px;color:var(--mute)}
+.br .tr{height:3px;background:var(--line);margin-top:9px;position:relative}
+.br .tr u{position:absolute;left:0;top:0;bottom:0;background:var(--cat);display:block}
+.tb{width:100%;border-collapse:collapse;font-size:14px}
+.tb th{font-weight:400;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);text-align:right;padding:10px 0;border-bottom:1px solid var(--line)}
+.tb th:first-child,.tb td:first-child{text-align:left}
+.tb td{padding:14px 0;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+.tb td:first-child{font-weight:400}
+.col{display:flex;align-items:flex-end;justify-content:space-between;height:110px;margin:14px 0 6px;border-bottom:1px solid var(--hair)}
+.col div{width:3px;flex:none;background:var(--cat);min-height:2px}
+.col.w div{width:6px}
+.ax{display:flex;justify-content:space-between;font-size:11px;color:var(--mute);letter-spacing:.08em}
+.split{display:flex;height:3px;margin:12px 0 8px;background:var(--line)}
+.split u{display:block;background:var(--cat)}
+.note{font-size:12px;color:var(--mute);margin:10px 0 0}
+</style>
+</head>
+<body>
+
+<div id="login" class="center" hidden>
+  <div class="login">
+    <div class="av">B</div>
+    <h1>Panel La Bomba</h1>
+    <p>Acceso privado.</p>
+    <button class="cta" id="btnLogin">Entrar con Microsoft</button>
+    <div class="err" id="err" role="alert"></div>
+  </div>
+</div>
+
+<div id="app" class="wrap" hidden>
+  <div class="top">
+    <div class="who"><div class="av" id="ini">B</div><span id="quien"></span></div>
+    <button class="out" id="btnSalir">Salir</button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="metricas">Métricas</button>
+    <button role="tab" aria-selected="false" data-tab="negocio">Negocio</button>
+  </div>
+  <section id="tab-metricas"></section>
+  <section id="tab-negocio" hidden></section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPA_URL='https://dwlbcbtwdungyrykgahm.supabase.co';
+const SUPA_KEY='sb_publishable_gUoYvCNka0je2rbNeWPpUA_l26vgQbO'; // clave pública; el acceso real lo controla RLS
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+const $=id=>document.getElementById(id);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>new Intl.NumberFormat('es-CR').format(Math.round(n));
+const crc=n=>'₡'+fmt(n);
+const pct=(a,b)=>b?Math.round(a/b*100)+' %':'—';
+const NEG={soda:'Soda La Bomba',pollos:'Pollos La Bomba',papea:'Papea'};
+let R=[];
+
+/* ---- datos ---- */
+const rows=(o)=>R.filter(r=>(!o.fuente||r.fuente===o.fuente)&&(!o.metrica||r.metrica===o.metrica)&&(o.sitio===undefined||r.sitio===o.sitio)&&(o.detalle===undefined||r.detalle===o.detalle));
+const sum=o=>rows(o).reduce((a,r)=>a+Number(r.valor),0);
+const dias=()=>[...new Set(R.map(r=>r.fecha))].sort();
+const serie=o=>{const m={};rows(o).forEach(r=>m[r.fecha]=(m[r.fecha]||0)+Number(r.valor));return dias().map(d=>m[d]||0);};
+const avg=o=>{const a=rows(o);return a.length?a.reduce((x,r)=>x+Number(r.valor),0)/a.length:0;};
+const last=o=>{const a=rows(o).sort((x,y)=>x.fecha<y.fecha?-1:1);return a.length?Number(a[a.length-1].valor):0;};
+const first=o=>{const a=rows(o).sort((x,y)=>x.fecha<y.fecha?-1:1);return a.length?Number(a[0].valor):0;};
+const groups=o=>{const m={};rows(o).forEach(r=>m[r.detalle]=(m[r.detalle]||0)+Number(r.valor));return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
+
+/* ---- piezas ---- */
+function path(v,w,h,p){const mn=Math.min(...v),mx=Math.max(...v),r=(mx-mn)||1;return v.map((x,i)=>[i*(w/(v.length-1)),h-p-((x-mn)/r)*(h-p*2)]);}
+function area(v){if(v.length<2)return'';const w=300,h=96,p=path(v,w,h,10);const d=p.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="#171212" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;}
+function delta(v){if(v.length<8)return'';const a=v.slice(-7).reduce((x,y)=>x+y,0),b=v.slice(0,-7).reduce((x,y)=>x+y,0);if(!b)return'';const d=(a-b)/b*100;return `<span class="delta">${d>=0?'▲':'▼'} ${Math.abs(d).toFixed(0)} % vs semana anterior</span>`;}
+const C=(c,x)=>`<div data-c="${c}">${x}</div>`;
+const stt=(v,t)=>`<span class="st ${v>=99.5?'ok':v>=99?'warn':'bad'}">${t}</span>`;
+const hero=(l,n,v)=>`<div class="hero"><div class="lbl">${l}</div><div class="num">${n}</div>${delta(v)}${area(v)}</div>`;
+const kpis=a=>`<div class="kpis">${a.map(k=>`<div class="kpi" data-c="${k.c||''}"><div class="l">${k.l}</div><div class="v">${k.v}</div><div class="s">${k.s||''}</div></div>`).join('')}</div>`;
+function bars(titulo,items,f=fmt,max,sub){
+  max=max||Math.max(...items.map(i=>i[1]),1);
+  return `<div class="blk"><h2>${titulo}</h2>${items.map(i=>`<div class="br"><div class="t"><b>${esc(i[0])}</b><i>${f(i[1])}</i></div>${i[2]?`<div class="s2">${esc(i[2])}</div>`:''}<div class="tr"><u style="width:${Math.max(1.5,i[1]/max*100)}%"></u></div></div>`).join('')}${sub?`<p class="note">${sub}</p>`:''}</div>`;
+}
+function cols(titulo,vals,labels,sub,w){const mx=Math.max(...vals,1);
+  return `<div class="blk"><h2>${titulo}</h2><div class="col${w?' w':''}">${vals.map(v=>`<div style="height:${Math.max(2,v/mx*100)}%" title="${fmt(v)}"></div>`).join('')}</div><div class="ax">${labels.map(l=>`<span>${l}</span>`).join('')}</div>${sub?`<p class="note">${sub}</p>`:''}</div>`;}
+function table(titulo,head,body){return `<div class="blk"><h2>${titulo}</h2><table class="tb"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
+
+/* ---- pantallas ---- */
+function pintar(){
+  const vis=serie({fuente:'goatcounter',metrica:'visitas'});
+  const visT=sum({fuente:'goatcounter',metrica:'visitas'}), uni=sum({fuente:'goatcounter',metrica:'visitantes'});
+  const contactos=sum({fuente:'goatcounter',metrica:'clic',detalle:'Enviar por WhatsApp'})+sum({fuente:'goatcounter',metrica:'clic',detalle:'Llamar'});
+  const upt=avg({fuente:'uptimerobot',metrica:'uptime_pct'});
+  const susc=sum({fuente:'supabase',metrica:'suscriptores_nuevos'});
+  const dev=groups({fuente:'goatcounter',metrica:'dispositivo'}); const devT=dev.reduce((a,x)=>a+x[1],0);
+  const redes=['soda','pollos'].flatMap(s=>['Facebook','Instagram'].map(r=>[NEG[s]+' · '+r, last({fuente:'meta',metrica:'seguidores',sitio:s,detalle:r}), last({fuente:'meta',metrica:'seguidores',sitio:s,detalle:r})-first({fuente:'meta',metrica:'seguidores',sitio:s,detalle:r}), sum({fuente:'meta',metrica:'alcance',sitio:s,detalle:r}), sum({fuente:'meta',metrica:'interacciones',sitio:s,detalle:r})]));
+  $('tab-metricas').innerHTML=
+    C('visitas',hero('Visitas a los sitios · 14 días',fmt(visT),vis))+
+    kpis([{c:'visitas',l:'Visitantes únicos',v:fmt(uni),s:pct(uni,visT)+' de las visitas'},{c:'ventas',l:'Contactos directos',v:fmt(contactos),s:'WhatsApp y llamadas'},{c:'redes',l:'Lista de novedades',v:'+'+fmt(susc),s:'suscriptores en 14 días'},{c:'',l:'Disponibilidad',v:stt(upt,upt.toFixed(2)+' %'),s:'promedio de los sitios'}])+
+    `<div class="g" data-c="visitas">${table('Por sitio',['Sitio','Visitas','Únicos','Disp.','Resp.'],['soda','pollos','papea'].map(s=>[NEG[s],fmt(sum({fuente:'goatcounter',metrica:'visitas',sitio:s})),fmt(sum({fuente:'goatcounter',metrica:'visitantes',sitio:s})),(u=>stt(u,u.toFixed(2)+' %'))(avg({fuente:'uptimerobot',metrica:'uptime_pct',sitio:s})),fmt(avg({fuente:'uptimerobot',metrica:'respuesta_ms',sitio:s}))+' ms']))}</div>`+
+    `<div class="g c2" data-c="visitas">${bars('Botones más tocados',groups({fuente:'goatcounter',metrica:'clic'}))}${bars('Páginas más vistas',groups({fuente:'goatcounter',metrica:'pagina'}))}</div>`+
+    `<div class="g c2" data-c="visitas">${bars('De dónde llegan',groups({fuente:'goatcounter',metrica:'origen'}),v=>pct(v,sum({fuente:'goatcounter',metrica:'origen'})))}${bars('Dispositivos',dev,v=>pct(v,devT))}</div>`+
+    `<div class="g" data-c="redes">${table('Redes sociales',['Perfil','Seguidores','14 días','Alcance','Interac.'],redes.map(r=>[r[0],fmt(r[1]),'+'+fmt(r[2]),fmt(r[3]),fmt(r[4])]))}</div>`+
+    `<div class="g c2" data-c="sistema">${bars('Uso del plan gratis de Supabase',[['Base de datos',last({fuente:'supabase',metrica:'db_mb'}),'de 500 MB'],['Transferencia (14 días)',sum({fuente:'supabase',metrica:'egress_mb'}),'de 5 GB al mes']],v=>fmt(v)+' MB')}${cols('Suscriptores nuevos por día',serie({fuente:'supabase',metrica:'suscriptores_nuevos'}),['hace 14 d','','','','hoy'],null,1)}</div>`;
+
+  const ped=serie({fuente:'pedidos',metrica:'pedidos'}), ven=serie({fuente:'pedidos',metrica:'venta_crc'});
+  const pedT=sum({fuente:'pedidos',metrica:'pedidos'}), venT=sum({fuente:'pedidos',metrica:'venta_crc'});
+  const nue=sum({metrica:'clientes_nuevos'}), rec=sum({metrica:'clientes_recurrentes'});
+  const hora=Array.from({length:24},(_,h)=>sum({fuente:'pedidos',metrica:'hora',detalle:String(h).padStart(2,'0')}));
+  const dow=Array(7).fill(0); const fechas=dias();
+  const dm={}; rows({fuente:'pedidos',metrica:'pedidos'}).forEach(r=>dm[r.fecha]=(dm[r.fecha]||0)+Number(r.valor));
+  fechas.forEach(f=>{const k=(new Date(f+'T12:00:00').getDay()+6)%7;dow[k]+=dm[f]||0;});
+  const prods=['soda','pollos','papea'].flatMap(s=>groups({fuente:'pedidos',metrica:'producto',sitio:s}).map(g=>[g[0],g[1],NEG[s]])).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const local=sum({fuente:'prisma',metrica:'venta_local_crc'}), localT=sum({fuente:'prisma',metrica:'tiquetes_local'});
+  const vsT=sum({fuente:'goatcounter',metrica:'visitantes'});
+  $('tab-negocio').innerHTML=
+    C('ventas',hero('Ventas en línea · 14 días',crc(venT),ven))+
+    kpis([{c:'ventas',l:'Pedidos',v:fmt(pedT),s:fmt(pedT/Math.max(fechas.length,1))+' por día'},{c:'ped',l:'Ticket promedio',v:crc(venT/Math.max(pedT,1)),s:'venta ÷ pedidos'},{c:'redes',l:'Clientes nuevos',v:pct(nue,nue+rec),s:fmt(rec)+' recurrentes'},{c:'visitas',l:'Conversión',v:(pedT/Math.max(vsT,1)*100).toFixed(1)+' %',s:'pedidos ÷ visitantes únicos'}])+
+    `<div class="g" data-c="ventas">${table('Por negocio',['Negocio','Pedidos','Ventas','Ticket'],['soda','pollos','papea'].map(s=>{const p=sum({fuente:'pedidos',metrica:'pedidos',sitio:s}),v=sum({fuente:'pedidos',metrica:'venta_crc',sitio:s});return [NEG[s],fmt(p),crc(v),crc(v/Math.max(p,1))];}))}</div>`+
+    `<div class="g c2" data-c="ped">${bars('Productos más pedidos',prods,v=>fmt(v)+' u.')}${bars('Zonas de entrega',groups({fuente:'pedidos',metrica:'zona'}),v=>pct(v,sum({fuente:'pedidos',metrica:'zona'})),null,'Zonas clasificadas a mano por ti a partir de la dirección escrita.')}</div>`+
+    `<div class="g c2" data-c="ventas">${cols('Pedidos por hora del día',hora,['0 h','6 h','12 h','18 h','23 h'])}${cols('Pedidos por día de la semana',dow,['L','M','K','J','V','S','D'],null,1)}</div>`+
+    `<div class="g c2" data-c="ventas"><div class="blk"><h2>Local y en línea</h2>
+      <div class="br"><div class="t"><b>Ventas del local (Prisma)</b><i>${crc(local)}</i></div><div class="s2">${fmt(localT)} tiquetes · ${crc(local/Math.max(localT,1))} promedio</div></div>
+      <div class="br"><div class="t"><b>Ventas en línea</b><i>${crc(venT)}</i></div><div class="s2">${fmt(pedT)} pedidos · ${crc(venT/Math.max(pedT,1))} promedio</div></div>
+      <div class="br"><div class="t"><b>Peso de lo en línea</b><i>${pct(venT,venT+local)}</i></div><div class="split"><u style="width:${venT/Math.max(venT+local,1)*100}%"></u></div><div class="s2">del total vendido en Soda</div></div></div>
+    <div class="blk" data-c="redes"><h2>Clientes</h2>
+      <div class="br"><div class="t"><b>Nuevos</b><i>${fmt(nue)}</i></div></div>
+      <div class="br"><div class="t"><b>Recurrentes</b><i>${fmt(rec)}</i></div></div>
+      <div class="br"><div class="split"><u style="width:${nue/Math.max(nue+rec,1)*100}%"></u></div><div class="s2">${pct(nue,nue+rec)} nuevos, ${pct(rec,nue+rec)} recurrentes</div></div></div></div>`;
+}
+
+async function traer(){
+  const desde=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
+  let all=[],from=0;
+  for(;;){
+    const {data,error}=await sb.from('panel_metricas').select('fecha,fuente,sitio,metrica,detalle,valor').gte('fecha',desde).order('fecha').range(from,from+999);
+    if(error) throw error;
+    all=all.concat(data); if(data.length<1000) break; from+=1000;
+  }
+  return all;
+}
+async function cargar(){
+  try{R=await traer();pintar();}
+  catch(e){$('tab-metricas').innerHTML='<div class="blk"><h2>No se pudieron cargar los datos</h2></div>';}
+}
+async function validar(session){
+  if(!session){$('app').hidden=true;$('login').hidden=false;return;}
+  const {data:ok,error}=await sb.rpc('es_panel');
+  if(error||ok!==true){await sb.auth.signOut();$('app').hidden=true;$('login').hidden=false;$('err').textContent='Esta cuenta no tiene acceso al panel.';return;}
+  $('login').hidden=true;$('app').hidden=false;
+  const em=session.user.email||'';$('quien').textContent=em;$('ini').textContent=(em[0]||'B').toUpperCase();
+  cargar();
+}
+$('btnLogin').onclick=()=>sb.auth.signInWithOAuth({provider:'azure',options:{scopes:'email',redirectTo:location.origin+location.pathname}});
+$('btnSalir').onclick=async()=>{await sb.auth.signOut();location.reload();};
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  $('tab-metricas').hidden=b.dataset.tab!=='metricas';$('tab-negocio').hidden=b.dataset.tab!=='negocio';
+});
+sb.auth.getSession().then(({data})=>validar(data.session));
+sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT')validar(null);});
+</script>
+</body>
+</html>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel La Bomba</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@200;300;400;600&display=swap" rel="stylesheet">
+<style>
 :root{--bg:#fbf8f2;--surface:transparent;--ink:#171212;--mute:#5f574d;--line:#d8d0c2;--acc:#B81622;--on-acc:#fff;--up:#171212;--down:#B81622;--hair:#171212;--amber:#F3A62C}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
