@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel La Bomba</title>
+<style>
+:root{--bg:#f6f4f0;--card:#fff;--ink:#1d1b19;--mute:#6b665f;--line:#e4dfd7;--acc:#c8341b;--ok:#2f7d4f;--bad:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#161412;--card:#201d1a;--ink:#f1ede7;--mute:#a49d93;--line:#34302b;--acc:#ec6a4f;--ok:#58b57b;--bad:#ef7b73}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+h1{font-size:20px;margin:0}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+nav{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+nav button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h2{font-size:13px;font-weight:600;color:var(--mute);margin:0 0 4px;text-transform:uppercase;letter-spacing:.04em}
+.big{font-size:32px;font-weight:700;line-height:1.1}
+.sub{color:var(--mute);font-size:13px;margin-top:2px}
+svg{width:100%;height:56px;margin-top:10px;display:block}
+.center{min-height:100vh;display:grid;place-items:center;padding:16px}
+.login{max-width:360px;width:100%;text-align:center}
+.login p{color:var(--mute)}
+.err{color:var(--bad);margin-top:12px;min-height:1.4em}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="login" class="center" hidden>
+  <div class="card login">
+    <h1>Panel La Bomba</h1>
+    <p>Acceso restringido.</p>
+    <button class="primary" id="btnLogin">Entrar con Microsoft</button>
+    <div class="err" id="err" role="alert"></div>
+  </div>
+</div>
+
+<div id="app" class="wrap" hidden>
+  <header>
+    <h1>Panel La Bomba</h1>
+    <div><span class="sub" id="quien"></span> <button id="btnSalir">Salir</button></div>
+  </header>
+  <nav role="tablist">
+    <button role="tab" aria-selected="true" data-tab="metricas">Métricas</button>
+    <button role="tab" aria-selected="false" data-tab="negocio">Análisis de negocio</button>
+  </nav>
+  <section id="tab-metricas" class="grid"></section>
+  <section id="tab-negocio" class="grid" hidden></section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SUPA_URL = 'https://dwlbcbtwdungyrykgahm.supabase.co';
+const SUPA_KEY = 'sb_publishable_gUoYvCNka0je2rbNeWPpUA_l26vgQbO'; // clave pública; el acceso real lo controla RLS
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+const $ = id => document.getElementById(id);
+const fmt = n => new Intl.NumberFormat('es-CR').format(Math.round(n));
+const crc = n => '₡' + fmt(n);
+
+function spark(vals){
+  if(vals.length<2) return '';
+  const w=300,h=56,mn=Math.min(...vals),mx=Math.max(...vals),r=(mx-mn)||1;
+  const pts=vals.map((v,i)=>[i*(w/(vals.length-1)), h-4-((v-mn)/r)*(h-8)]);
+  const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--acc)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+}
+function card(titulo, valor, sub, vals){
+  return `<div class="card"><h2>${titulo}</h2><div class="big">${valor}</div><div class="sub">${sub}</div>${spark(vals)}</div>`;
+}
+function serie(rows, fuente, sitio, metrica){
+  return rows.filter(r=>r.fuente===fuente&&r.sitio===sitio&&r.metrica===metrica)
+    .sort((a,b)=>a.fecha<b.fecha?-1:1).map(r=>Number(r.valor));
+}
+const suma = a => a.reduce((x,y)=>x+y,0);
+const prom = a => a.length? suma(a)/a.length : 0;
+const SITIOS={soda:'Soda La Bomba',pollos:'Pollos La Bomba'};
+
+async function cargar(){
+  const desde = new Date(Date.now()-14*864e5).toISOString().slice(0,10);
+  const {data,error} = await sb.from('panel_metricas').select('fecha,fuente,sitio,metrica,valor').gte('fecha',desde);
+  if(error){ $('tab-metricas').innerHTML='<div class="card">No se pudieron cargar los datos.</div>'; return; }
+  let m='';
+  for(const s of ['soda','pollos']){
+    const v=serie(data,'goatcounter',s,'visitas');
+    m+=card('Visitas · '+SITIOS[s], fmt(suma(v)), 'últimos 14 días', v);
+  }
+  for(const s of ['soda','pollos']){
+    const u=serie(data,'uptimerobot',s,'uptime_pct');
+    m+=card('Disponibilidad · '+SITIOS[s], prom(u).toFixed(2)+' %', 'promedio 14 días', u);
+  }
+  $('tab-metricas').innerHTML=m;
+  const p=serie(data,'pedidos','soda','pedidos'), vt=serie(data,'pedidos','soda','venta_crc');
+  $('tab-negocio').innerHTML =
+    card('Pedidos en línea · Soda', fmt(suma(p)), 'últimos 14 días', p) +
+    card('Ventas en línea · Soda', crc(suma(vt)), 'últimos 14 días', vt) +
+    card('Ticket promedio', suma(p)? crc(suma(vt)/suma(p)) : '—', 'venta ÷ pedidos', vt.map((x,i)=>p[i]?x/p[i]:0));
+}
+
+async function validar(session){
+  if(!session){ $('app').hidden=true; $('login').hidden=false; return; }
+  const {data:ok,error} = await sb.rpc('es_panel');
+  if(error || ok!==true){
+    await sb.auth.signOut();
+    $('app').hidden=true; $('login').hidden=false;
+    $('err').textContent='Esta cuenta no tiene acceso al panel.';
+    return;
+  }
+  $('login').hidden=true; $('app').hidden=false;
+  $('quien').textContent=session.user.email||'';
+  cargar();
+}
+
+$('btnLogin').onclick = () => sb.auth.signInWithOAuth({
+  provider:'azure',
+  options:{scopes:'email', redirectTo: location.origin + location.pathname}
+});
+$('btnSalir').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected', x===b));
+  $('tab-metricas').hidden = b.dataset.tab!=='metricas';
+  $('tab-negocio').hidden = b.dataset.tab!=='negocio';
+});
+sb.auth.getSession().then(({data})=>validar(data.session));
+sb.auth.onAuthStateChange((ev,s)=>{ if(ev==='SIGNED_OUT') validar(null); });
+</script>
+</body>
+</html>
