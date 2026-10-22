@@ -123,6 +123,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .chips button[aria-pressed=true]{border-color:var(--cat);color:var(--ink);font-weight:600}
 .tag{display:inline-block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--cat);color:var(--cat);padding:1px 6px;border-radius:999px;margin-left:8px;white-space:nowrap}
 .tag.lo{border-color:var(--bad);color:var(--bad)}
+.tag.par{border-color:var(--mute);color:var(--mute)}
 .tb td small{display:block;color:var(--mute);font-size:11px}
 .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi{min-width:0}
 @media(min-width:860px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -333,7 +334,7 @@ function pintarIng(){
   const mt=m=>ks.filter(k=>k.slice(0,7)===m).reduce((s,k)=>s+B[k].b,0);
   const mx=comp.reduce((a,m)=>mt(m)>mt(a)?m:a,comp[0]),mn=comp.reduce((a,m)=>mt(m)<mt(a)?m:a,comp[0]);
   h+=`<div class="g c2" data-c="banco">`+
-    table('Mes por mes',['Mes','Ventas','Prom./día','Neto'],ms.map(m=>{const d=ks.filter(k=>k.slice(0,7)===m);const t=mt(m),n=d.reduce((s,k)=>s+B[k].n,0);const tg=m===mx?'<span class="tag">más venta</span>':m===mn?'<span class="tag lo">menos venta</span>':'';return [MES[Number(m.slice(5))-1]+tg+(d.length<28&&m===mk?`<small>${d.length} días</small>`:''),crc(t),crc(t/d.length),crc(n)];}))+
+    (x=>{const p=!comp.includes(mk);return p?x.replace(/<\/div>$/,`<p class="note">${MES[Number(mk.slice(5))-1][0].toUpperCase()+MES[Number(mk.slice(5))-1].slice(1)} es un mes parcial: sus ventas y neto suman solo ${dm.length} días. La columna comparable es Prom./día.</p></div>`):x;})(table('Mes por mes',['Mes','Ventas','Prom./día','Neto'],ms.map(m=>{const d=ks.filter(k=>k.slice(0,7)===m);const t=mt(m),n=d.reduce((s,k)=>s+B[k].n,0);const tg=m===mx?'<span class="tag">más venta</span>':m===mn?'<span class="tag lo">menos venta</span>':'';return [MES[Number(m.slice(5))-1]+tg+(m===mk&&!comp.includes(m)?`<span class="tag par">parcial</span><small>${d.length} días</small>`:''),crc(t),crc(t/d.length),crc(n)];})))+
     (()=>{const dow=Array(7).fill(0),dn=Array(7).fill(0);ks.forEach(k=>{const i=(dts(k).getDay()+6)%7;dow[i]+=V(k);dn[i]++;});const pr=dow.map((v,i)=>v/Math.max(dn[i],1));return cols('Venta bruta promedio por día de la semana',pr,['L','M','K','J','V','S','D'],'Más alto: '+['lunes','martes','miércoles','jueves','viernes','sábado','domingo'][pr.indexOf(Math.max(...pr))]+' ('+crc(Math.max(...pr))+'). Más bajo: '+['lunes','martes','miércoles','jueves','viernes','sábado','domingo'][pr.indexOf(Math.min(...pr))]+' ('+crc(Math.min(...pr))+').',1,v=>'₡'+cc(v),1);})()+`</div>`;
   // ---- días del mes
   const dsel=ks.filter(k=>k.slice(0,7)===sel),vs=dsel.map(V),bm=Math.max(...vs),wm=Math.min(...vs);
