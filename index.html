@@ -115,6 +115,19 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .hero{border-top:0}
 @media(max-width:859px){.kpis{gap:10px}}
 @media(max-width:559px){[data-c] .blk,.blk[data-c]{padding:14px 12px 12px}.tb{font-size:12px}.tb th{font-size:9.5px;letter-spacing:.03em}.tb td{padding:12px 0}.tb th,.tb td{padding-left:4px}.tb th:first-child,.tb td:first-child{padding-left:0}.st::before{margin-right:4px}}
+
+[data-c=banco]{--cat:#2D5FA0}
+.dayl{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute);margin:0 0 12px}
+.dayl b{font-weight:600;color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+.chips button{border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:12px;letter-spacing:.04em;color:var(--mute)}
+.chips button[aria-pressed=true]{border-color:var(--cat);color:var(--ink);font-weight:600}
+.tag{display:inline-block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--cat);color:var(--cat);padding:1px 6px;border-radius:999px;margin-left:8px;white-space:nowrap}
+.tag.lo{border-color:var(--bad);color:var(--bad)}
+.tb td small{display:block;color:var(--mute);font-size:11px}
+.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi{min-width:0}
+@media(min-width:860px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:559px){.kpi .v{font-size:20px;letter-spacing:-.02em;white-space:nowrap}.kpi .l{font-size:11px;letter-spacing:.1em}.kpi .s{font-size:12px}.hero .num{font-size:clamp(44px,12.5vw,88px)}}
 </style>
 </head>
 <body>
@@ -137,9 +150,11 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
   <div class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-tab="metricas">Métricas</button>
     <button role="tab" aria-selected="false" data-tab="negocio">Negocio</button>
+    <button role="tab" aria-selected="false" data-tab="ingresos">Ingresos digitales</button>
   </div>
   <section id="tab-metricas"></section>
   <section id="tab-negocio" hidden></section>
+  <section id="tab-ingresos" hidden></section>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -191,7 +206,10 @@ function pintar(){
   const susc=sum({fuente:'supabase',metrica:'suscriptores_nuevos'});
   const dev=groups({fuente:'goatcounter',metrica:'dispositivo'}); const devT=dev.reduce((a,x)=>a+x[1],0);
   const redes=['soda','pollos'].flatMap(s=>['Facebook','Instagram'].map(r=>[NEG[s]+' · '+r, last({fuente:'meta',metrica:'seguidores',sitio:s,detalle:r}), last({fuente:'meta',metrica:'seguidores',sitio:s,detalle:r})-first({fuente:'meta',metrica:'seguidores',sitio:s,detalle:r}), sum({fuente:'meta',metrica:'alcance',sitio:s,detalle:r}), sum({fuente:'meta',metrica:'interacciones',sitio:s,detalle:r})]));
-  $('tab-metricas').innerHTML=
+  const dsum=(o,f)=>rows(o).filter(r=>r.fecha===f).reduce((a,r)=>a+Number(r.valor),0);
+  const fv=rows({fuente:'goatcounter',metrica:'visitas'}).map(r=>r.fecha).sort().pop();
+  const ultV=fv?`<div class="dayl">Último día · <b>${fl(fv)}</b></div>`+kpis([{c:'visitas',l:'Visitas',v:fmt(dsum({fuente:'goatcounter',metrica:'visitas'},fv)),s:'a los tres sitios'},{c:'visitas',l:'Visitantes únicos',v:fmt(dsum({fuente:'goatcounter',metrica:'visitantes'},fv))},{c:'visitas',l:'Contactos directos',v:fmt(dsum({fuente:'goatcounter',metrica:'clic',detalle:'Enviar por WhatsApp'},fv)+dsum({fuente:'goatcounter',metrica:'clic',detalle:'Llamar'},fv)),s:'WhatsApp y llamadas'},{c:'redes',l:'Suscriptores nuevos',v:'+'+fmt(dsum({fuente:'supabase',metrica:'suscriptores_nuevos'},fv))}])+'<div class="dayl">Últimos 14 días</div>':'';
+  $('tab-metricas').innerHTML=ultV+
     C('visitas',hero('Visitas a los sitios · 14 días',fmt(visT),vis))+
     kpis([{c:'visitas',l:'Visitantes únicos',v:fmt(uni),s:pct(uni,visT)+' de las visitas'},{c:'visitas',l:'Contactos directos',v:fmt(contactos),s:'WhatsApp y llamadas'},{c:'redes',l:'Lista de novedades',v:'+'+fmt(susc),s:'suscriptores en 14 días'},{c:'sistema',l:'Disponibilidad',v:stt(upt,upt.toFixed(2)+' %'),s:'promedio de los sitios'}])+
     `<div class="g" data-c="visitas">${table('Por sitio',['Sitio','Visitas','Únicos','Disp.','Resp.'],['soda','pollos','papea'].map(s=>[NEG[s],fmt(sum({fuente:'goatcounter',metrica:'visitas',sitio:s})),fmt(sum({fuente:'goatcounter',metrica:'visitantes',sitio:s})),(u=>stt(u,u.toFixed(2)+' %'))(avg({fuente:'uptimerobot',metrica:'uptime_pct',sitio:s})),fmt(avg({fuente:'uptimerobot',metrica:'respuesta_ms',sitio:s}))+' ms']))}</div>`+
@@ -210,7 +228,9 @@ function pintar(){
   const prods=['soda','pollos','papea'].flatMap(s=>groups({fuente:'pedidos',metrica:'producto',sitio:s}).map(g=>[g[0],g[1],NEG[s]])).sort((a,b)=>b[1]-a[1]).slice(0,10);
   const local=sum({fuente:'prisma',metrica:'venta_local_crc'}), localT=sum({fuente:'prisma',metrica:'tiquetes_local'});
   const vsT=sum({fuente:'goatcounter',metrica:'visitantes'});
-  $('tab-negocio').innerHTML=
+  const fp=rows({fuente:'pedidos',metrica:'pedidos'}).map(r=>r.fecha).sort().pop();
+  const ultN=fp?(()=>{const p=dsum({fuente:'pedidos',metrica:'pedidos'},fp),vv=dsum({fuente:'pedidos',metrica:'venta_crc'},fp);return `<div class="dayl">Último día · <b>${fl(fp)}</b></div>`+kpis([{c:'ventas',l:'Pedidos',v:fmt(p)},{c:'ventas',l:'Ventas en línea',v:crc(vv)},{c:'ped',l:'Ticket promedio',v:crc(vv/Math.max(p,1))},{c:'ventas',l:'Ventas del local',v:crc(dsum({fuente:'prisma',metrica:'venta_local_crc'},fp)),s:fmt(dsum({fuente:'prisma',metrica:'tiquetes_local'},fp))+' tiquetes'}])+'<div class="dayl">Últimos 14 días</div>';})():'';
+  $('tab-negocio').innerHTML=ultN+
     C('ventas',hero('Ventas en línea · 14 días',crc(venT),ven))+
     kpis([{c:'ventas',l:'Pedidos',v:fmt(pedT),s:fmt(pedT/Math.max(fechas.length,1))+' por día'},{c:'ped',l:'Ticket promedio',v:crc(venT/Math.max(pedT,1)),s:'venta ÷ pedidos'},{c:'redes',l:'Clientes nuevos',v:pct(nue,nue+rec),s:fmt(rec)+' recurrentes'},{c:'ventas',l:'Conversión',v:(pedT/Math.max(vsT,1)*100).toFixed(1)+' %',s:'pedidos ÷ visitantes únicos'}])+
     `<div class="g" data-c="ventas">${table('Por negocio',['Negocio','Pedidos','Ventas','Ticket'],['soda','pollos','papea'].map(s=>{const p=sum({fuente:'pedidos',metrica:'pedidos',sitio:s}),v=sum({fuente:'pedidos',metrica:'venta_crc',sitio:s});return [NEG[s],fmt(p),crc(v),crc(v/Math.max(p,1))];}))}</div>`+
@@ -226,6 +246,90 @@ function pintar(){
       <div class="br"><div class="split"><u style="width:${nue/Math.max(nue+rec,1)*100}%"></u></div><div class="s2">${pct(nue,nue+rec)} nuevos, ${pct(rec,nue+rec)} recurrentes</div></div></div></div>`;
 }
 
+
+/* ---- Ingresos digitales (tarjetas del BCR) ---- */
+const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DIA=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const dts=f=>new Date(f+'T12:00:00');
+function fl(f){const d=dts(f);return DIA[d.getDay()]+' '+d.getDate()+' de '+MES[d.getMonth()];}
+function addd(f,n){const d=dts(f);d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+const sd=a=>{if(a.length<2)return 0;const m=mean(a);return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/(a.length-1));};
+const p2=n=>(n*100).toFixed(2).replace('.',',')+' %';
+const p1=n=>(n*100).toFixed(1).replace('.',',')+' %';
+const dif=(a,b)=>b?((a/b-1)>=0?'▲ ':'▼ ')+Math.abs((a/b-1)*100).toFixed(0)+' %':'—';
+let B={},mesSel=null;
+const KEY={tarjeta_bruto:'b',tarjeta_vouchers:'v',tarjeta_comision:'c',tarjeta_iva:'i',tarjeta_renta:'r',tarjeta_neto:'n'};
+function armarB(a){B={};a.forEach(r=>{const k=KEY[r.metrica];if(!k)return;const o=B[r.fecha]||(B[r.fecha]={b:0,v:0,c:0,i:0,r:0,n:0,rev:false});o[k]=Number(r.valor);if(k==='b'&&/revisar/.test(r.detalle))o.rev=true;});}
+function pintarIng(){
+  const el=$('tab-ingresos');const ks=Object.keys(B).sort();
+  if(!ks.length){el.innerHTML='<div class="g" data-c="banco"><div class="blk"><h2>Sin datos todavía</h2><p class="note">Los comprobantes del BCR aún no se han cargado.</p></div></div>';return;}
+  const T=ks[ks.length-1],x=B[T],V=k=>B[k]?B[k].b:0;
+  const wd=dts(T).getDay(),mismo=ks.filter(k=>dts(k).getDay()===wd&&k<T),pw=mean(mismo.map(V));
+  const rk=[...ks].sort((a,b)=>V(b)-V(a)),pos=rk.indexOf(T)+1;
+  const ayer=addd(T,-1),sem=addd(T,-7);
+  const u30=ks.slice(-30).map(V);
+  const tk=ks.map(k=>B[k].b/B[k].v),tn=ks.map(k=>B[k].n/B[k].v);
+  const mk=T.slice(0,7);
+  const sel=mesSel||mk;
+  // ---- el día
+  let h=`<div class="dayl">Último día con datos · <b>${fl(T)}</b></div>`;
+  h+=C('banco',`<div class="hero"><div class="lbl">Ventas con tarjeta</div><div class="num">${crc(x.b)}</div><span class="delta">${dif(x.b,pw)} frente al promedio de los ${DIA[wd]}${DIA[wd].endsWith('s')?'':'s'} (${crc(pw)})</span>${area(u30)}</div>`);
+  h+=kpis([{c:'banco',l:'Neto depositado',v:crc(x.n),s:p1(x.n/x.b)+' de la venta'},{c:'banco',l:'Comisión',v:crc(x.c),s:p2(x.c/x.b)+' de la venta'},{c:'banco',l:'Retenciones',v:crc(x.i+x.r),s:'IVA '+crc(x.i)+' · renta '+crc(x.r)},{c:'banco',l:'Vouchers',v:fmt(x.v),s:'ticket '+crc(x.b/x.v)+' bruto · '+crc(x.n/x.v)+' neto'}]);
+  h+=`<div class="g c2" data-c="banco">`+
+    table('El día frente a su contexto',['','Ventas','Dif.'],[
+      ['Ayer<small>'+fl(ayer)+'</small>',B[ayer]?crc(B[ayer].b):'—',B[ayer]?dif(x.b,B[ayer].b):'—'],
+      ['Hace 7 días<small>'+fl(sem)+'</small>',B[sem]?crc(B[sem].b):'—',B[sem]?dif(x.b,B[sem].b):'—'],
+      ['Promedio de los '+DIA[wd]+(DIA[wd].endsWith('s')?'':'s')+'<small>'+mismo.length+' semanas</small>',crc(pw),dif(x.b,pw)],
+      ['Posición en el año<small>de mayor a menor</small>',pos+' de '+ks.length,''],
+      ['Mejor día del año<small>'+fl(rk[0])+'</small>',crc(V(rk[0])),''],
+      ['Día con menos venta<small>'+fl(rk[rk.length-1])+'</small>',crc(V(rk[rk.length-1])),'']])+
+    bars('De la venta al depósito',[['Ventas brutas',x.b,'100 %'],['Comisión',x.c,p2(x.c/x.b)],['Retención de IVA',x.i,p2(x.i/x.b)],['Retención de renta',x.r,p2(x.r/x.b)],['Neto depositado',x.n,p2(x.n/x.b)]],crc,x.b,'El comprobante trae totales por lote y marca, no el monto de cada voucher. Por eso no hay mínimo ni máximo por voucher.')+`</div>`;
+  // ---- mes en curso
+  const dm=ks.filter(k=>k.slice(0,7)===mk),sm=a=>a.reduce((s,k)=>s+B[k].b,0);
+  const mp=addd(mk+'-01',-1).slice(0,7),dp=ks.filter(k=>k.slice(0,7)===mp).slice(0,dm.length);
+  const tot=f=>dm.reduce((s,k)=>s+B[k][f],0);
+  const mesN=MES[Number(mk.slice(5))-1];
+  h+=`<div class="dayl" style="margin-top:34px">Agregados · <b>${mesN} (${dm.length} ${dm.length==1?'día':'días'})</b></div>`;
+  h+=kpis([{c:'banco',l:'Ventas del mes',v:crc(tot('b')),s:dp.length?dif(tot('b'),sm(dp))+' vs '+MES[Number(mp.slice(5))-1]+' (mismos días)':''},{c:'banco',l:'Promedio por día',v:crc(tot('b')/dm.length)},{c:'banco',l:'Neto del mes',v:crc(tot('n')),s:p1(tot('n')/tot('b'))+' de la venta'},{c:'banco',l:'Comisión y retenciones',v:crc(tot('c')+tot('i')+tot('r')),s:p1((tot('c')+tot('i')+tot('r'))/tot('b'))+' de la venta'}]);
+  // ---- meses
+  const ms=[...new Set(ks.map(k=>k.slice(0,7)))];
+  const comp=ms.filter(m=>m!==mk||ks.filter(k=>k.slice(0,7)===m).length>=new Date(Number(m.slice(0,4)),Number(m.slice(5)),0).getDate());
+  const mt=m=>ks.filter(k=>k.slice(0,7)===m).reduce((s,k)=>s+B[k].b,0);
+  const mx=comp.reduce((a,m)=>mt(m)>mt(a)?m:a,comp[0]),mn=comp.reduce((a,m)=>mt(m)<mt(a)?m:a,comp[0]);
+  h+=`<div class="g c2" data-c="banco">`+
+    table('Mes por mes',['Mes','Ventas','Prom./día','Neto'],ms.map(m=>{const d=ks.filter(k=>k.slice(0,7)===m);const t=mt(m),n=d.reduce((s,k)=>s+B[k].n,0);const tg=m===mx?'<span class="tag">más venta</span>':m===mn?'<span class="tag lo">menos venta</span>':'';return [MES[Number(m.slice(5))-1]+tg+(d.length<28&&m===mk?`<small>${d.length} días</small>`:''),crc(t),crc(t/d.length),crc(n)];}).reverse())+
+    (()=>{const dow=Array(7).fill(0),dn=Array(7).fill(0);ks.forEach(k=>{const i=(dts(k).getDay()+6)%7;dow[i]+=V(k);dn[i]++;});const pr=dow.map((v,i)=>v/Math.max(dn[i],1));return cols('Venta promedio por día de la semana',pr,['L','M','K','J','V','S','D'],'Más alto: '+['lunes','martes','miércoles','jueves','viernes','sábado','domingo'][pr.indexOf(Math.max(...pr))]+' ('+crc(Math.max(...pr))+'). Más bajo: '+['lunes','martes','miércoles','jueves','viernes','sábado','domingo'][pr.indexOf(Math.min(...pr))]+' ('+crc(Math.min(...pr))+').',1);})()+`</div>`;
+  // ---- días del mes
+  const dsel=ks.filter(k=>k.slice(0,7)===sel),vs=dsel.map(V),bm=Math.max(...vs),wm=Math.min(...vs);
+  h+=`<div class="g" data-c="banco"><div class="blk"><h2>Días de ${MES[Number(sel.slice(5))-1]}</h2><div class="chips">${ms.slice().reverse().map(m=>`<button data-mes="${m}" aria-pressed="${m===sel}">${MES[Number(m.slice(5))-1].slice(0,3)}</button>`).join('')}</div>
+   <table class="tb"><thead><tr><th>Día</th><th>Ventas</th><th>Vouchers</th><th>Ticket</th></tr></thead><tbody>${dsel.slice().reverse().map(k=>{const b=B[k];const tg=b.b===bm?'<span class="tag">mejor</span>':b.b===wm?'<span class="tag lo">menor</span>':'';return `<tr><td>${dts(k).getDate()} ${DIA[dts(k).getDay()].slice(0,3)}${tg}${b.rev?'<small>total del comprobante por revisar</small>':''}</td><td>${crc(b.b)}</td><td>${fmt(b.v)}</td><td>${crc(b.b/b.v)}</td></tr>`;}).join('')}</tbody></table></div></div>`;
+  // ---- tendencia
+  const ma=(n,end)=>{const a=ks.slice(Math.max(0,end-n),end);return mean(a.map(V));};
+  const L=ks.length,m7=ma(7,L),m7p=ma(7,L-7),m30=ma(30,L),m30p=ma(30,L-30);
+  h+=`<div class="dayl" style="margin-top:34px">Tendencia</div>`+kpis([{c:'banco',l:'Promedio móvil 7 días',v:crc(m7),s:dif(m7,m7p)+' vs 7 días previos'},{c:'banco',l:'Promedio móvil 30 días',v:crc(m30),s:dif(m30,m30p)+' vs 30 días previos'},{c:'banco',l:'Promedio del año',v:crc(mean(ks.map(V))),s:ks.length+' días'},{c:'banco',l:'Variación diaria',v:p1(sd(ks.map(V))/mean(ks.map(V))),s:'coef. de variación de las ventas'}]);
+  h+=`<div class="g" data-c="banco">${cols('Ventas diarias · últimos 60 días',ks.slice(-60).map(V),['hace 60 d','','','','hoy'],null,0)}</div>`;
+  // ---- ticket
+  const n=mean(ks.map(k=>B[k].v)),t30=tk.slice(-30),n30=tn.slice(-30);
+  const pond=ks.reduce((s,k)=>s+B[k].b,0)/ks.reduce((s,k)=>s+B[k].v,0),pondn=ks.reduce((s,k)=>s+B[k].n,0)/ks.reduce((s,k)=>s+B[k].v,0);
+  h+=`<div class="g c2" data-c="banco">`+
+    table('Ticket medio',['','Bruto','Neto'],[
+      ['Del día<small>'+fl(T)+'</small>',crc(tk[tk.length-1]),crc(tn[tn.length-1])],
+      ['Ponderado del año<small>ventas ÷ vouchers</small>',crc(pond),crc(pondn)],
+      ['Promedio de los tickets diarios',crc(mean(tk)),crc(mean(tn))],
+      ['Desviación estándar diaria',crc(sd(tk)),crc(sd(tn))],
+      ['Coeficiente de variación',p1(sd(tk)/mean(tk)),p1(sd(tn)/mean(tn))],
+      ['Últimos 30 días<small>desviación estándar</small>',crc(sd(t30)),crc(sd(n30))],
+      ['Últimos 30 días<small>coef. de variación</small>',p1(sd(t30)/mean(t30)),p1(sd(n30)/mean(n30))],
+      ['Desviación por voucher<small>estimada: s·√n, con n = '+fmt(n)+' vouchers al día</small>',crc(sd(tk)*Math.sqrt(n)),crc(sd(tn)*Math.sqrt(n))]])+
+    table('Comisión y retenciones por mes',['Mes','Comisión','Ret. IVA','Ret. renta'],ms.map(m=>{const d=ks.filter(k=>k.slice(0,7)===m),f=q=>d.reduce((s,k)=>s+B[k][q],0);return [MES[Number(m.slice(5))-1],crc(f('c')),crc(f('i')),crc(f('r'))];}).reverse().concat([['Acumulado del año',crc(ks.reduce((s,k)=>s+B[k].c,0)),crc(ks.reduce((s,k)=>s+B[k].i,0)),crc(ks.reduce((s,k)=>s+B[k].r,0))]]))+`</div>`;
+  const nrev=ks.filter(k=>B[k].rev).length;
+  h+=`<div class="g" data-c="banco"><div class="blk"><h2>SINPE Móvil</h2><p class="note">Pendiente. Se alimentará con los PDF del banco cuando los cargues.</p></div></div>`;
+  if(nrev)h+=`<p class="note">${nrev} días tienen el total impreso del comprobante inconsistente con la suma de sus lotes. Aquí se usa siempre la suma de los lotes.</p>`;
+  el.innerHTML=h;
+  el.querySelectorAll('[data-mes]').forEach(b=>b.onclick=()=>{mesSel=b.dataset.mes;pintarIng();});
+}
+
 async function traer(){
   const desde=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
   let all=[],from=0;
@@ -236,9 +340,20 @@ async function traer(){
   }
   return all;
 }
+async function traerBcr(){
+  let all=[],from=0;
+  for(;;){
+    const {data,error}=await sb.from('panel_metricas').select('fecha,metrica,detalle,valor').eq('fuente','bcr').order('fecha').range(from,from+999);
+    if(error) throw error;
+    all=all.concat(data); if(data.length<1000) break; from+=1000;
+  }
+  return all;
+}
 async function cargar(){
   try{R=await traer();pintar();}
   catch(e){$('tab-metricas').innerHTML='<div class="blk"><h2>No se pudieron cargar los datos</h2></div>';}
+  try{armarB(await traerBcr());pintarIng();}
+  catch(e){$('tab-ingresos').innerHTML='<div class="blk"><h2>No se pudieron cargar los ingresos</h2></div>';}
 }
 async function validar(session){
   if(!session){$('app').hidden=true;$('login').hidden=false;return;}
@@ -252,7 +367,7 @@ $('btnLogin').onclick=()=>sb.auth.signInWithOAuth({provider:'azure',options:{sco
 $('btnSalir').onclick=async()=>{await sb.auth.signOut();location.reload();};
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));
-  $('tab-metricas').hidden=b.dataset.tab!=='metricas';$('tab-negocio').hidden=b.dataset.tab!=='negocio';
+  ['metricas','negocio','ingresos'].forEach(t=>$('tab-'+t).hidden=b.dataset.tab!==t);
 });
 sb.auth.getSession().then(({data})=>validar(data.session));
 sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT')validar(null);});
