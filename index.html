@@ -152,7 +152,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .lg{font-size:12px;color:var(--mute);margin:6px 0 0}
 .lg b{display:inline-block;width:18px;height:0;border-top:2px solid var(--cat);vertical-align:middle;margin:0 6px 0 0}
 .lg b.f{border-top-width:1px;opacity:.5}
-</style>
+.alerta{border:1px solid #B81622;border-left-width:3px;border-radius:10px;padding:12px 16px;margin:4px 0 18px;background:#fff;display:grid;gap:4px;font-size:13px;color:#4a3f3f}.alerta b{color:#B81622;font-weight:700;font-size:14px}</style>
 </head>
 <body>
 
@@ -173,8 +173,8 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
   </div>
   <div class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-tab="metricas">Métricas</button>
-    <button role="tab" aria-selected="false" data-tab="negocio">Negocio</button>
     <button role="tab" aria-selected="false" data-tab="paginas">Páginas</button>
+    <button role="tab" aria-selected="false" data-tab="negocio">Negocio</button>
     <button role="tab" aria-selected="false" data-tab="ingresos">Ingresos digitales</button>
   </div>
   <section id="tab-metricas"></section>
@@ -293,7 +293,28 @@ const p1=n=>(n*100).toFixed(1).replace('.',',')+' %';
 const dif=(a,b)=>b?((a/b-1)>=0?'▲ ':'▼ ')+Math.abs((a/b-1)*100).toFixed(0)+' %':'—';
 let B={},mesSel=null;
 const KEY={tarjeta_bruto:'b',tarjeta_vouchers:'v',tarjeta_comision:'c',tarjeta_iva:'i',tarjeta_renta:'r',tarjeta_neto:'n'};
-function armarB(a){B={};a.forEach(r=>{const k=KEY[r.metrica];if(!k)return;const o=B[r.fecha]||(B[r.fecha]={b:0,v:0,c:0,i:0,r:0,n:0,rev:false});o[k]=Number(r.valor);if(k==='b'&&/revisar/.test(r.detalle))o.rev=true;});}
+let SP={},SPM={};
+function armarB(a){B={};SP={};SPM={};a.forEach(r=>{if(r.metrica==='sinpe_monto'||r.metrica==='sinpe_cantidad'){const o=SP[r.fecha]||(SP[r.fecha]={m:0,n:0});o[r.metrica==='sinpe_monto'?'m':'n']+=Number(r.valor);return;}if(r.metrica==='sinpe_desv_pago'||r.metrica==='sinpe_mediana_pago'){const o=SPM[r.fecha.slice(0,7)]||(SPM[r.fecha.slice(0,7)]={});o[r.metrica==='sinpe_desv_pago'?'sd':'md']=Number(r.valor);return;}const k=KEY[r.metrica];if(!k)return;const o=B[r.fecha]||(B[r.fecha]={b:0,v:0,c:0,i:0,r:0,n:0,rev:false});o[k]+=Number(r.valor);if(k==='b')o.k=(o.k||0)+1;if(k==='b'&&/revisar/.test(r.detalle))o.rev=true;});}
+
+function sinpeHtml(){
+  const sk=Object.keys(SP).sort();
+  if(!sk.length)return `<div class="g" data-c="banco"><div class="blk"><h2>SINPE Móvil</h2><p class="note">Sin datos todavía.</p></div></div>`;
+  const ms=[...new Set(sk.map(k=>k.slice(0,7)))];
+  const tm=m=>sk.filter(k=>k.slice(0,7)===m).reduce((t,k)=>t+SP[k].m,0),tn=m=>sk.filter(k=>k.slice(0,7)===m).reduce((t,k)=>t+SP[k].n,0);
+  const tb=m=>Object.keys(B).filter(k=>k.slice(0,7)===m).reduce((t,k)=>t+B[k].b,0);
+  const M=sk.reduce((t,k)=>t+SP[k].m,0),N=sk.reduce((t,k)=>t+SP[k].n,0);
+  const comunes=sk.filter(k=>B[k]),pS=comunes.reduce((t,k)=>t+SP[k].m,0),pT=comunes.reduce((t,k)=>t+B[k].b,0);
+  const full=ms.filter(m=>sk.filter(k=>k.slice(0,7)===m).length>=20);
+  let h=`<div class="dayl" style="margin-top:34px">SINPE Móvil · cuenta en colones de la Soda</div><div class="mes">${T0(sk)}<small>${dl(sk[0])} al ${dl(sk[sk.length-1])} · ${sk.length} días con pagos</small></div>`;
+  h+=kpis([{c:'banco',l:'Recibido por SINPE Móvil',v:crc(M),s:'bruto, '+fmt(N)+' pagos'},{c:'banco',l:'Promedio por pago',v:crc(M/N),s:'monto ÷ pagos'},{c:'banco',l:'Promedio por día',v:crc(M/sk.length),s:fmt(N/sk.length)+' pagos al día'},{c:'banco',l:'Peso frente a tarjeta',v:p1(pS/(pS+pT)),s:'del cobro digital (SINPE + tarjeta), mismos días'}]);
+  h+=`<div class="g" data-c="banco">`+table('SINPE Móvil mes por mes',['Mes','Pagos','Monto','Prom./pago','Desv. por pago','CV','Mediana','Prom./día','% del cobro digital'],ms.map(m=>{const d=sk.filter(k=>k.slice(0,7)===m).length,x=tm(m),n=tn(m),st=SPM[m]||{};const pa=d<20?' <span class="tag lo">parcial</span>':'';return [MES[Number(m.slice(5))-1]+pa,fmt(n),crc(x),crc(x/n),st.sd?crc(st.sd):'—',st.sd?p1(st.sd/(x/n)):'—',st.md?crc(st.md):'—',crc(x/d),tb(m)?p1(x/(x+tb(m))):'—'];}))+`</div>`;
+  h+=`<div class="g c2" data-c="banco">${cols('SINPE Móvil por mes',full.map(tm),full.map(m=>MES[Number(m.slice(5))-1].slice(0,3)),'Eje vertical: colones recibidos (bruto). Eje horizontal: mes, de enero a la fecha. Solo meses con datos completos.',1,v=>'₡'+cc(v))}${(()=>{const dow=Array(7).fill(0),dn=Array(7).fill(0);sk.forEach(k=>{const i=(dts(k).getDay()+6)%7;dow[i]+=SP[k].m;dn[i]++;});const pr=dow.map((v,i)=>v/Math.max(dn[i],1));return cols('SINPE promedio por día de la semana',pr,['L','M','K','J','V','S','D'],'Eje vertical: colones promedio por día. Eje horizontal: día de la semana, de lunes a domingo.',1,v=>'₡'+cc(v));})()}</div>`;
+  const u=sk.slice(-60);
+  h+=`<div class="g" data-c="banco">${cols('SINPE Móvil diario · últimos 60 días con datos',u.map(k=>SP[k].m),dlabs(u),'Eje vertical: colones recibidos por día. Eje horizontal: fecha, de la más antigua a la más reciente.',0,v=>'₡'+cc(v))}</div>`;
+  h+=`<p class="note">Fuente: estados de cuenta del BCR, columna de crédito, solo los movimientos de SINPE Móvil. Quedan fuera el depósito de ventas en efectivo de enero (₡3.000.000), la transferencia de febrero (₡1.000.000), los intereses y una prueba de ₡10. Los pagos de SINPE empiezan en marzo. Octubre se agrega cuando el banco emita el estado del mes.</p>`;
+  return h;
+}
+function T0(sk){return sk[0].slice(0,4);}
 function pintarIng(){
   const el=$('tab-ingresos');const ks=Object.keys(B).sort();
   if(!ks.length){el.innerHTML='<div class="g" data-c="banco"><div class="blk"><h2>Sin datos todavía</h2><p class="note">Los comprobantes del BCR aún no se han cargado.</p></div></div>';return;}
@@ -307,8 +328,10 @@ function pintarIng(){
   const sel=mesSel||mk;
   // ---- el día
   let h=`<div class="dayl">Último día con datos · <b>${fl(T)}</b></div>`;
+  const raros=ks.slice(-30).filter(k=>{const w=dts(k).getDay(),ref=mean(ks.filter(z=>dts(z).getDay()===w&&z!==k).map(V));return ref&&(V(k)<0.4*ref||V(k)>2.5*ref);});
+  if(raros.length)h+=`<div class="alerta"><b>Revisar ${raros.length===1?'un día':raros.length+' días'} con valores fuera de lo normal</b>${raros.map(k=>{const w=dts(k).getDay(),ref=mean(ks.filter(z=>dts(z).getDay()===w&&z!==k).map(V));return `<span>${fl(k)}: ${crc(V(k))} en tarjeta, frente a ${crc(ref)} de un ${DIA[w]} típico (${dif(V(k),ref)}). Puede faltar un comprobante o haber un problema con el datáfono.</span>`;}).join('')}</div>`;
   h+=C('banco',`<div class="hero"><div class="lbl">Ventas brutas con tarjeta</div><div class="num">${crc(x.b)}</div><span class="delta">${dif(x.b,pw)} frente al promedio de los ${DIA[wd]}${DIA[wd].endsWith('s')?'':'s'} (${crc(pw)})</span>${lineAx(u30,dlabs(ks.slice(-30)),v=>'₡'+cc(v))}</div>`);
-  h+=kpis([{c:'banco',l:'Neto depositado',v:crc(x.n),s:p1(x.n/x.b)+' de la venta'},{c:'banco',l:'Comisión',v:crc(x.c),s:p2(x.c/x.b)+' de la venta'},{c:'banco',l:'Retenciones',v:crc(x.i+x.r),s:'IVA '+crc(x.i)+' · renta '+crc(x.r)},{c:'banco',l:'Vouchers',v:fmt(x.v),s:'ticket '+crc(x.b/x.v)+' bruto · '+crc(x.n/x.v)+' neto'}]);
+  h+=kpis([{c:'banco',l:'Neto depositado',v:crc(x.n),s:p1(x.n/x.b)+' de la venta'},{c:'banco',l:'Comisión',v:crc(x.c),s:p2(x.c/x.b)+' de la venta'},{c:'banco',l:'Retenciones',v:crc(x.i+x.r),s:'IVA '+crc(x.i)+' · renta '+crc(x.r)},{c:'banco',l:'Comprobantes del día',v:fmt(x.k||1),s:(x.k>1?'se sumaron los '+x.k+' correos del depósito · ':'')+fmt(x.v)+' vouchers · ticket '+crc(x.b/x.v)}]);
   h+=`<div class="g c2" data-c="banco">`+
     table('El día frente a su contexto',['','Ventas brutas','Dif.'],[
       ['Ayer<small>'+fl(ayer)+'</small>',B[ayer]?crc(B[ayer].b):'—',B[ayer]?dif(x.b,B[ayer].b):'—'],
@@ -343,7 +366,7 @@ function pintarIng(){
   const nd=new Date(Number(sel.slice(0,4)),Number(sel.slice(5)),0).getDate(),dv=Array(nd).fill(0);dsel.forEach(k=>dv[Number(k.slice(8))-1]=V(k));
   const dlb=dv.map((_,i)=>[1,5,10,15,20,25,nd].includes(i+1)?String(i+1):'');
   h+=`<div class="g" data-c="banco"><div class="blk"><h2>Días de ${MES[Number(sel.slice(5))-1]} · ventas brutas</h2><div class="chips">${ms.map(m=>`<button data-mes="${m}" aria-pressed="${m===sel}">${MES[Number(m.slice(5))-1].slice(0,3)}</button>`).join('')}</div>
-   <div class="mg"><div><table class="tb"><thead><tr><th>Día</th><th>Ventas</th><th>Vouchers</th><th>Ticket</th></tr></thead><tbody>${dsel.map(k=>{const b=B[k];const tg=b.b===bm?'<span class="tag">mejor</span>':b.b===wm?'<span class="tag lo">menor</span>':'';return `<tr><td>${Number(k.slice(8))} ${DIA[dts(k).getDay()].slice(0,3)}${tg}${b.rev?'<small>total del comprobante por revisar</small>':''}</td><td>${crc(b.b)}</td><td>${fmt(b.v)}</td><td>${crc(b.b/b.v)}</td></tr>`;}).join('')}</tbody></table></div>
+   <div class="mg"><div><table class="tb"><thead><tr><th>Día</th><th>Ventas</th><th>Vouchers</th><th>Ticket</th></tr></thead><tbody>${dsel.map(k=>{const b=B[k];const tg=b.b===bm?'<span class="tag">mejor</span>':b.b===wm?'<span class="tag lo">menor</span>':'';return `<tr><td>${Number(k.slice(8))} ${DIA[dts(k).getDay()].slice(0,3)}${tg}${b.rev?'<small>total del comprobante por revisar</small>':''}${b.k>1?'<small>'+b.k+' comprobantes sumados</small>':''}</td><td>${crc(b.b)}</td><td>${fmt(b.v)}</td><td>${crc(b.b/b.v)}</td></tr>`;}).join('')}</tbody></table></div>
    <div class="c">${barsAx(dv,dlb,v=>'₡'+cc(v),0,mean(vs))}<p class="lg"><b style="border-top-style:dashed;border-top-width:1px"></b>Promedio del mes ${crc(mean(vs))}</p></div></div></div></div>`;
   // ---- tendencia
   const ma=(n,end)=>{const a=ks.slice(Math.max(0,end-n),end);return mean(a.map(V));};
@@ -365,7 +388,7 @@ function pintarIng(){
       ['Desviación por voucher<small>estimada: s·√n, con n = '+fmt(n)+' vouchers al día</small>',crc(sd(tk)*Math.sqrt(n)),crc(sd(tn)*Math.sqrt(n))]])+
     table('Comisión y retenciones por mes',['Mes','Comisión','Ret. IVA','Ret. renta'],ms.map(m=>{const d=ks.filter(k=>k.slice(0,7)===m),f=q=>d.reduce((s,k)=>s+B[k][q],0);return [MES[Number(m.slice(5))-1],crc(f('c')),crc(f('i')),crc(f('r'))];}).concat([['Acumulado del año',crc(ks.reduce((s,k)=>s+B[k].c,0)),crc(ks.reduce((s,k)=>s+B[k].i,0)),crc(ks.reduce((s,k)=>s+B[k].r,0))]]))+`</div>`;
   const nrev=ks.filter(k=>B[k].rev).length;
-  h+=`<div class="g" data-c="banco"><div class="blk"><h2>SINPE Móvil</h2><p class="note">Pendiente. Se alimentará con los PDF del banco cuando los cargues.</p></div></div>`;
+  h+=sinpeHtml();
   if(nrev)h+=`<p class="note">${nrev} días tienen el total impreso del comprobante inconsistente con la suma de sus lotes. Aquí se usa siempre la suma de los lotes.</p>`;
   el.innerHTML=h;
   el.querySelectorAll('[data-mes]').forEach(b=>b.onclick=()=>{mesSel=b.dataset.mes;pintarIng();});
