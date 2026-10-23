@@ -362,9 +362,37 @@ function pintarIng(){
   el.querySelectorAll('[data-mes]').forEach(b=>b.onclick=()=>{mesSel=b.dataset.mes;pintarIng();});
 }
 
-/* ---- Redes sociales ---- */
+/* ---- Redes sociales (Meta, API oficial) ---- */
+let M=[];
+async function traerMeta(){let all=[],from=0;const desde=addd(new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'}),-60);for(;;){const {data,error}=await sb.from('panel_metricas').select('fecha,sitio,metrica,valor').eq('fuente','meta').gte('fecha',desde).order('fecha').range(from,from+999);if(error)throw error;all=all.concat(data);if(data.length<1000)break;from+=1000;}return all;}
+const CUENTAS=[['fb-soda','Facebook · Soda La Bomba'],['fb-pollos','Facebook · Pollos La Bomba & PAPEA'],['ig-sodaypolloslabomba','Instagram · @sodaypolloslabomba']];
+// métrica equivalente en Facebook e Instagram
+const EQ={vistas:{fb:'page_media_view',ig:'views'},alcance:{fb:'page_total_media_view_unique',ig:'reach'},perfil:{fb:'page_views_total',ig:'profile_views'},inter:{fb:'page_post_engagements',ig:'total_interactions'},nuevos:{fb:'page_daily_follows_unique',ig:'seguidores_nuevos'}};
+const mk=(s,k)=>EQ[k][s.slice(0,2)];
+const mv=(s,m,f)=>M.filter(r=>r.sitio===s&&r.metrica===m&&(!f||r.fecha===f)).reduce((a,r)=>a+Number(r.valor),0);
+const mserie=(k,ds,ss)=>ds.map(d=>(ss||CUENTAS.map(c=>c[0])).reduce((a,s)=>a+mv(s,mk(s,k),d),0));
+const msnap=(s,m)=>{const a=M.filter(r=>r.sitio===s&&r.metrica===m).sort((x,y)=>x.fecha<y.fecha?-1:1);return a.length?Number(a[a.length-1].valor):0;};
 function pintarRedes(){
-  $('tab-redes').innerHTML=`<div class="g" data-c="redes"><div class="blk"><h2>Sin conectar</h2><p class="note">Esta pestaña mostrará seguidores, alcance e interacciones de Facebook e Instagram de Soda La Bomba y Pollos La Bomba cuando se conecte Meta. Mientras tanto no muestra números, para no confundir con datos de ejemplo.</p></div></div>`;
+  const el=$('tab-redes');
+  if(!M.length){el.innerHTML='<div class="blk"><h2>Sin datos de Meta todavía</h2><p class="note">La conexión con Meta se actualiza dos veces al día.</p></div>';return;}
+  const hoy=new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'});
+  const ds=[];for(let i=29;i>=0;i--)ds.push(addd(hoy,-i));
+  const S=CUENTAS.map(c=>c[0]);
+  const seg=S.reduce((a,s)=>a+msnap(s,'seguidores'),0);
+  const tot=(k,f)=>S.reduce((a,s)=>a+mv(s,mk(s,k),f),0);
+  const t30=k=>mserie(k,ds).reduce((a,b)=>a+b,0);
+  let h=`<div class="dayl">Hoy · <b>${fl(hoy)}</b> · datos parciales hasta la última actualización</div>`;
+  h+=kpis([
+    {c:'redes',l:'Seguidores',v:fmt(seg),s:CUENTAS.map(c=>c[1].split(' · ')[1].replace('Soda La Bomba','Soda').replace('Pollos La Bomba & PAPEA','Pollos')+' '+fmt(msnap(c[0],'seguidores'))).join(' · ')},
+    {c:'redes',l:'Vistas de contenido',v:fmt(tot('vistas',hoy)),s:'ayer '+fmt(tot('vistas',addd(hoy,-1)))},
+    {c:'redes',l:'Visitas a los perfiles',v:fmt(tot('perfil',hoy)),s:'ayer '+fmt(tot('perfil',addd(hoy,-1)))},
+    {c:'redes',l:'Interacciones',v:fmt(tot('inter',hoy)),s:'me gusta, comentarios, compartidos y guardados'}]);
+  h+=`<div class="dayl">Últimos 30 días</div><div class="g c2" data-c="redes">${cols('Vistas de contenido por día',mserie('vistas',ds),dlabs(ds),'Eje vertical: vistas (una persona puede contar varias veces), Facebook e Instagram sumados. Eje horizontal: fecha, de la más antigua a la más reciente.',1,fmt)}${cols('Seguidores nuevos por día',mserie('nuevos',ds),dlabs(ds),'Eje vertical: seguidores nuevos en las tres cuentas. Eje horizontal: fecha.',1,fmt)}</div>`;
+  h+=`<div class="g c2" data-c="redes">${cols('Visitas a los perfiles por día',mserie('perfil',ds),dlabs(ds),'Eje vertical: visitas a la página de Facebook o al perfil de Instagram. Eje horizontal: fecha.',1,fmt)}${cols('Interacciones por día',mserie('inter',ds),dlabs(ds),'Eje vertical: me gusta, comentarios, compartidos y guardados. Eje horizontal: fecha.',1,fmt)}</div>`;
+  h+=`<div class="g" data-c="redes">`+table('Por cuenta · 30 días',['Cuenta','Seguidores','Nuevos','Vistas','Alcance diario promedio','Visitas al perfil','Interacciones','Interacciones por cada 100 vistas'],CUENTAS.map(([s,n])=>{const v=mserie('vistas',ds,[s]).reduce((a,b)=>a+b,0),it=mserie('inter',ds,[s]).reduce((a,b)=>a+b,0);return [n,fmt(msnap(s,'seguidores')),fmt(mserie('nuevos',ds,[s]).reduce((a,b)=>a+b,0)),fmt(v),fmt(mean(mserie('alcance',ds,[s]))),fmt(mserie('perfil',ds,[s]).reduce((a,b)=>a+b,0)),fmt(it),v?(it/v*100).toFixed(1).replace('.',','):'—'];}))+`</div>`;
+  const vv=mserie('vistas',ds),m=mean(vv),dv=sd(vv);
+  h+=`<p class="note">Vistas en 30 días: ${fmt(t30('vistas'))}, promedio ${fmt(m)} por día, desviación estándar ${fmt(dv)}${m?', coeficiente de variación '+p1(dv/m):''}. El alcance es de personas distintas en cada día; no se suma entre días porque la misma persona se repetiría. Datos de la API oficial de Meta, actualizados a las 12:45 p. m. y a las 11:50 p. m. La cuenta @sodalabombacr no se incluye porque se va a eliminar, y la página de Pollos La Bomba todavía no tiene Instagram vinculado.</p>`;
+  el.innerHTML=h;
 }
 
 /* ---- utilidades comunes de Pedidos web y Páginas ---- */
@@ -497,6 +525,7 @@ async function traerBcr(){
   return all;
 }
 async function cargar(){
+  try{M=await traerMeta();}catch(e){M=[];}
   pintarRedes();
   try{armarB(await traerBcr());pintarIng();}
   catch(e){$('tab-ingresos').innerHTML='<div class="blk"><h2>No se pudieron cargar los ingresos</h2></div>';}
