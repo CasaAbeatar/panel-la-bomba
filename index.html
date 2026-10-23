@@ -152,7 +152,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .lg{font-size:12px;color:var(--mute);margin:6px 0 0}
 .lg b{display:inline-block;width:18px;height:0;border-top:2px solid var(--cat);vertical-align:middle;margin:0 6px 0 0}
 .lg b.f{border-top-width:1px;opacity:.5}
-.alerta{border:1px solid #B81622;border-left-width:3px;border-radius:10px;padding:12px 16px;margin:4px 0 18px;background:#fff;display:grid;gap:4px;font-size:13px;color:#4a3f3f}.alerta b{color:#B81622;font-weight:700;font-size:14px}</style>
+.alerta{border:1px solid #B81622;border-left-width:3px;border-radius:10px;padding:12px 16px;margin:4px 0 18px;background:#fff;display:grid;gap:4px;font-size:13px;color:#4a3f3f}.alerta b{color:#B81622;font-weight:700;font-size:14px}.hm{overflow-x:auto}.hm table{border-collapse:separate;border-spacing:3px;width:100%;font-size:12px}.hm th{font-weight:500;color:#4a3f3f;text-align:left;white-space:nowrap;padding:2px 6px}.hm td{text-align:center;border-radius:6px;height:30px;min-width:30px;color:#171212;font-variant-numeric:tabular-nums}</style>
 </head>
 <body>
 
@@ -172,15 +172,15 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
     <button class="out" id="btnSalir">Salir</button>
   </div>
   <div class="tabs" role="tablist">
-    <button role="tab" aria-selected="true" data-tab="metricas">Métricas</button>
+    <button role="tab" aria-selected="true" data-tab="ingresos">Ingresos digitales</button>
+    <button role="tab" aria-selected="false" data-tab="pedidos">Pedidos web</button>
     <button role="tab" aria-selected="false" data-tab="paginas">Páginas</button>
-    <button role="tab" aria-selected="false" data-tab="negocio">Negocio</button>
-    <button role="tab" aria-selected="false" data-tab="ingresos">Ingresos digitales</button>
+    <button role="tab" aria-selected="false" data-tab="redes">Redes sociales</button>
   </div>
-  <section id="tab-metricas"></section>
-  <section id="tab-negocio" hidden></section>
+  <section id="tab-ingresos"></section>
+  <section id="tab-pedidos" hidden></section>
   <section id="tab-paginas" hidden></section>
-  <section id="tab-ingresos" hidden></section>
+  <section id="tab-redes" hidden></section>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -230,56 +230,6 @@ const dlabs=ds=>[0,1,2,3,4].map(i=>dl(ds[Math.round(i*(ds.length-1)/4)]));
 function cols(titulo,vals,labels,sub,w,f,vl,avg){return `<div class="blk"><h2>${titulo}</h2>${barsAx(vals,labels,f||fmt,vl,avg)}${sub?`<p class="note">${sub}</p>`:''}</div>`;}
 function table(titulo,head,body){return `<div class="blk"><h2>${titulo}</h2><table class="tb"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
 
-/* ---- pantallas ---- */
-function pintar(){
-  const vis=serie({fuente:'goatcounter',metrica:'visitas'});
-  const visT=sum({fuente:'goatcounter',metrica:'visitas'}), uni=sum({fuente:'goatcounter',metrica:'visitantes'});
-  const contactos=sum({fuente:'goatcounter',metrica:'clic',detalle:'Enviar por WhatsApp'})+sum({fuente:'goatcounter',metrica:'clic',detalle:'Llamar'});
-  const upt=avg({fuente:'uptimerobot',metrica:'uptime_pct'});
-  const susc=sum({fuente:'supabase',metrica:'suscriptores_nuevos'});
-  const dev=groups({fuente:'goatcounter',metrica:'dispositivo'}); const devT=dev.reduce((a,x)=>a+x[1],0);
-  const redes=['soda','pollos'].flatMap(s=>['Facebook','Instagram'].map(r=>[NEG[s]+' · '+r, last({fuente:'meta',metrica:'seguidores',sitio:s,detalle:r}), last({fuente:'meta',metrica:'seguidores',sitio:s,detalle:r})-first({fuente:'meta',metrica:'seguidores',sitio:s,detalle:r}), sum({fuente:'meta',metrica:'alcance',sitio:s,detalle:r}), sum({fuente:'meta',metrica:'interacciones',sitio:s,detalle:r})]));
-  const dsum=(o,f)=>rows(o).filter(r=>r.fecha===f).reduce((a,r)=>a+Number(r.valor),0);
-  const fv=rows({fuente:'goatcounter',metrica:'visitas'}).map(r=>r.fecha).sort().pop();
-  const ultV=fv?`<div class="dayl">Último día · <b>${fl(fv)}</b></div>`+kpis([{c:'visitas',l:'Visitas',v:fmt(dsum({fuente:'goatcounter',metrica:'visitas'},fv)),s:'a los tres sitios'},{c:'visitas',l:'Visitantes únicos',v:fmt(dsum({fuente:'goatcounter',metrica:'visitantes'},fv))},{c:'visitas',l:'Contactos directos',v:fmt(dsum({fuente:'goatcounter',metrica:'clic',detalle:'Enviar por WhatsApp'},fv)+dsum({fuente:'goatcounter',metrica:'clic',detalle:'Llamar'},fv)),s:'WhatsApp y llamadas'},{c:'redes',l:'Suscriptores nuevos',v:'+'+fmt(dsum({fuente:'supabase',metrica:'suscriptores_nuevos'},fv))}])+'<div class="dayl">Últimos 14 días</div>':'';
-  $('tab-metricas').innerHTML=ultV+
-    C('visitas',hero('Visitas a los sitios · 14 días',fmt(visT),vis,fmt,dias()))+
-    kpis([{c:'visitas',l:'Visitantes únicos',v:fmt(uni),s:pct(uni,visT)+' de las visitas'},{c:'visitas',l:'Contactos directos',v:fmt(contactos),s:'WhatsApp y llamadas'},{c:'redes',l:'Lista de novedades',v:'+'+fmt(susc),s:'suscriptores en 14 días'},{c:'sistema',l:'Disponibilidad',v:stt(upt,upt.toFixed(2)+' %'),s:'promedio de los sitios'}])+
-    `<div class="g" data-c="visitas">${table('Por sitio',['Sitio','Visitas','Únicos','Disp.','Resp.'],['soda','pollos','papea'].map(s=>[NEG[s],fmt(sum({fuente:'goatcounter',metrica:'visitas',sitio:s})),fmt(sum({fuente:'goatcounter',metrica:'visitantes',sitio:s})),(u=>stt(u,u.toFixed(2)+' %'))(avg({fuente:'uptimerobot',metrica:'uptime_pct',sitio:s})),fmt(avg({fuente:'uptimerobot',metrica:'respuesta_ms',sitio:s}))+' ms']))}</div>`+
-    `<div class="g c2" data-c="visitas">${bars('Botones más tocados',groups({fuente:'goatcounter',metrica:'clic'}))}${bars('Páginas más vistas',groups({fuente:'goatcounter',metrica:'pagina'}))}</div>`+
-    `<div class="g c2" data-c="visitas">${bars('De dónde llegan',groups({fuente:'goatcounter',metrica:'origen'}),v=>pct(v,sum({fuente:'goatcounter',metrica:'origen'})))}${bars('Dispositivos',dev,v=>pct(v,devT))}</div>`+
-    `<div class="g" data-c="redes">${table('Redes sociales',['Perfil','Seguidores','14 días','Alcance','Interac.'],redes.map(r=>[r[0],fmt(r[1]),'+'+fmt(r[2]),fmt(r[3]),fmt(r[4])]))}</div>`+
-    `<div class="g c2" data-c="sistema">${bars('Uso del plan gratis de Supabase',[['Base de datos',last({fuente:'supabase',metrica:'db_mb'}),'de 500 MB'],['Transferencia (14 días)',sum({fuente:'supabase',metrica:'egress_mb'}),'de 5 GB al mes']],v=>fmt(v)+' MB')}${cols('Suscriptores nuevos por día',serie({fuente:'supabase',metrica:'suscriptores_nuevos'}),['hace 14 d','','','','hoy'],null,1,fmt)}</div>`;
-
-  const ped=serie({fuente:'pedidos',metrica:'pedidos'}), ven=serie({fuente:'pedidos',metrica:'venta_crc'});
-  const pedT=sum({fuente:'pedidos',metrica:'pedidos'}), venT=sum({fuente:'pedidos',metrica:'venta_crc'});
-  const nue=sum({metrica:'clientes_nuevos'}), rec=sum({metrica:'clientes_recurrentes'});
-  const hora=Array.from({length:24},(_,h)=>sum({fuente:'pedidos',metrica:'hora',detalle:String(h).padStart(2,'0')}));
-  const dow=Array(7).fill(0); const fechas=dias();
-  const dm={}; rows({fuente:'pedidos',metrica:'pedidos'}).forEach(r=>dm[r.fecha]=(dm[r.fecha]||0)+Number(r.valor));
-  fechas.forEach(f=>{const k=(new Date(f+'T12:00:00').getDay()+6)%7;dow[k]+=dm[f]||0;});
-  const prods=['soda','pollos','papea'].flatMap(s=>groups({fuente:'pedidos',metrica:'producto',sitio:s}).map(g=>[g[0],g[1],NEG[s]])).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const local=sum({fuente:'prisma',metrica:'venta_local_crc'}), localT=sum({fuente:'prisma',metrica:'tiquetes_local'});
-  const vsT=sum({fuente:'goatcounter',metrica:'visitantes'});
-  const fp=rows({fuente:'pedidos',metrica:'pedidos'}).map(r=>r.fecha).sort().pop();
-  const ultN=fp?(()=>{const p=dsum({fuente:'pedidos',metrica:'pedidos'},fp),vv=dsum({fuente:'pedidos',metrica:'venta_crc'},fp);return `<div class="dayl">Último día · <b>${fl(fp)}</b></div>`+kpis([{c:'ventas',l:'Pedidos',v:fmt(p)},{c:'ventas',l:'Ventas en línea',v:crc(vv),s:'pedidos Express de las páginas'},{c:'ped',l:'Ticket promedio',v:crc(vv/Math.max(p,1))},{c:'ventas',l:'Ventas del local',v:crc(dsum({fuente:'prisma',metrica:'venta_local_crc'},fp)),s:fmt(dsum({fuente:'prisma',metrica:'tiquetes_local'},fp))+' tiquetes'}])+'<div class="dayl">Últimos 14 días</div>';})():'';
-  $('tab-negocio').innerHTML=ultN+
-    C('ventas',hero('Ventas en línea · 14 días',crc(venT),ven,v=>'₡'+cc(v),dias()))+
-    kpis([{c:'ventas',l:'Pedidos',v:fmt(pedT),s:fmt(pedT/Math.max(fechas.length,1))+' por día'},{c:'ped',l:'Ticket promedio',v:crc(venT/Math.max(pedT,1)),s:'venta ÷ pedidos'},{c:'redes',l:'Clientes nuevos',v:pct(nue,nue+rec),s:fmt(rec)+' recurrentes'},{c:'ventas',l:'Conversión',v:(pedT/Math.max(vsT,1)*100).toFixed(1)+' %',s:'pedidos ÷ visitantes únicos'}])+
-    `<div class="g" data-c="ventas">${table('Por negocio',['Negocio','Pedidos','Ventas','Ticket'],['soda','pollos','papea'].map(s=>{const p=sum({fuente:'pedidos',metrica:'pedidos',sitio:s}),v=sum({fuente:'pedidos',metrica:'venta_crc',sitio:s});return [NEG[s],fmt(p),crc(v),crc(v/Math.max(p,1))];}))}</div>`+
-    `<div class="g c2" data-c="ped">${bars('Productos más pedidos',prods,v=>fmt(v)+' u.')}${bars('Zonas de entrega',groups({fuente:'pedidos',metrica:'zona'}),v=>pct(v,sum({fuente:'pedidos',metrica:'zona'})),null,'Zonas clasificadas a mano por ti a partir de la dirección escrita.')}</div>`+
-    `<div class="g c2" data-c="ventas">${cols('Pedidos por hora del día',hora,['0 h','6 h','12 h','18 h','23 h'],null,0,fmt)}${cols('Pedidos por día de la semana',dow,['L','M','K','J','V','S','D'],null,1,fmt,1)}</div>`+
-    `<div class="g c2" data-c="ventas"><div class="blk"><h2>Local y en línea</h2>
-      <div class="br"><div class="t"><b>Ventas del local (Prisma)</b><i>${crc(local)}</i></div><div class="s2">${fmt(localT)} tiquetes · ${crc(local/Math.max(localT,1))} promedio</div></div>
-      <div class="br"><div class="t"><b>Ventas en línea</b><i>${crc(venT)}</i></div><div class="s2">${fmt(pedT)} pedidos · ${crc(venT/Math.max(pedT,1))} promedio</div></div>
-      <div class="br"><div class="t"><b>Peso de lo en línea</b><i>${pct(venT,venT+local)}</i></div><div class="split"><u style="width:${venT/Math.max(venT+local,1)*100}%"></u></div><div class="s2">del total vendido en Soda</div></div></div>
-    <div class="blk" data-c="redes"><h2>Clientes</h2>
-      <div class="br"><div class="t"><b>Nuevos</b><i>${fmt(nue)}</i></div></div>
-      <div class="br"><div class="t"><b>Recurrentes</b><i>${fmt(rec)}</i></div></div>
-      <div class="br"><div class="split"><u style="width:${nue/Math.max(nue+rec,1)*100}%"></u></div><div class="s2">${pct(nue,nue+rec)} nuevos, ${pct(rec,nue+rec)} recurrentes</div></div></div></div>`;
-}
-
-
 /* ---- Ingresos digitales (tarjetas del BCR) ---- */
 const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DIA=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
@@ -293,8 +243,8 @@ const p1=n=>(n*100).toFixed(1).replace('.',',')+' %';
 const dif=(a,b)=>b?((a/b-1)>=0?'▲ ':'▼ ')+Math.abs((a/b-1)*100).toFixed(0)+' %':'—';
 let B={},mesSel=null;
 const KEY={tarjeta_bruto:'b',tarjeta_vouchers:'v',tarjeta_comision:'c',tarjeta_iva:'i',tarjeta_renta:'r',tarjeta_neto:'n'};
-let SP={},SPM={};
-function armarB(a){B={};SP={};SPM={};a.forEach(r=>{const SK={sinpe_monto:'m',sinpe_cantidad:'n',sinpe_especial_monto:'em',sinpe_especial_cantidad:'en'};if(SK[r.metrica]){const o=SP[r.fecha]||(SP[r.fecha]={m:0,n:0,em:0,en:0});o[SK[r.metrica]]+=Number(r.valor);return;}if(r.metrica==='sinpe_desv_pago'||r.metrica==='sinpe_mediana_pago'){const o=SPM[r.fecha.slice(0,7)]||(SPM[r.fecha.slice(0,7)]={});o[r.metrica==='sinpe_desv_pago'?'sd':'md']=Number(r.valor);return;}const k=KEY[r.metrica];if(!k)return;const o=B[r.fecha]||(B[r.fecha]={b:0,v:0,c:0,i:0,r:0,n:0,rev:false});o[k]+=Number(r.valor);if(k==='b')o.k=(o.k||0)+1;if(k==='b'&&/revisar/.test(r.detalle))o.rev=true;});}
+let SP={},SPM={},SPR={};
+function armarB(a){B={};SP={};SPM={};SPR={};a.forEach(r=>{const SK={sinpe_monto:'m',sinpe_cantidad:'n',sinpe_especial_monto:'em',sinpe_especial_cantidad:'en'};if(SK[r.metrica]){const o=SP[r.fecha]||(SP[r.fecha]={m:0,n:0,em:0,en:0});o[SK[r.metrica]]+=Number(r.valor);return;}if(r.metrica==='sinpe_rango_n'||r.metrica==='sinpe_rango_monto'){const o=SPR[r.detalle]||(SPR[r.detalle]={});const m=r.fecha.slice(0,7),q=o[m]||(o[m]={n:0,m:0});q[r.metrica==='sinpe_rango_n'?'n':'m']+=Number(r.valor);return;}if(r.metrica==='sinpe_desv_pago'||r.metrica==='sinpe_mediana_pago'){const o=SPM[r.fecha.slice(0,7)]||(SPM[r.fecha.slice(0,7)]={});o[r.metrica==='sinpe_desv_pago'?'sd':'md']=Number(r.valor);return;}const k=KEY[r.metrica];if(!k)return;const o=B[r.fecha]||(B[r.fecha]={b:0,v:0,c:0,i:0,r:0,n:0,rev:false});o[k]+=Number(r.valor);if(k==='b')o.k=(o.k||0)+1;if(k==='b'&&/revisar/.test(r.detalle))o.rev=true;});}
 
 function sinpeHtml(){
   const sk=Object.keys(SP).sort();
@@ -311,6 +261,22 @@ function sinpeHtml(){
   const pa=m=>sk.filter(k=>k.slice(0,7)===m).length<20?' <span class="tag lo">parcial</span>':'';
   h+=`<div class="g c2" data-c="banco">`+table('SINPE Móvil mes por mes',['Mes','Pagos','Monto','Prom./día','% digital'],ms.map(m=>{const d=sk.filter(k=>k.slice(0,7)===m).length,x=tm(m);return [MES[Number(m.slice(5))-1]+pa(m),fmt(tn(m)),crc(x),crc(x/d),tb(m)?p1(x/(x+tb(m))):'—'];}))+table('Ticket por pago · sin ventas especiales',['Mes','Promedio','Desv. est.','CV','Mediana'],ms.map(m=>{const x=rm(m),n=rn(m),st=SPM[m]||{};return [MES[Number(m.slice(5))-1]+pa(m),crc(x/n),st.sd?crc(st.sd):'—',st.sd?p1(st.sd/(x/n)):'—',st.md?crc(st.md):'—'];}))+`</div><p class="note">% digital: parte del SINPE en el cobro digital del mes (SINPE más tarjeta bruta). Desviación, coeficiente de variación y mediana se calcularon con cada pago del estado de cuenta.</p>`;
   h+=`<div class="g c2" data-c="banco">${cols('SINPE Móvil por mes',full.map(tm),full.map(m=>MES[Number(m.slice(5))-1].slice(0,3)),'Eje vertical: colones recibidos (bruto). Eje horizontal: mes, de enero a la fecha. Solo meses con datos completos.',1,v=>'₡'+cc(v))}${(()=>{const dow=Array(7).fill(0),dn=Array(7).fill(0);sk.forEach(k=>{const i=(dts(k).getDay()+6)%7;dow[i]+=SP[k].m;dn[i]++;});const pr=dow.map((v,i)=>v/Math.max(dn[i],1));return cols('SINPE promedio por día de la semana',pr,['L','M','K','J','V','S','D'],'Eje vertical: colones promedio por día. Eje horizontal: día de la semana, de lunes a domingo.',1,v=>'₡'+cc(v));})()}</div>`;
+  // rangos de pago
+  const rl=Object.keys(SPR).sort(),rt=l=>Object.values(SPR[l]).reduce((a,q)=>({n:a.n+q.n,m:a.m+q.m}),{n:0,m:0}),RT=rl.map(rt),RN=RT.reduce((a,q)=>a+q.n,0),RM=RT.reduce((a,q)=>a+q.m,0);
+  if(rl.length){const lim=l=>l.replace(/^\d+ · /,'');
+    h+=`<div class="g c2" data-c="banco">`+table('Pagos por rango de monto · año',['Rango','Pagos','% pagos','Monto','% monto','Prom.'],rl.map((l,i)=>[lim(l),fmt(RT[i].n),p1(RT[i].n/RN),crc(RT[i].m),p1(RT[i].m/RM),crc(RT[i].m/RT[i].n)]))+
+    heat('Peso de cada rango por mes · % del monto',rl.map(l=>ms.filter(m=>m>='2026-03').map(m=>{const q=SPR[l][m];const tot=rl.reduce((a,x)=>a+((SPR[x][m]||{}).m||0),0);return q&&tot?Math.round(q.m/tot*100):0;})),rl.map(lim),ms.filter(m=>m>='2026-03').map(m=>MES[Number(m.slice(5))-1].slice(0,3)),'Cada columna suma 100 %. Rangos fijados con cortes naturales de la distribución (método de Jenks sobre el logaritmo del monto), redondeados a precios del menú.')+`</div>`;
+    h+=`<p class="note">Lectura de los rangos: menos de ₡1.500 es café, refresco o un extra; ₡1.500 a ₡2.999, un antojo o desayuno liviano; ₡3.000 a ₡4.999, un plato individual como el casado; ₡5.000 a ₡9.999, comida con bebida o para dos; ₡10.000 a ₡19.999, grupo o familia; ₡20.000 o más, pedido grande. Las ventas especiales van aparte.</p>`;}
+  // ciclos y tendencia
+  const bk=Object.keys(B).sort(),avgOf=(keys,f)=>keys.length?keys.reduce((a,k)=>a+f(k),0)/keys.length:0;
+  const tV=k=>B[k].b,sV=k=>SP[k].m,tG=avgOf(bk,tV),sG=avgOf(sk,sV),idx=(v,g)=>g?Math.round(v/g*100):0;
+  const DL=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'],wd=k=>(dts(k).getDay()+6)%7;
+  const TR=[[1,5,'Días 1 a 5'],[6,14,'Días 6 a 14'],[15,19,'Días 15 a 19'],[20,27,'Días 20 a 27'],[28,31,'Días 28 a 31']],dd=k=>Number(k.slice(8));
+  h+=`<div class="dayl" style="margin-top:34px">Ciclos, estacionalidad y tendencia</div><div class="g c2" data-c="banco">`+
+    table('Índice por día de la semana',['Día','Tarjeta','SINPE'],DL.map((n,i)=>[n,idx(avgOf(bk.filter(k=>wd(k)===i),tV),tG),idx(avgOf(sk.filter(k=>wd(k)===i),sV),sG)]))+
+    table('Índice por tramo del mes',['Tramo','Tarjeta','SINPE'],TR.map(t=>[t[2],idx(avgOf(bk.filter(k=>dd(k)>=t[0]&&dd(k)<=t[1]),tV),tG),idx(avgOf(sk.filter(k=>dd(k)>=t[0]&&dd(k)<=t[1]),sV),sG)]))+`</div>`;
+  const mt=[...new Set(bk.map(k=>k.slice(0,7)))],iT=mt.map(m=>idx(avgOf(bk.filter(k=>k.slice(0,7)===m),tV),tG)),iS=mt.map(m=>{const a=sk.filter(k=>k.slice(0,7)===m);return a.length>=20?idx(avgOf(a,sV),sG):null;});
+  h+=`<div class="g" data-c="banco">`+table('Tendencia mensual · índice del promedio por día',['Mes','Tarjeta','Var.','SINPE','Var.'],mt.map((m,i)=>[MES[Number(m.slice(5))-1],iT[i],i?((iT[i]-iT[i-1])>0?'+':'')+(iT[i]-iT[i-1]):'—',iS[i]??'—',i&&iS[i]!=null&&iS[i-1]!=null?((iS[i]-iS[i-1])>0?'+':'')+(iS[i]-iS[i-1]):'—']))+`</div><p class="note">Índice 100 = promedio por día de todo el periodo con datos de cada medio. Arriba de 100, el día, tramo o mes vende más que el promedio. El tramo del mes muestra el efecto de las quincenas. Los meses parciales cuentan solo sus días con datos.</p>`;
   const u=sk.slice(-60);
   h+=`<div class="g" data-c="banco">${cols('SINPE Móvil diario · últimos 60 días con datos',u.map(k=>SP[k].m),dlabs(u),'Eje vertical: colones recibidos por día. Eje horizontal: fecha, de la más antigua a la más reciente.',0,v=>'₡'+cc(v))}</div>`;
   h+=`<p class="note">Fuente: estados de cuenta del BCR, columna de crédito, solo los movimientos de SINPE Móvil. Quedan fuera el depósito de ventas en efectivo de enero (₡3.000.000), la transferencia de febrero (₡1.000.000), los intereses, enero y febrero, una devolución (₡75.000, setiembre) y un préstamo (₡3.000, julio). Las ventas especiales (pagos de facturas y montos fuera de lo común, 5 pagos por ₡299.324) suman a los totales pero no al ticket, la desviación ni el coeficiente de variación. Octubre se agrega cuando el banco emita el estado del mes.</p>`;
@@ -396,58 +362,118 @@ function pintarIng(){
   el.querySelectorAll('[data-mes]').forEach(b=>b.onclick=()=>{mesSel=b.dataset.mes;pintarIng();});
 }
 
-/* ---- pestaña Páginas: pedidos, carritos e interacción ---- */
+/* ---- Redes sociales ---- */
+function pintarRedes(){
+  $('tab-redes').innerHTML=`<div class="g" data-c="redes"><div class="blk"><h2>Sin conectar</h2><p class="note">Esta pestaña mostrará seguidores, alcance e interacciones de Facebook e Instagram de Soda La Bomba y Pollos La Bomba cuando se conecte Meta. Mientras tanto no muestra números, para no confundir con datos de ejemplo.</p></div></div>`;
+}
+
+/* ---- utilidades comunes de Pedidos web y Páginas ---- */
 const TZ='America/Costa_Rica';
 const dCR=ts=>new Date(ts).toLocaleDateString('en-CA',{timeZone:TZ});
 const hCR=ts=>Number(new Date(ts).toLocaleString('en-GB',{timeZone:TZ,hour:'2-digit',hour12:false}).slice(0,2))%24;
-const EVT={'info-wa':'WhatsApp de consultas','soda-wa':'WhatsApp de consultas','pollos-wa':'WhatsApp de consultas','info-maps':'Google Maps','info-waze':'Waze','red-g':'Reseña en Google','resena-google':'Reseña en Google','nosotros-resena':'Reseña en Google (Nosotros)','red-ig':'Instagram','red-fb':'Facebook','nosotros-instagram':'Instagram (Nosotros)','nosotros-facebook':'Facebook (Nosotros)','sites-pollos':'Ir a Pollos La Bomba','sites-soda':'Ir a Soda La Bomba','sites-papea':'Ir a Papea','fam-pollos':'Ir a Pollos (familia)','fam-soda':'Ir a Soda (familia)','fam-papea':'Ir a Papea (familia)','cross-pollos':'Ir a Pollos (menú)','hero-papea':'Papea (portada)','bbar-info':'Botón Información','soda-menu':'Botón Menú','pollos-menu':'Botón Menú','soda-menu-a-pedido':'Menú a pedido','pedir-de-nuevo':'Pedir de nuevo','sug-bebida':'Sugerencia de bebida','sug-bebida-grande':'Sugerencia de bebida grande','novedades-enviado':'Inscripción a novedades'};
-const CHIPS=['Desayunos y gallos','Casados y platos fuertes','Extras','Antojitos','Pollo','Hamburguesas','Pizzas','Combos y baldes','Bebidas y postres'];
-const evl=p=>EVT[p]||(p.startsWith('chip-')?'Categoría: '+(/^\d+$/.test(p.slice(5))?(CHIPS[+p.slice(5)]||p.slice(5))+' (Soda)':p.slice(5).replace(/-/g,' ')):p);
-const ORG={ig:'Instagram',fb:'Facebook',l:'Facebook'};
+const dowCR=ts=>(new Date(dCR(ts)+'T12:00:00').getDay()+6)%7;
 const lineaNombre=i=>i.prisma_modificador||((i.producto||'')+(i.opcion?' ('+i.opcion+')':''));
+const prodNombre=i=>i.prisma_producto||i.producto||i.prisma_modificador||'';
+const lineaMonto=i=>(Number(i.precio_unitario)||0)*(Number(i.cantidad)||1);
 function stdev(a){if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/(a.length-1));}
+function mediana(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+const RANGOS=[[0,1500,'Menos de ₡1.500'],[1500,3000,'₡1.500 a ₡2.999'],[3000,5000,'₡3.000 a ₡4.999'],[5000,10000,'₡5.000 a ₡9.999'],[10000,20000,'₡10.000 a ₡19.999'],[20000,1e12,'₡20.000 o más']];
+const rangoDe=v=>RANGOS.findIndex(r=>v>=r[0]&&v<r[1]);
 async function traerTabla(t,campos){const desde=new Date(Date.now()-30*864e5).toISOString();let all=[],from=0;for(;;){const {data,error}=await sb.from(t).select(campos).gte('creado_en',desde).order('creado_en').range(from,from+999);if(error)throw error;all=all.concat(data);if(data.length<1000)break;from+=1000;}return all;}
-function pintarPag(P,K){
+function heat(titulo,M,filas,colsL,sub){const mx=Math.max(1,...M.flat());return `<div class="blk"><h2>${titulo}</h2><div class="hm"><table><thead><tr><th></th>${colsL.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${M.map((r,i)=>`<tr><th>${filas[i]}</th>${r.map(v=>`<td style="background:rgba(184,22,34,${(v/mx*0.85).toFixed(2)})" title="${fmt(v)}">${v?fmt(v):''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>${sub?`<p class="note">${sub}</p>`:''}</div>`;}
+const visitasEn=(desdeF)=>rows({fuente:'goatcounter',metrica:'visitas'}).filter(r=>r.fecha>=desdeF).reduce((a,r)=>a+Number(r.valor),0);
+
+/* ---- Pedidos web: decisiones de compra ---- */
+function pintarPed(P,K){
   const hoy=dCR(Date.now());
   const ds=[];for(let i=29;i>=0;i--)ds.push(dCR(Date.now()-i*864e5));
-  const NOW=Date.now(),ABAND=30*60e3;
-  const aband=c=>!c.enviado&&NOW-new Date(c.actualizado_en).getTime()>ABAND;
-  const Ph=P.filter(p=>dCR(p.creado_en)===hoy),Kh=K.filter(c=>dCR(c.creado_en)===hoy);
+  const NOW=Date.now(),ABAND=30*60e3,aband=c=>!c.enviado&&NOW-new Date(c.actualizado_en).getTime()>ABAND;
   const monto=a=>a.reduce((x,p)=>x+(Number(p.total)||0),0);
-  const visHoy=rows({fuente:'goatcounter',metrica:'visitas'}).filter(r=>r.fecha===hoy).reduce((a,r)=>a+Number(r.valor),0);
-  const kEnv=Kh.filter(c=>c.enviado).length;
+  const Ph=P.filter(p=>dCR(p.creado_en)===hoy),Kh=K.filter(c=>dCR(c.creado_en)===hoy),kA=K.filter(aband);
+  const tk=P.map(p=>Number(p.total)||0).filter(v=>v>0),tm=tk.length?tk.reduce((a,b)=>a+b,0)/tk.length:0,sd=stdev(tk);
   let h=`<div class="dayl">Hoy · <b>${fl(hoy)}</b></div>`+kpis([
     {c:'ventas',l:'Pedidos web',v:fmt(Ph.length),s:'Soda '+Ph.filter(p=>p.sitio==='soda').length+' · Pollos '+Ph.filter(p=>p.sitio==='pollos').length},
     {c:'ventas',l:'Monto de los pedidos',v:crc(monto(Ph)),s:'bruto, sin envío ni precios por confirmar'},
-    {c:'ped',l:'Carritos armados',v:fmt(Kh.length),s:fmt(kEnv)+' enviados · '+fmt(Kh.filter(aband).length)+' abandonados'},
-    {c:'visitas',l:'Visitas',v:fmt(visHoy||0),s:'según GoatCounter, sin las páginas de prueba'}]);
-  // 30 días
-  const P30=P,K30=K,visS=ds.map(d=>rows({fuente:'goatcounter',metrica:'visitas'}).filter(r=>r.fecha===d).reduce((a,r)=>a+Number(r.valor),0));
-  const visT=visS.reduce((a,b)=>a+b,0),kT=K30.length,pT=P30.length,kA=K30.filter(aband),d14=ds[16],k14=K30.filter(c=>dCR(c.creado_en)>=d14).length,p14=P30.filter(p=>dCR(p.creado_en)>=d14).length;
-  const pDia=ds.map(d=>P30.filter(p=>dCR(p.creado_en)===d).length);
-  const abDia=ds.map(d=>{const k=K30.filter(c=>dCR(c.creado_en)===d&&(c.enviado||aband(c)));return k.length?Math.round(k.filter(aband).length/k.length*100):0});
-  const tk=P30.map(p=>Number(p.total)||0).filter(v=>v>0),tm=tk.length?tk.reduce((a,b)=>a+b,0)/tk.length:0,sd=stdev(tk);
-  const hrs=Array.from({length:24},(_,i)=>P30.filter(p=>hCR(p.creado_en)===i).length);
-  const ret=P30.filter(p=>/^Retiro/.test(p.direccion||'')).length;
-  const tel={};P30.forEach(p=>{const t=(p.cliente_telefono||'').replace(/\D/g,'');if(t)tel[t]=(tel[t]||0)+1});const cli=Object.keys(tel).length,rep=Object.values(tel).filter(n=>n>1).length;
-  const cuenta=(arr)=>{const m={};arr.forEach(x=>(x.items||[]).forEach(i=>{const n=lineaNombre(i);m[n]=(m[n]||0)+(Number(i.cantidad)||1)}));return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,10);};
+    {c:'ventas',l:'Ticket del día',v:Ph.length?crc(monto(Ph)/Ph.length):'—',s:'frente a '+crc(tm)+' de los 30 días'},
+    {c:'ped',l:'Carritos sin enviar',v:fmt(Kh.filter(aband).length),s:'de '+fmt(Kh.length)+' carritos armados hoy'}]);
+  // embudo y ticket
+  const d14=ds[16],v14=visitasEn(d14),k14=K.filter(c=>dCR(c.creado_en)>=d14).length,p14=P.filter(p=>dCR(p.creado_en)>=d14).length;
+  h+=`<div class="dayl">Últimos 30 días</div><div class="g c2">`+C('visitas',bars('Embudo de los últimos 14 días',[['Visitas',v14,'personas que abrieron una página'],['Carritos armados',k14,pct(k14,v14)+' de las visitas'],['Pedidos enviados',p14,pct(p14,k14)+' de los carritos']],fmt,null,'Mismo periodo para las tres cifras. Las visitas no cuentan las páginas de prueba; los carritos y pedidos sí.'))+
+    C('ped',`<div class="blk"><h2>Carritos sin enviar</h2><div class="br"><div class="t"><b>Abandonados</b><i>${fmt(kA.length)}</i></div><div class="s2">más de 30 minutos sin enviarse · ${pct(kA.length,K.length)} de los carritos</div></div><div class="br"><div class="t"><b>Monto que quedó sin enviar</b><i>${crc(monto(kA))}</i></div><div class="s2">bruto, con los precios conocidos</div></div><div class="br"><div class="t"><b>Ticket de los abandonados</b><i>${kA.length?crc(monto(kA)/kA.length):'—'}</i></div><div class="s2">frente a ${crc(tm)} de los enviados</div></div></div>`)+`</div>`;
+  const ret=P.filter(p=>/^Retiro/i.test(p.direccion||'')),exp=P.filter(p=>!/^Retiro/i.test(p.direccion||''));
+  h+=kpis([{c:'ventas',l:'Ticket promedio',v:crc(tm),s:'bruto, '+fmt(tk.length)+' pedidos con precio'},{c:'ventas',l:'Desviación estándar',v:crc(sd),s:'coeficiente de variación '+(tm?(sd/tm*100).toFixed(0)+' %':'—')},{c:'ventas',l:'Mediana',v:crc(mediana(tk)),s:'la mitad de los pedidos está por debajo'},{c:'ventas',l:'Express / retiro',v:fmt(exp.length)+' / '+fmt(ret.length),s:'ticket '+(exp.length?crc(monto(exp)/exp.length):'—')+' / '+(ret.length?crc(monto(ret)/ret.length):'—')}]);
+  // rangos de ticket
+  const rN=RANGOS.map(()=>0),rM=RANGOS.map(()=>0);tk.forEach(v=>{const i=rangoDe(v);rN[i]++;rM[i]+=v;});
+  h+=`<div class="g c2" data-c="ventas">${bars('Pedidos por rango de monto',RANGOS.map((r,i)=>[r[2],rN[i],pct(rM[i],tk.reduce((a,b)=>a+b,0))+' del monto']),v=>fmt(v)+' ped.',null,'Mismos rangos que SINPE Móvil para poder compararlos.')}${(()=>{const n=[1,2,3,4].map(c=>P.filter(p=>{const u=(p.items||[]).reduce((a,i)=>a+(Number(i.cantidad)||1),0);return c<4?u===c:u>=4;}));return cols('Ticket según cantidad de productos',n.map(a=>a.length?monto(a)/a.length:0),['1','2','3','4 o más'],'Eje vertical: ticket promedio bruto. Eje horizontal: unidades en el pedido. '+n.map((a,i)=>['1','2','3','4+'][i]+': '+a.length+' ped.').join(' · '),1,v=>'₡'+cc(v));})()}</div>`;
+  // tiempo
   const lab=ds.map((d,i)=>(29-i)%7===0?dl(d):'');
-  h+=`<div class="dayl">Últimos 30 días</div>`+
-    `<div class="g c2">${C('visitas',bars('Embudo de los últimos 14 días',[['Visitas',visT,'personas que abrieron una página'],['Carritos armados',k14,pct(k14,visT)+' de las visitas'],['Pedidos enviados',p14,pct(p14,k14)+' de los carritos']],fmt,null,'Mismo periodo para las tres cifras: los datos de visitas cubren 14 días.'))}${C('ped',`<div class="blk"><h2>Carritos sin enviar · 30 días</h2><div class="br"><div class="t"><b>Abandonados</b><i>${fmt(kA.length)}</i></div><div class="s2">más de 30 minutos sin enviarse · ${pct(kA.length,kT)} de los carritos</div></div><div class="br"><div class="t"><b>Monto que quedó sin enviar</b><i>${crc(monto(kA))}</i></div><div class="s2">bruto, con los precios conocidos</div></div></div>`)}</div>`+
-    kpis([{c:'ventas',l:'Ticket promedio',v:crc(tm),s:'bruto, '+fmt(tk.length)+' pedidos con precio'},{c:'ventas',l:'Desviación estándar',v:crc(sd),s:'coeficiente de variación '+(tm?(sd/tm*100).toFixed(0)+' %':'—')},{c:'ventas',l:'Express / retiro',v:fmt(pT-ret)+' / '+fmt(ret),s:pct(ret,pT)+' retiran en el local'},{c:'ventas',l:'Clientes que repiten',v:fmt(rep),s:'de '+fmt(cli)+' teléfonos distintos'}])+
-    `<div class="g c2">${C('ventas',cols('Pedidos por día',pDia,lab,'Eje vertical: pedidos. Eje horizontal: fecha, de más antigua a más reciente.',1,fmt))}${C('ped',cols('Abandono de carritos por día',abDia,lab,'Eje vertical: % de carritos que no se enviaron. Eje horizontal: fecha.',1,v=>v+' %'))}</div>`+
-    `<div class="g">${C('ventas',cols('Horas pico de pedidos',hrs,hrs.map((_,i)=>i%3===0?String(i).padStart(2,'0')+'h':''),'Eje vertical: pedidos de los últimos 30 días. Eje horizontal: hora del día en Costa Rica.',1,fmt))}</div>`+
-    `<div class="g c2">${C('ventas',bars('Más pedidos',cuenta(P30),fmt,null,'Unidades. Las bebidas salen con el nombre de Prisma.'))}${C('ped',bars('Más dejados en carritos abandonados',cuenta(kA),fmt,null,'Unidades que se quedaron sin enviar.'))}</div>`;
-  // interacción
-  const cl=groups({fuente:'goatcounter',metrica:'clic'}).reduce((m,[k,v])=>{const n=evl(k);m[n]=(m[n]||0)+v;return m},{}),clA=Object.entries(cl).sort((a,b)=>b[1]-a[1]).slice(0,12);
-  const og=Object.entries(groups({fuente:'goatcounter',metrica:'origen'}).reduce((m,[k,v])=>{const n=ORG[k]||k;m[n]=(m[n]||0)+v;return m},{})).sort((a,b)=>b[1]-a[1]),ogT=og.reduce((a,x)=>a+x[1],0),dv=groups({fuente:'goatcounter',metrica:'dispositivo'}),dvT=dv.reduce((a,x)=>a+x[1],0);
-  const pg=groups({fuente:'goatcounter',metrica:'pagina'}).slice(0,8);
-  const por=s=>sum({fuente:'goatcounter',metrica:'visitas',sitio:s});
-  h+=`<div class="dayl">Interacción con las páginas · últimos 14 días</div>`+
-    `<div class="g c2">${C('visitas',bars('Botones más tocados',clA))}${C('visitas',bars('Páginas más vistas',pg))}</div>`+
-    `<div class="g c2">${C('visitas',bars('De dónde llegan',og,v=>pct(v,ogT)))}${C('visitas',bars('Dispositivos',dv,v=>pct(v,dvT)))}</div>`+
-    `<div class="g">${C('visitas',table('Por negocio',['Negocio','Visitas','Pedidos (30 d)','Carritos (30 d)','Abandono'],['soda','pollos'].map(s=>{const k=K30.filter(c=>c.sitio===s&&(c.enviado||aband(c)));return [NEG[s],fmt(por(s)),fmt(P30.filter(p=>p.sitio===s).length),fmt(K30.filter(c=>c.sitio===s).length),k.length?Math.round(k.filter(aband).length/k.length*100)+' %':'—']})))}</div>`+
-    `<p class="note">Montos brutos, sin costo de envío. Un carrito cuenta como abandonado si pasa más de 30 minutos sin enviarse. Las visitas vienen de GoatCounter, que no cuenta las páginas de prueba; los pedidos y carritos sí incluyen las pruebas.</p>`;
+  const pDia=ds.map(d=>P.filter(p=>dCR(p.creado_en)===d).length);
+  const abDia=ds.map(d=>{const k=K.filter(c=>dCR(c.creado_en)===d&&(c.enviado||aband(c)));return k.length?Math.round(k.filter(aband).length/k.length*100):0});
+  h+=`<div class="g c2">${C('ventas',cols('Pedidos por día',pDia,lab,'Eje vertical: pedidos. Eje horizontal: fecha, de la más antigua a la más reciente.',1,fmt))}${C('ped',cols('Abandono de carritos por día',abDia,lab,'Eje vertical: % de carritos que no se enviaron. Eje horizontal: fecha.',1,v=>v+' %'))}</div>`;
+  const FR=[[0,6,'Madrugada 0–5'],[6,10,'Mañana 6–9'],[10,14,'Mediodía 10–13'],[14,18,'Tarde 14–17'],[18,21,'Noche 18–20'],[21,24,'Noche 21–23']];
+  const HM=FR.map(f=>[0,1,2,3,4,5,6].map(d=>P.filter(p=>dowCR(p.creado_en)===d&&hCR(p.creado_en)>=f[0]&&hCR(p.creado_en)<f[1]).length));
+  h+=`<div class="g" data-c="ventas">${heat('Cuándo piden: día de la semana y franja horaria',HM,FR.map(f=>f[2]),['L','M','K','J','V','S','D'],'Pedidos de los últimos 30 días. Más oscuro, más pedidos. Sirve para ver turnos de cocina y de mensajeros.')}</div>`;
+  // productos
+  const uP={},mP={},uA={};P.forEach(p=>(p.items||[]).forEach(i=>{const n=lineaNombre(i);uP[n]=(uP[n]||0)+(Number(i.cantidad)||1);mP[n]=(mP[n]||0)+lineaMonto(i);}));
+  kA.forEach(c=>(c.items||[]).forEach(i=>{const n=lineaNombre(i);uA[n]=(uA[n]||0)+(Number(i.cantidad)||1);}));
+  const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  h+=`<div class="g c2">${C('ventas',bars('Más pedidos',top(uP),fmt,null,'Unidades. Las bebidas salen con el nombre de Prisma.'))}${C('ventas',bars('Los que más venden',top(mP),v=>'₡'+cc(v),null,'Monto bruto por producto, con los precios conocidos.'))}</div>`;
+  const tasa=Object.keys({...uP,...uA}).map(n=>[n,(uA[n]||0)/((uA[n]||0)+(uP[n]||0)),(uA[n]||0)+(uP[n]||0)]).filter(x=>x[2]>=3).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  h+=`<div class="g c2">${C('ped',bars('Más dejados en carritos abandonados',top(uA),fmt,null,'Unidades que se quedaron sin enviar.'))}${C('ped',bars('Tasa de abandono por producto',tasa.map(x=>[x[0],Math.round(x[1]*100),fmt(x[2])+' unidades en total']),v=>v+' %',100,'Solo productos con 3 unidades o más. Una tasa alta puede indicar precio, opciones confusas o falta de foto.'))}</div>`;
+  // combinaciones
+  const par={};P.forEach(p=>{const s=[...new Set((p.items||[]).map(prodNombre).filter(Boolean))].sort();for(let a=0;a<s.length;a++)for(let b=a+1;b<s.length;b++){const k=s[a]+' + '+s[b];par[k]=(par[k]||0)+1;}});
+  const pares=Object.entries(par).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const abP=RANGOS.map(r=>{const k=K.filter(c=>(c.enviado||aband(c))&&Number(c.total)>=r[0]&&Number(c.total)<r[1]);return k.length?Math.round(k.filter(aband).length/k.length*100):0;});
+  h+=`<div class="g c2">${C('ventas',pares.length?bars('Combinaciones frecuentes',pares.map(x=>[x[0],x[1],pct(x[1],P.length)+' de los pedidos']),v=>fmt(v)+' ped.',null,'Productos que se piden juntos. Sirve para armar combos y sugerencias.'):'<div class="blk"><h2>Combinaciones frecuentes</h2><p class="note">Todavía no hay pedidos con dos productos distintos.</p></div>')}${C('ped',cols('Abandono según el valor del carrito',abP,['<1,5k','1,5–3k','3–5k','5–10k','10–20k','20k+'],'Eje vertical: % de carritos de ese rango que no se enviaron. Eje horizontal: valor del carrito en colones. Si sube con el valor, el precio frena la compra.',1,v=>v+' %'))}</div>`;
+  // clientes
+  const tel={};P.forEach(p=>{const t=(p.cliente_telefono||'').replace(/\D/g,'');if(t)(tel[t]=tel[t]||[]).push(new Date(p.creado_en).getTime());});
+  const cl=Object.values(tel),rep=cl.filter(a=>a.length>1),gaps=rep.flatMap(a=>a.sort((x,y)=>x-y).slice(1).map((v,i)=>(v-a[i])/864e5));
+  h+=kpis([{c:'redes',l:'Clientes distintos',v:fmt(cl.length),s:'teléfonos en 30 días'},{c:'redes',l:'Clientes que repiten',v:fmt(rep.length),s:pct(rep.length,cl.length)+' de los clientes'},{c:'redes',l:'Días entre pedidos',v:gaps.length?(gaps.reduce((a,b)=>a+b,0)/gaps.length).toFixed(1).replace('.',','):'—',s:'promedio de los que repiten'},{c:'redes',l:'Pedidos por cliente',v:cl.length?(P.length/cl.length).toFixed(2).replace('.',','):'—',s:'en 30 días'}]);
+  h+=`<p class="note">Montos brutos, sin costo de envío. Un carrito cuenta como abandonado si pasa más de 30 minutos sin enviarse. Los teléfonos solo se cuentan; el panel no muestra datos personales. Cruces que vienen: pedidos web frente a ingresos por SINPE y tarjeta del mismo día, y conversión por origen de la visita.</p>`;
+  $('tab-pedidos').innerHTML=h;
+}
+
+/* ---- Páginas: quién llega, de dónde y qué hace ---- */
+const INTENCION=[
+  ['Pedir: abrir el menú o una categoría',p=>/^(soda|pollos)-menu|^chip-|menu-a-pedido/.test(p)],
+  ['Escribir por WhatsApp',p=>/-wa$/.test(p)],
+  ['Cómo llegar: Maps o Waze',p=>/^info-(maps|waze)$/.test(p)],
+  ['Ver la zona de entrega',p=>p==='zona-entrega'],
+  ['Dejar o leer reseñas',p=>/resena|^red-g$/.test(p)],
+  ['Ir a redes sociales',p=>/^red-(ig|fb)$|nosotros-(instagram|facebook)/.test(p)],
+  ['Pasar a otro negocio',p=>/^(sites|fam|cross)-|hero-papea|pollos-a-papea/.test(p)],
+  ['Ver información',p=>p==='bbar-info'],
+  ['Inscribirse a novedades',p=>p==='novedades-enviado']];
+const PAG={'/':'Inicio','/nosotros':'Nosotros','/pollos/':'Menú de Pollos','/papea/':'Papea','/privacidad':'Privacidad'};
+function pintarPag(){
+  const g=o=>groups(Object.assign({fuente:'goatcounter'},o));
+  const fv=rows({fuente:'goatcounter',metrica:'visitas'}).map(r=>r.fecha).sort().pop();
+  const ds=[...new Set(rows({fuente:'goatcounter',metrica:'visitas'}).map(r=>r.fecha))].sort(),visT=sum({fuente:'goatcounter',metrica:'visitas'});
+  const dv=(s,f)=>rows({fuente:'goatcounter',metrica:'visitas',sitio:s}).filter(r=>r.fecha===f).reduce((a,r)=>a+Number(r.valor),0);
+  const dev=g({metrica:'dispositivo'}),devT=dev.reduce((a,x)=>a+x[1],0),cel=(dev.find(x=>x[0]==='Celular')||[0,0])[1];
+  const ORG={ig:'Instagram',fb:'Facebook',l:'Facebook'};
+  const og=Object.entries(g({metrica:'origen'}).reduce((m,[k,v])=>{const n=ORG[k]||k;m[n]=(m[n]||0)+v;return m},{})).sort((a,b)=>b[1]-a[1]),ogT=og.reduce((a,x)=>a+x[1],0);
+  let h=fv?`<div class="dayl">Último día con datos · <b>${fl(fv)}</b></div>`+kpis([{c:'visitas',l:'Visitas',v:fmt(dv('soda',fv)+dv('pollos',fv)),s:'Soda '+fmt(dv('soda',fv))+' · Pollos y Papea '+fmt(dv('pollos',fv))},{c:'visitas',l:'Desde el celular',v:pct(cel,devT),s:'de las visitas de 14 días'},{c:'visitas',l:'Llegan más desde',v:og[0]?og[0][0]:'—',s:og[0]?pct(og[0][1],ogT)+' de las llegadas':''},{c:'visitas',l:'Visitas en 14 días',v:fmt(visT),s:fmt(visT/Math.max(ds.length,1))+' por día'}]):'';
+  h+=`<div class="dayl">Últimos 14 días</div><div class="g" data-c="visitas">${cols('Visitas por día',ds.map(d=>dv('soda',d)+dv('pollos',d)),dlabs(ds),'Eje vertical: visitas a las dos páginas. Eje horizontal: fecha, de la más antigua a la más reciente.',1,fmt)}</div>`;
+  // intención
+  const cl=g({metrica:'clic'}),it=INTENCION.map(([n,f])=>[n,cl.filter(([p])=>f(p)).reduce((a,x)=>a+x[1],0)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+  h+=`<div class="g c2" data-c="visitas">${bars('Qué hacen al llegar',it.map(x=>[x[0],x[1],pct(x[1],visT)+' de las visitas']),fmt,null,'Toques en botones, agrupados por intención.')}${bars('De dónde llegan',og,v=>pct(v,ogT))}</div>`;
+  h+=`<div class="g c2" data-c="visitas">${bars('Dispositivos',dev,v=>pct(v,devT))}${table('Por negocio',['Negocio','Visitas','Pedir','WhatsApp','Cómo llegar'],['soda','pollos'].map(s=>{const c=g({metrica:'clic',sitio:s}),vv=sum({fuente:'goatcounter',metrica:'visitas',sitio:s}),q=f=>pct(c.filter(([p])=>f(p)).reduce((a,x)=>a+x[1],0),vv);return [s==='soda'?NEG.soda:'Pollos y Papea',fmt(vv),q(INTENCION[0][1]),q(INTENCION[1][1]),q(INTENCION[2][1])];}))}</div>`;
+  // menú
+  const CH=['Desayunos y gallos','Casados y platos fuertes','Extras','Antojitos','Pollo','Hamburguesas','Pizzas','Combos y baldes','Bebidas y postres'];
+  const cat=cl.filter(([p])=>p.startsWith('chip-')).map(([p,v])=>{const k=p.slice(5);return [/^\d+$/.test(k)?(CH[+k]||k)+' (Soda)':k.replace(/-/g,' ')+' (Pollos)',v];});
+  const ab={},ag={};cl.forEach(([p,v])=>{if(p.startsWith('p-abrir/'))ab[p.slice(8)]=(ab[p.slice(8)]||0)+v;if(p.startsWith('p-agregar/'))ag[p.slice(10)]=(ag[p.slice(10)]||0)+v;});
+  const nom=s=>s.replace(/-/g,' ').replace(/^./,c=>c.toUpperCase());
+  const pa=Object.keys(ab).map(k=>[nom(k),ab[k],ag[k]||0]).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const bus=cl.filter(([p])=>p.startsWith('buscar/')).map(([p,v])=>[p.slice(7).replace(/-/g,' '),v]).slice(0,10),sin=cl.filter(([p])=>p.startsWith('buscar-sin/')).map(([p,v])=>[p.slice(11).replace(/-/g,' '),v]).slice(0,10);
+  const sv=t=>(cl.find(([p])=>p===t)||[0,0])[1];
+  h+=`<div class="dayl" style="margin-top:34px">El menú por dentro</div><div class="g c2" data-c="visitas">${cat.length?bars('Categorías más abiertas',cat.slice(0,10)):'<div class="blk"><h2>Categorías más abiertas</h2><p class="note">Sin datos todavía.</p></div>'}${pa.length?table('Productos abiertos y agregados',['Producto','Abiertos','Agregados','% agregado'],pa.map(x=>[x[0],fmt(x[1]),fmt(x[2]),pct(x[2],x[1])])):'<div class="blk"><h2>Productos abiertos y agregados</h2><p class="note">Empieza a contar cuando la página nueva reemplace a la publicada.</p></div>'}</div>`;
+  h+=`<div class="g c2" data-c="visitas">${bus.length?bars('Lo que más buscan',bus):'<div class="blk"><h2>Lo que más buscan</h2><p class="note">Sin datos todavía.</p></div>'}${sin.length?bars('Buscaron y no encontraron',sin,fmt,null,'Productos que la gente espera y no ve en el menú.'):'<div class="blk"><h2>Buscaron y no encontraron</h2><p class="note">Sin datos todavía.</p></div>'}</div>`;
+  const sg=[['Bebida grande','sug-bebida-grande'],['Bebida','sug-bebida'],['Papea','sug-papea']].map(([n,t])=>[n,sv(t+'-visto'),sv(t),sv(t+'-agregada')]).filter(x=>x[1]||x[2]);
+  if(sg.length)h+=`<div class="g" data-c="visitas">${table('Sugerencias del carrito',['Sugerencia','Vistas','Tocadas','Agregadas','% agregadas'],sg.map(x=>[x[0],fmt(x[1]),fmt(x[2]),fmt(x[3]),pct(x[3],x[1])]))}</div>`;
+  const pg=['soda','pollos'].flatMap(s=>g({metrica:'pagina',sitio:s}).map(([p,v])=>[(PAG[p]||p)+(s==='soda'?' de la Soda':' de Pollos'),v])).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  h+=`<div class="g" data-c="visitas">${bars('Páginas más vistas',pg)}</div>`;
+  h+=`<p class="note">Datos anónimos de GoatCounter, sin datos personales. Las páginas de prueba no se cuentan: los eventos nuevos del menú (productos, búsquedas, zona de entrega y sugerencias) empiezan a sumar cuando la página nueva reemplace a la publicada.</p>`;
   $('tab-paginas').innerHTML=h;
 }
 
@@ -471,12 +497,13 @@ async function traerBcr(){
   return all;
 }
 async function cargar(){
-  try{R=await traer();pintar();}
-  catch(e){$('tab-metricas').innerHTML='<div class="blk"><h2>No se pudieron cargar los datos</h2></div>';}
-  try{pintarPag(await traerTabla('pedidos','creado_en,sitio,items,total,direccion,cliente_telefono'),await traerTabla('carritos','creado_en,actualizado_en,sitio,items,total,enviado'));}
-  catch(e){$('tab-paginas').innerHTML='<div class="blk"><h2>No se pudieron cargar los datos de las páginas</h2></div>';}
+  pintarRedes();
   try{armarB(await traerBcr());pintarIng();}
   catch(e){$('tab-ingresos').innerHTML='<div class="blk"><h2>No se pudieron cargar los ingresos</h2></div>';}
+  try{R=await traer();}catch(e){R=[];}
+  try{pintarPed(await traerTabla('pedidos','creado_en,sitio,items,total,direccion,cliente_telefono'),await traerTabla('carritos','creado_en,actualizado_en,sitio,items,total,enviado'));}
+  catch(e){$('tab-pedidos').innerHTML='<div class="blk"><h2>No se pudieron cargar los pedidos</h2></div>';}
+  try{pintarPag();}catch(e){$('tab-paginas').innerHTML='<div class="blk"><h2>No se pudieron cargar las visitas</h2></div>';}
 }
 async function validar(session){
   if(!session){$('app').hidden=true;$('login').hidden=false;return;}
@@ -490,7 +517,7 @@ $('btnLogin').onclick=()=>sb.auth.signInWithOAuth({provider:'azure',options:{sco
 $('btnSalir').onclick=async()=>{await sb.auth.signOut();location.reload();};
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));
-  ['metricas','negocio','paginas','ingresos'].forEach(t=>$('tab-'+t).hidden=b.dataset.tab!==t);
+  ['ingresos','pedidos','paginas','redes'].forEach(t=>$('tab-'+t).hidden=b.dataset.tab!==t);
 });
 sb.auth.getSession().then(({data})=>validar(data.session));
 sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT')validar(null);});
