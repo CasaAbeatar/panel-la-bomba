@@ -392,7 +392,7 @@ function pintarRedes(){
   const s30=(k,s)=>mserie(k,ds,[s]).reduce((a,b)=>a+b,0),f1=x=>x.toFixed(1).replace('.',',');
   h+=`<div class="g c2" data-c="redes">`+table('Audiencia por cuenta · 30 días',['Cuenta','Seguidores','Nuevos','Visitas al perfil'],CUENTAS.map(([s,n])=>[n,fmt(msnap(s,'seguidores')),fmt(s30('nuevos',s)),fmt(s30('perfil',s))]))+table('Contenido por cuenta · 30 días',['Cuenta','Vistas','Alcance por día','Interacciones','Por 100 vistas'],CUENTAS.map(([s,n])=>{const v=s30('vistas',s),it=s30('inter',s);return [n,fmt(v),f1(mean(mserie('alcance',ds,[s]))),fmt(it),v?f1(it/v*100):'—'];}))+`</div>`;
   const vv=mserie('vistas',ds),m=mean(vv),dv=sd(vv);
-  h+=`<p class="note">Vistas en 30 días: ${fmt(t30('vistas'))}, promedio ${fmt(m)} por día, desviación estándar ${fmt(dv)}${m?', coeficiente de variación '+p1(dv/m):''}. El alcance es de personas distintas en cada día; no se suma entre días porque la misma persona se repetiría. Datos de la API oficial de Meta, actualizados a las 12:45 p. m. y a las 11:50 p. m. La cuenta @sodalabombacr no se incluye porque se va a eliminar, y la página de Pollos La Bomba todavía no tiene Instagram vinculado.</p>`;
+  h+=`<p class="note">Vistas en 30 días: ${fmt(t30('vistas'))}, promedio ${fmt(m)} por día, desviación estándar ${fmt(dv)}${m?', coeficiente de variación '+p1(dv/m):''}. El alcance es de personas distintas en cada día; no se suma entre días porque la misma persona se repetiría. Datos de la API oficial de Meta, actualizados a las 12:45 p. m. y a las 11:50 p. m. La página de Pollos La Bomba todavía no tiene Instagram vinculado.</p>`;
   el.innerHTML=h;
 }
 
