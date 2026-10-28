@@ -152,7 +152,29 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .lg{font-size:12px;color:var(--mute);margin:6px 0 0}
 .lg b{display:inline-block;width:18px;height:0;border-top:2px solid var(--cat);vertical-align:middle;margin:0 6px 0 0}
 .lg b.f{border-top-width:1px;opacity:.5}
-.alerta{border:1px solid #B81622;border-left-width:3px;border-radius:10px;padding:12px 16px;margin:4px 0 18px;background:#fff;display:grid;gap:4px;font-size:13px;color:#4a3f3f}.alerta b{color:#B81622;font-weight:700;font-size:14px}.hm{overflow-x:auto}.hm table{border-collapse:separate;border-spacing:3px;width:100%;font-size:12px}.hm th{font-weight:500;color:#4a3f3f;text-align:left;white-space:nowrap;padding:2px 6px}.hm td{text-align:center;border-radius:6px;height:30px;min-width:30px;color:#171212;font-variant-numeric:tabular-nums}@media(max-width:600px){.tabs{gap:18px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.tabs::-webkit-scrollbar{display:none}.tabs button{flex:0 0 auto;white-space:nowrap;font-size:12.5px;letter-spacing:.1em}}</style>
+.alerta{border:1px solid #B81622;border-left-width:3px;border-radius:10px;padding:12px 16px;margin:4px 0 18px;background:#fff;display:grid;gap:4px;font-size:13px;color:#4a3f3f}.alerta b{color:#B81622;font-weight:700;font-size:14px}.hm{overflow-x:auto}.hm table{border-collapse:separate;border-spacing:3px;width:100%;font-size:12px}.hm th{font-weight:500;color:#4a3f3f;text-align:left;white-space:nowrap;padding:2px 6px}.hm td{text-align:center;border-radius:6px;height:30px;min-width:30px;color:#171212;font-variant-numeric:tabular-nums}@media(max-width:600px){.tabs{gap:18px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.tabs::-webkit-scrollbar{display:none}.tabs button{flex:0 0 auto;white-space:nowrap;font-size:12.5px;letter-spacing:.1em}}
+[data-c=gasto]{--cat:#A0462A}
+[data-c=imp]{--cat:#51657A}
+.emp{display:flex;border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;margin:0 0 20px;background:rgba(255,255,255,.5)}
+.emp button{flex:1;min-height:44px;font-size:14px;font-weight:600;color:var(--mute);border-radius:9px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 8px}
+.emp button[aria-pressed=true]{background:var(--ink);color:#fff}
+.emp i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.pill{border:1px solid var(--bad);color:var(--bad);border-radius:10px;padding:0 14px;min-height:44px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px;background:#fff}
+.pill.on{display:inline-flex}
+.pill::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--bad)}
+.subtabs{display:flex;gap:10px;margin:0 0 22px;flex-wrap:wrap}
+.subtabs button{border:1px solid var(--line);border-radius:999px;padding:9px 16px;font-size:13px;color:var(--mute);min-height:44px}
+.subtabs button[aria-selected=true]{border-color:var(--ink);color:var(--ink);font-weight:600}
+.h1{font-size:clamp(28px,6vw,40px);font-weight:800;letter-spacing:-.02em;line-height:1.1;margin:4px 0 18px}
+.lblx{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.rev{padding:14px 0;border-top:1px solid var(--line)}
+.rev b{display:block;font-weight:600;font-size:15px}
+.rev span{font-size:13px;color:var(--mute)}
+.rev.bad b{color:var(--bad)}
+.nodata{color:var(--mute);font-size:14px}
+.top{flex-wrap:wrap;gap:12px}.pill{text-decoration:none}.note a,.rev a{color:var(--ink);font-weight:600}.tabs{gap:22px}@media(max-width:600px){.tabs{gap:14px}.tabs button{font-size:11.5px;letter-spacing:.06em}}
+@media(max-width:559px){.top .pill{order:3}}
+</style>
 </head>
 <body>
 
@@ -169,18 +191,34 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 <div id="app" class="wrap" hidden>
   <div class="top">
     <div class="who"><div class="av" id="ini">B</div><span id="quien"></span></div>
-    <button class="out" id="btnSalir">Salir</button>
+    <a class="pill" id="pill" href="#" aria-label="Asuntos por revisar"></a><button class="out" id="btnSalir">Salir</button>
+  </div>
+  <div class="emp" role="group" aria-label="Empresa">
+    <button type="button" data-emp="grupo" aria-pressed="true">Grupo</button>
+    <button type="button" data-emp="soda" aria-pressed="false"><i style="background:#B81622"></i>Soda</button>
+    <button type="button" data-emp="pollos" aria-pressed="false"><i style="background:#F3A62C"></i>Pollos</button>
   </div>
   <div class="tabs" role="tablist">
-    <button role="tab" aria-selected="true" data-tab="ingresos">Ingresos digitales</button>
-    <button role="tab" aria-selected="false" data-tab="pedidos">Pedidos web</button>
-    <button role="tab" aria-selected="false" data-tab="paginas">Páginas</button>
-    <button role="tab" aria-selected="false" data-tab="redes">Redes sociales</button>
+    <button role="tab" aria-selected="true" data-sec="hoy">Hoy</button>
+    <button role="tab" aria-selected="false" data-sec="ingresos">Ingresos</button>
+    <button role="tab" aria-selected="false" data-sec="gastos">Gastos</button>
+    <button role="tab" aria-selected="false" data-sec="impuestos">Impuestos</button>
+    <button role="tab" aria-selected="false" data-sec="presencia">Presencia</button>
   </div>
-  <section id="tab-ingresos"></section>
-  <section id="tab-pedidos" hidden></section>
-  <section id="tab-paginas" hidden></section>
-  <section id="tab-redes" hidden></section>
+  <section id="sec-hoy"></section>
+  <section id="sec-ingresos" hidden><div id="ing-aviso"></div><section id="tab-ingresos"></section></section>
+  <section id="sec-gastos" hidden></section>
+  <section id="sec-impuestos" hidden></section>
+  <section id="sec-presencia" hidden>
+    <div class="subtabs" role="tablist">
+      <button role="tab" aria-selected="true" data-sub="pedidos">Pedidos web</button>
+      <button role="tab" aria-selected="false" data-sub="paginas">Páginas</button>
+      <button role="tab" aria-selected="false" data-sub="redes">Redes sociales</button>
+    </div>
+    <section id="tab-pedidos"></section>
+    <section id="tab-paginas" hidden></section>
+    <section id="tab-redes" hidden></section>
+  </section>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -297,6 +335,7 @@ function pintarIng(){
   // ---- el día
   let h=`<div class="dayl">Último día con datos · <b>${fl(T)}</b></div>`;
   const raros=ks.slice(-30).filter(k=>{const w=dts(k).getDay(),ref=mean(ks.filter(z=>dts(z).getDay()===w&&z!==k).map(V));return ref&&(V(k)<0.4*ref||V(k)>2.5*ref);});
+  RAROS=raros.map(k=>({k,v:V(k)}));
   if(raros.length)h+=`<div class="alerta"><b>Revisar ${raros.length===1?'un día':raros.length+' días'} con valores fuera de lo normal</b>${raros.map(k=>{const w=dts(k).getDay(),ref=mean(ks.filter(z=>dts(z).getDay()===w&&z!==k).map(V));return `<span>${fl(k)}: ${crc(V(k))} en tarjeta, frente a ${crc(ref)} de un ${DIA[w]} típico (${dif(V(k),ref)}). Puede faltar un comprobante o haber un problema con el datáfono.</span>`;}).join('')}</div>`;
   h+=C('banco',`<div class="hero"><div class="lbl">Ventas brutas con tarjeta</div><div class="num">${crc(x.b)}</div><span class="delta">${dif(x.b,pw)} frente al promedio de los ${DIA[wd]}${DIA[wd].endsWith('s')?'':'s'} (${crc(pw)})</span>${lineAx(u30,dlabs(ks.slice(-30)),v=>'₡'+cc(v))}</div>`);
   h+=kpis([{c:'banco',l:'Neto depositado',v:crc(x.n),s:p1(x.n/x.b)+' de la venta'},{c:'banco',l:'Comisión',v:crc(x.c),s:p2(x.c/x.b)+' de la venta'},{c:'banco',l:'Retenciones',v:crc(x.i+x.r),s:'IVA '+crc(x.i)+' · renta '+crc(x.r)},{c:'banco',l:'Comprobantes del día',v:fmt(x.k||1),s:(x.k>1?'se sumaron los '+x.k+' correos del depósito · ':'')+fmt(x.v)+' vouchers · ticket '+crc(x.b/x.v)}]);
@@ -506,6 +545,119 @@ function pintarPag(){
   $('tab-paginas').innerHTML=h;
 }
 
+
+/* ---- Gastos, Impuestos y Hoy ---- */
+let RAROS=[],EMP='grupo',SEC='hoy',GG={},II={},PED=[],FIN_ERR=false;
+const EMPN={grupo:'Grupo DMA-La Bomba',soda:'Soda La Bomba',pollos:'Pollos La Bomba y Papea'};
+const MS3=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const ml=m=>MS3[+m.slice(5,7)-1];
+const D10=x=>String(x).slice(0,10);
+const hoyCR=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'});
+const CLASE={credito_soda:'A nombre de Soda',credito_pollos:'A nombre de Pollos',otro_receptor:'A nombre de otra persona',sin_cedula:'Sin cédula del receptor',tiquetes:'Tiquetes electrónicos'};
+const num=x=>Number(x||0);
+const cargando=m=>`<p class="nodata">${m||'Cargando…'}</p>`;
+async function traerFin(){
+  FIN_ERR=false;
+  const ps=['grupo','soda','pollos'].flatMap(e=>[sb.rpc('gastos_resumen',{p_emp:e}),sb.rpc('impuestos_resumen',{p_emp:e})]);
+  const r=await Promise.all(ps);
+  ['grupo','soda','pollos'].forEach((e,i)=>{const g=r[i*2],t=r[i*2+1];if(g.error||t.error){FIN_ERR=true;return;}GG[e]=g.data;II[e]=t.data;});
+}
+function revisar(I){
+  const out=[],cl=k=>(I.clasificacion||[]).find(x=>x.clase===k);
+  const al=I.alertas||[];
+  if(al.length){const t=al.reduce((a,x)=>a+num(x.total_factura),0);out.push({bad:1,t:al.length===1?'Falta el XML de una factura':'Faltan los XML de '+al.length+' facturas',s:al.length===1?`${(al[0].emisor_nombre||'Proveedor sin nombre')}, ${crc(al[0].total_factura)} con IVA. Hacienda la aceptó, pero no tenemos la factura.`:`Por ${crc(t)} con IVA en total. Hacienda las aceptó, pero no tenemos las facturas.`});}
+  const rj=I.rechazadas||{};
+  if(EMP!=='pollos'&&RAROS.length)out.unshift({bad:1,t:RAROS.length===1?'Un día con ingresos fuera de lo normal':RAROS.length+' días con ingresos fuera de lo normal',s:'Tarjeta de la Soda: '+RAROS.slice(-3).map(r=>dl(r.k)+' '+crc(r.v)).join(', ')+'. Detalle en Ingresos.'});
+  if(num(rj.docs))out.push({bad:1,t:rj.docs+' comprobantes rechazados por Hacienda',s:`Quedan fuera del crédito. IVA que no se puede usar: ${crc(rj.iva)}.`});
+  const o=cl('otro_receptor');if(o&&num(o.docs))out.push({t:o.docs+' facturas a nombre de otra persona',s:'IVA en duda: '+crc(o.iva)+'.'});
+  const sc=cl('sin_cedula');if(sc&&num(sc.docs))out.push({t:sc.docs+' facturas sin cédula del receptor',s:'IVA en duda: '+crc(sc.iva)+'.'});
+  return out;
+}
+function pintarPill(){
+  const I=II[EMP],p=$('pill');
+  if(!I){p.classList.remove('on');return;}
+  const n=revisar(I).length;
+  p.textContent=n+(n===1?' por revisar':' por revisar');
+  p.classList.toggle('on',n>0);
+}
+function pintarHoy(){
+  const el=$('sec-hoy');
+  const G=GG[EMP],I=II[EMP];
+  let h=`<div class="lblx">${EMPN[EMP]}</div><h1 class="h1">Hoy, ${fl(hoyCR())}</h1>`;
+  if(!G||!I){el.innerHTML=h+cargando(FIN_ERR?'No se pudieron cargar los gastos.':'');return;}
+  const k=[];
+  const bk=Object.keys(B).sort(),ult=bk[bk.length-1];
+  if(EMP!=='pollos'){
+    k.push(ult?{c:'ventas',l:'Ventas con tarjeta (Soda)',v:crc(B[ult].b),s:'bruto, '+fmt(B[ult].v)+' vouchers, '+fl(ult)}:{c:'ventas',l:'Ventas con tarjeta (Soda)',v:'—',s:'sin datos'});
+  }else k.push({c:'ventas',l:'Ventas de Pollos',v:'Por conectar',s:'falta definir la fuente'});
+  k.push({c:'gasto',l:'Compras recibidas hoy',v:fmt(G.hoy.docs)+(G.hoy.docs===1?' factura':' facturas'),s:crc(G.hoy.bruto)+' con IVA. IVA soportado: '+crc(G.hoy.iva)});
+  const th=hoyCR(),pe=PED.filter(r=>new Date(r.creado_en).toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'})===th&&(EMP==='grupo'||(EMP==='soda'?r.sitio==='soda':r.sitio!=='soda'))).length;
+  k.push({c:'ped',l:'Pedidos Express hoy',v:fmt(pe),s:'desde las páginas web'});
+  const rc=(G.recientes||[]).slice().sort((a,b)=>D10(a.dia)<D10(b.dia)?1:-1);
+  k.push({c:'gasto',l:'Ayer',v:rc[1]?crc(rc[1].bruto):'—',s:rc[1]?fmt(rc[1].docs)+' facturas con IVA':'sin datos'});
+  h+=kpis(k);
+  if(EMP==='grupo'){
+    const f=(e,n,c)=>{const g=GG[e];return `<div class="br"><div class="t"><b>${n}</b><i>${crc(g.hoy.bruto)} hoy</i></div><div class="s2">${fmt(g.hoy.docs)} facturas hoy. Compras desde enero: ${crc(g.totales.bruto)} (bruto)</div></div>`;};
+    h+=`<div class="g" data-c="sistema"><div class="blk"><h2>Cada empresa</h2>${f('soda','Soda La Bomba')}${f('pollos','Pollos La Bomba y Papea')}<p class="note">Las compras sin cédula del receptor o a nombre de otra persona están en el total del Grupo, pero no en una empresa. Al elegir Soda o Pollos arriba se ve solo una.</p></div></div>`;
+  }
+  const rv=revisar(I);
+  h+=`<div class="g" data-c="imp"><div class="blk"><h2>Por revisar</h2>${rv.length?rv.map(x=>`<div class="rev ${x.bad?'bad':''}"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></div>`).join(''):'<p class="note">Nada por revisar.</p>'}<p class="note"><a href="#" data-go="impuestos">Ver todo en Impuestos</a></p></div></div>`;
+  const rec=rc.slice(0,4).reverse();
+  if(rec.length)h+=`<div class="g" data-c="gasto">${cols('Compras recibidas, últimos días (bruto, con IVA)',rec.map(x=>num(x.bruto)),rec.map(x=>dl(D10(x.dia))),'Hoy aún está en curso.',null,cc,true)}</div>`;
+  el.innerHTML=h;
+}
+function pintarGastos(){
+  const el=$('sec-gastos'),G=GG[EMP];
+  if(!G){el.innerHTML=cargando(FIN_ERR?'No se pudieron cargar los gastos.':'');return;}
+  const t=G.totales,m=G.mensual||[];
+  let h=`<div class="lblx">${EMPN[EMP]} · desde el 1 de enero · colones</div><h1 class="h1">Gastos</h1>`;
+  h+=kpis([{c:'gasto',l:'Compras (bruto)',v:crc(t.bruto),s:'con IVA, '+fmt(t.docs)+' comprobantes'},{c:'gasto',l:'Compras (neto)',v:crc(t.neto),s:'sin IVA'},{c:'gasto',l:'IVA soportado',v:crc(t.iva),s:'crédito potencial en Impuestos'},{c:'gasto',l:'Hoy',v:crc(G.hoy.bruto),s:fmt(G.hoy.docs)+' facturas recibidas'}]);
+  if(m.length)h+=`<div class="g" data-c="gasto">${cols('Compras por mes (bruto, con IVA)',m.map(x=>num(x.bruto)),m.map(x=>ml(x.mes)),'Cada barra es un mes completo desde enero. El último puede estar en curso. Las notas de crédito restan.',null,cc,true)}</div>`;
+  const c2=(G.categorias||[]).map(c=>[c.cat||'Sin categoría',num(c.bruto),'IVA '+crc(c.iva)]);
+  const c3=(G.tipos||[]).map(c=>[c.tipo||'Sin tipo',num(c.bruto)]);
+  h+=`<div class="g c2" data-c="gasto">${c2.length?bars('Categorías (CABYS)',c2,crc,null,'Monto bruto. Clasificación oficial de Hacienda.'):''}${c3.length?bars('Productos y servicios',c3,crc,null,'Monto bruto, agrupado por tipo.'):''}</div>`;
+  const pv=G.proveedores||[];
+  if(pv.length)h+=`<div class="g" data-c="gasto">${table('Proveedores principales',['Proveedor','Facturas','Bruto','IVA'],pv.map(p=>[esc(p.prov),fmt(p.docs),crc(p.bruto),crc(p.iva)]))}</div>`;
+  h+=`<p class="note">Fuente: facturas electrónicas recibidas en los correos de contabilidad, leídas desde el XML. Solo colones. Los gastos sin factura electrónica (comprobantes de transferencia) se sumarán cuando esté conectada la carpeta de SharePoint.</p>`;
+  el.innerHTML=h;
+}
+function pintarImpuestos(){
+  const el=$('sec-impuestos'),I=II[EMP];
+  if(!I){el.innerHTML=cargando(FIN_ERR?'No se pudieron cargar los impuestos.':'');return;}
+  const cl=k=>(I.clasificacion||[]).find(x=>x.clase===k)||{docs:0,bruto:0,iva:0};
+  const dudaIva=['otro_receptor','sin_cedula','tiquetes'].reduce((a,k)=>a+num(cl(k).iva),0);
+  let h=`<div class="lblx">${EMPN[EMP]} · desde el 1 de enero · colones</div><h1 class="h1">Impuestos</h1>`;
+  h+=kpis([{c:'imp',l:'IVA soportado',v:crc(I.iva_total),s:'en compras válidas, sin los rechazados'},{c:'imp',l:'Crédito potencial Soda',v:crc(cl('credito_soda').iva),s:fmt(cl('credito_soda').docs)+' facturas a su nombre'},{c:'imp',l:'Crédito potencial Pollos',v:crc(cl('credito_pollos').iva),s:fmt(cl('credito_pollos').docs)+' facturas a su nombre'},{c:'imp',l:'IVA en duda',v:crc(dudaIva),s:'otra persona, sin cédula o tiquete'}]);
+  const al=I.alertas||[];
+  h+=`<div class="g" data-c="imp"><div class="blk"><h2>Facturas sin XML</h2>${al.length?al.map(a=>`<div class="rev bad"><b>${esc(a.emisor_nombre||'Proveedor sin nombre')}, ${crc(a.total_factura)}</b><span>Recibida el ${dl(D10(a.recibido))}. Tenemos el aviso de Hacienda, pero no el XML de la factura, que es el que sirve para el crédito. ${esc(a.asunto||'')}</span></div>`).join(''):'<p class="note">No hay facturas aceptadas por Hacienda sin su XML.</p>'}</div></div>`;
+  const rj=I.rechazadas||{},rd=I.rechazadas_detalle||[];
+  if(num(rj.docs))h+=`<div class="g" data-c="imp">${table('Rechazadas por Hacienda',['Proveedor','Docs','Bruto','IVA'],rd.map(r=>[esc(r.emisor),fmt(r.docs),crc(r.bruto),crc(r.iva)]))}</div><p class="note">Hacienda rechazó estos comprobantes. No cuentan en el crédito ni en los totales de arriba: hay que pedir al proveedor que los emita de nuevo.</p>`;
+  h+=`<div class="g" data-c="imp">${table('Compras según a nombre de quién están',['Clase','Docs','Bruto','IVA'],(I.clasificacion||[]).map(x=>[CLASE[x.clase]||x.clase,fmt(x.docs),crc(x.bruto),crc(x.iva)]))}</div>`;
+  const im=I.iva_mensual||[];
+  if(im.length)h+=`<div class="g" data-c="imp">${cols('IVA soportado por mes',im.map(x=>num(x.iva)),im.map(x=>ml(x.mes)),'Sin comprobantes rechazados. Las notas de crédito restan.',null,cc,true)}</div>`;
+  const rc=(I.receptores||[]);
+  if(rc.length)h+=`<div class="g" data-c="imp">${table('Receptores que aparecen en las facturas',['Receptor','Docs','Bruto','IVA'],rc.map(r=>[esc(r.nombre||'Sin nombre')+'<small>'+esc(r.ced)+'</small>',fmt(r.docs),crc(r.bruto),crc(r.iva)]))}</div>`;
+  h+=`<p class="note">Es crédito potencial: la decisión final es del contador. El IVA de ventas todavía no está conectado${num(I.usd.docs)?'. Además hay '+fmt(I.usd.docs)+' comprobantes en dólares (US$ '+fmt(I.usd.total)+') que no se suman aquí':''}.</p>`;
+  el.innerHTML=h;
+}
+function pintarAviso(){
+  const a=$('ing-aviso');
+  if(EMP==='pollos'){a.innerHTML=`<div class="g" data-c="ventas"><div class="blk"><h2>Ingresos de Pollos La Bomba y Papea</h2><p class="note">Todavía no hay una fuente de ventas conectada. Aparecerán aquí cuando se defina de dónde salen.</p></div></div>`;$('tab-ingresos').hidden=true;}
+  else{a.innerHTML=EMP==='grupo'?`<p class="note" style="margin:0 0 18px">Hoy solo están conectados los cobros digitales de la Soda. Las ventas de Pollos y Papea se sumarán cuando se defina la fuente.</p>`:'';$('tab-ingresos').hidden=false;}
+}
+function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();}
+function irSec(s){
+  SEC=s;
+  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x.dataset.sec===s));
+  ['hoy','ingresos','gastos','impuestos','presencia'].forEach(t=>$('sec-'+t).hidden=t!==s);
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>irSec(b.dataset.sec));
+document.querySelectorAll('.emp button').forEach(b=>b.onclick=()=>{EMP=b.dataset.emp;document.querySelectorAll('.emp button').forEach(x=>x.setAttribute('aria-pressed',x===b));pintarFin();});
+document.querySelectorAll('.subtabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.subtabs button').forEach(x=>x.setAttribute('aria-selected',x===b));['pedidos','paginas','redes'].forEach(t=>$('tab-'+t).hidden=b.dataset.sub!==t);});
+$('pill').onclick=e=>{e.preventDefault();irSec('impuestos');};
+document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(a){e.preventDefault();irSec(a.dataset.go);}});
+
 async function traer(){
   const desde=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
   let all=[],from=0;
@@ -528,12 +680,14 @@ async function traerBcr(){
 async function cargar(){
   try{M=await traerMeta();}catch(e){M=[];}
   pintarRedes();
+  traerFin().then(pintarFin).catch(()=>{FIN_ERR=true;pintarFin();});
   try{armarB(await traerBcr());pintarIng();}
   catch(e){$('tab-ingresos').innerHTML='<div class="blk"><h2>No se pudieron cargar los ingresos</h2></div>';}
   try{R=await traer();}catch(e){R=[];}
-  try{pintarPed(await traerTabla('pedidos','creado_en,sitio,items,total,direccion,cliente_telefono'),await traerTabla('carritos','creado_en,actualizado_en,sitio,items,total,enviado'));}
+  try{const _p=await traerTabla('pedidos','creado_en,sitio,items,total,direccion,cliente_telefono');PED=_p;pintarPed(_p,await traerTabla('carritos','creado_en,actualizado_en,sitio,items,total,enviado'));}
   catch(e){$('tab-pedidos').innerHTML='<div class="blk"><h2>No se pudieron cargar los pedidos</h2></div>';}
   try{pintarPag();}catch(e){$('tab-paginas').innerHTML='<div class="blk"><h2>No se pudieron cargar las visitas</h2></div>';}
+  pintarPill();pintarHoy();
 }
 async function validar(session){
   if(!session){$('app').hidden=true;$('login').hidden=false;return;}
@@ -545,10 +699,6 @@ async function validar(session){
 }
 $('btnLogin').onclick=()=>sb.auth.signInWithOAuth({provider:'azure',options:{scopes:'email',redirectTo:location.origin+location.pathname}});
 $('btnSalir').onclick=async()=>{await sb.auth.signOut();location.reload();};
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));
-  ['ingresos','pedidos','paginas','redes'].forEach(t=>$('tab-'+t).hidden=b.dataset.tab!==t);
-});
 sb.auth.getSession().then(({data})=>validar(data.session));
 sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT')validar(null);});
 </script>
