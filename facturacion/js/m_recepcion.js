@@ -168,6 +168,7 @@ export default {
       const cuerpo = h('div', h('p.cargando', 'Cargando la factura…'));
       const m = modal({ titulo: 'Factura de proveedor', contenido: cuerpo, ancho: 940 });
       m.el.classList.add('rec-modal');
+      m.el.parentElement.style.gridTemplateColumns = 'minmax(0, 1fr)'; // evita que una tabla ancha empuje la ventana fuera del celular
       await pintarDetalle(cuerpo, clave);
     }
     async function pintarDetalle(cuerpo, clave, aviso) {
@@ -191,7 +192,7 @@ export default {
           dato('Respuesta de Hacienda al proveedor', hacTxt), moneda ? dato('Moneda', `${f.moneda}, tipo de cambio ${num(f.tipo_cambio, 5)}`) : null),
         h('h3', 'Líneas de la factura'),
         lineas.length ? h('div.tabla-caja', h('table.tabla', h('thead', h('tr', h('th', '#'), h('th', 'Detalle'), h('th.der', 'Cantidad'), h('th.der', 'Precio unitario'), h('th.der', 'Sin IVA'), h('th.der', 'IVA'), h('th.der', 'Total'))),
-          h('tbody', lineas.map((l) => h('tr', h('td', l.linea > 999 ? '' : l.linea), h('td', l.detalle || '', l.cabys ? h('small.tenue', ' CABYS ' + l.cabys) : null), h('td.der', num(l.cantidad, 3)), h('td.der', money(l.precio_unitario)), h('td.der', money(l.subtotal)), h('td.der', money(l.impuesto)), h('td.der', money(l.total_linea)))))))
+          h('tbody', lineas.map((l) => h('tr', h('td', l.linea > 999 ? '' : l.linea), h('td', l.detalle || '', l.cabys ? h('small.tenue', ' CABYS ' + l.cabys) : null), h('td.der', { 'data-et': 'Cantidad' }, num(l.cantidad, 3)), h('td.der', { 'data-et': 'Precio' }, money(l.precio_unitario)), h('td.der', { 'data-et': 'Sin IVA' }, money(l.subtotal)), h('td.der', { 'data-et': 'IVA' }, money(l.impuesto)), h('td.der', { 'data-et': 'Total' }, money(l.total_linea)))))))
           : h('p.tenue', 'Esta factura no trae líneas guardadas.'),
         h('div.rec-totales',
           h('div', h('span', 'Compra sin IVA'), h('strong.cifra', sg + money(f.neto))),
