@@ -80,7 +80,11 @@ th button.ord .flecha{color:var(--rojo)}
   .pc-barra{display:none}
   table.arbol td.nom{min-width:0}
   table.arbol th{white-space:normal;padding:.6rem .5rem}
-  table.arbol td{padding:.55rem .5rem;font-size:.86rem}
+  table.arbol td{padding:.55rem .4rem;font-size:.84rem}
+  table.arbol{table-layout:fixed;width:100%}
+  table.arbol th:nth-child(2){width:56px}
+  table.arbol th:nth-child(3){width:122px}
+  table.arbol td:nth-child(3){white-space:nowrap;font-size:.8rem}
   table.arbol th:nth-child(4),table.arbol td:nth-child(4){display:none}
   table.arbol code.cod{display:none}
   .arbol-btn .ver{display:none}

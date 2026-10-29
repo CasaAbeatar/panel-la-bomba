@@ -286,7 +286,7 @@ export default {
         if (!total) return h('p.tenue', 'Ningún producto coincide con la búsqueda.');
         return h('div', h('p.tenue', 'Toque el título de una columna para ordenar. Cada presentación (por ejemplo Coca-Cola 355 mL y Coca-Cola 600 mL) es un producto aparte.'),
           h('div.tabla-caja', h('table.tabla', h('thead', h('tr', th('codigo', 'Código'), th('nombre', 'Producto'), th('cantidad', 'Cantidad', 1), th('total', 'Monto con IVA', 1), h('th.der', '% del total'))),
-            h('tbody', mostrar.map((x) => h('tr', h('td', h('code.cod', x.codigo || '—')), h('td', x.nombre), h('td.der', num(x.cantidad, 3)), h('td.der', money(x.total)), h('td.der', pct(x.total, totalFijos))))))),
+            h('tbody', mostrar.map((x) => h('tr', h('td', h('code.cod', x.codigo || 's/d')), h('td', x.nombre), h('td.der', num(x.cantidad, 3)), h('td.der', money(x.total)), h('td.der', pct(x.total, totalFijos))))))),
           total > 15 ? h('div.fila', { style: 'margin-top:.6rem' }, h('button.btn', { type: 'button', onclick: () => { est.verTodos = !est.verTodos; pintarProd(); } }, est.verTodos ? 'Mostrar solo los 15 primeros' : `Ver los ${total} productos`)) : null);
       }
       // "Con papas": cuántas veces se vendió la opción de papas frente a los platos principales del mismo cajón
@@ -315,7 +315,7 @@ export default {
       const csvAb = () => csvBajar(nombreArchivo('Productos de precio abierto o por peso'), ['Código', 'Producto', 'Unidad', 'Cantidad', 'Monto con IVA'], abiertos.map((x) => [x.codigo || '', x.nombre, x.unidad || '', +x.cantidad, +x.total]));
       return h('div', cab, seccion('Precio abierto o por peso (aparte)', 'En estos productos el precio se digita a mano o se vende por peso, así que la cantidad NO se puede comparar con la de los demás productos. Por eso van separados y no suman en la tabla de arriba.', csvAb,
         tablaSimple([{ t: 'Código' }, { t: 'Producto' }, { t: 'Unidad' }, { t: 'Cantidad o peso', der: 1 }, { t: 'Monto con IVA', der: 1 }],
-          abiertos.map((x) => [h('code.cod', x.codigo || '—'), x.nombre, x.unidad || '', num(x.cantidad, 3), money(x.total)]),
+          abiertos.map((x) => [h('code.cod', x.codigo || 's/d'), x.nombre, x.unidad || '', num(x.cantidad, 3), money(x.total)]),
           h('tr', h('td', { colspan: 4 }, 'Total de precio abierto'), h('td.der', money(totalAb))))));
     }
 

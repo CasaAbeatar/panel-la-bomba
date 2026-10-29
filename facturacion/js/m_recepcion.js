@@ -1,7 +1,7 @@
 // Recepción de facturas de proveedores: lo que llega a los correos de contabilidad, y su respuesta a Hacienda (MensajeReceptor 1 aceptar, 2 aceptar parcialmente, 3 rechazar).
 // Plazo: 8 días hábiles desde que la factura llegó al correo. Datos: fx_recibidas / fx_recibida (solo lectura, ver sql/06_recepcion.sql).
 import { h, money, num, fechaHora, debounce, modal, confirmar, pedir, conBoton, toast } from './util.js';
-import { recibidas, recibida, responder, revisarCorreo } from './api_recepcion.js';
+import { recibidas, recibida, responder, consultarRespuesta, revisarCorreo } from './api_recepcion.js';
 import { selectorPeriodo, textoRango, fechaDMA } from './periodo.js';
 import { csvBajar } from './csv.js';
 
@@ -17,10 +17,12 @@ export function estadoFila(f) {
   const rec = f.receptor_estado, hac = f.hacienda_estado;
   if (!f.requiere) return { texto: 'No necesita respuesta', clase: '', sub: 'Los tiquetes y facturas de compra no se aceptan ni se rechazan.' };
   if (hac === '3') return { texto: 'Rechazada por Hacienda', clase: 'mal', sub: 'Hacienda no la aceptó; no hay que responderla.' };
-  if (rec === '1') return { texto: 'Aceptada', clase: 'ok', sub: f.receptor_en ? 'El ' + fechaHora(f.receptor_en) : '' };
-  if (rec === '2') return { texto: 'Aceptada parcialmente', clase: 'espera', sub: f.receptor_en ? 'El ' + fechaHora(f.receptor_en) : '' };
-  if (rec === '3') return { texto: 'Rechazada por usted', clase: 'mal', sub: f.receptor_en ? 'El ' + fechaHora(f.receptor_en) : '' };
-  const d = f.dias_restantes, lim = f.vence ? 'Límite: ' + diaSemana(f.vence) : '';
+  const cuando = (f.receptor_en ? 'El ' + fechaHora(f.receptor_en) : '') + (f.receptor_envio === 'enviado' ? ' · Hacienda la está procesando' : '');
+  if (rec === '1') return { texto: 'Aceptada', clase: 'ok', sub: cuando };
+  if (rec === '2') return { texto: 'Aceptada parcialmente', clase: 'espera', sub: cuando };
+  if (rec === '3') return { texto: 'Rechazada por usted', clase: 'mal', sub: cuando };
+  const intento = ['error', 'pendiente', 'rechazado'].includes(f.receptor_envio) ? ' · Un intento de respuesta no llegó a Hacienda' : '';
+  const d = f.dias_restantes, lim = f.vence ? 'Límite: ' + diaSemana(f.vence) + intento : intento.slice(3);
   if (d < 0) return { texto: `Plazo vencido hace ${plural(-d, 'día hábil', 'días hábiles')}`, clase: 'mal', sub: lim, nivel: 'vencida' };
   if (d === 0) return { texto: 'Último día para responder: hoy', clase: 'mal', sub: lim, nivel: 'pronto' };
   if (d <= 2) return { texto: `Quedan ${plural(d, 'día hábil', 'días hábiles')}`, clase: 'espera', sub: lim, nivel: 'pronto' };
@@ -37,7 +39,7 @@ export default {
 
     const periodo = selectorPeriodo({ inicial: 'hoy', alCambiar: () => cargar() });
     const periodoCaja = h('div.tarjeta.rec-periodo', periodo.el);
-    const buscar = h('input.campo', { type: 'search', placeholder: 'Escriba el nombre del proveedor, su cédula o el número de factura', 'aria-label': 'Buscar por proveedor o número de factura', oninput: debounce(() => { est.q = buscar.value.trim(); cargar(); }, 350) });
+    const buscar = h('input.campo', { type: 'search', placeholder: 'Proveedor, cédula o número de factura', 'aria-label': 'Buscar por proveedor o número de factura', oninput: debounce(() => { est.q = buscar.value.trim(); cargar(); }, 350) });
     const kpis = h('div.rejilla.rec-kpis');
     const tabs = h('div.rec-vistas', { role: 'group', 'aria-label': 'Qué facturas ver' });
     const rotulo = h('p.rec-rotulo');
@@ -65,8 +67,11 @@ export default {
         estadoCorreo.textContent = `Listo. Se revisaron ${plural(sum('correos'), 'correo', 'correos')} de ${plural(bz.length, 'buzón', 'buzones')}; ${plural(sum('comprobantes'), 'comprobante leído', 'comprobantes leídos')} y ${plural(sum('mensajes_hacienda'), 'respuesta de Hacienda', 'respuestas de Hacienda')}.` + (errs.length ? ` Hubo ${plural(errs.length, 'aviso', 'avisos')}: ${errs[0]}` : '');
         if (vivo) await cargar();
       } catch (e) {
-        estadoCorreo.className = 'rec-correo-estado error';
-        estadoCorreo.textContent = 'No se pudo revisar el correo ahora: ' + (e.message || e) + '. Las facturas que ya estaban guardadas se siguen viendo.';
+        const sinPuente = /failed to fetch|networkerror|load failed/i.test(String(e.message || e));
+        estadoCorreo.className = 'rec-correo-estado ' + (sinPuente ? 'aviso' : 'error');
+        estadoCorreo.textContent = sinPuente
+          ? 'La revisión manual del correo todavía no se puede hacer desde esta pantalla. No pasa nada: el sistema revisa solo los correos de contabilidad cinco veces al día (6:00, 8:00, 13:00, 17:00 y 20:00) y las facturas nuevas aparecen aquí. Lo que ya estaba guardado se sigue viendo.'
+          : 'No se pudo revisar el correo ahora: ' + (e.message || e) + '. Las facturas que ya estaban guardadas se siguen viendo.';
       } finally { btnCorreo.textContent = 'Buscar facturas nuevas en el correo'; }
     }
 
@@ -205,27 +210,73 @@ export default {
 
     function pintarRespuesta(caja, d, clave, cuerpo, e) {
       caja.replaceChildren();
+      const f = d.factura;
+      const quien = `la factura ${f.consecutivo || ''} de ${limpiarNombre(f.emisor_nombre)}`;
+      const err = h('div.error-caja', { hidden: true });
       if (d.propia) { caja.append(h('p.tenue', 'Este comprobante lo emitió uno de nuestros propios negocios; no es una compra a un proveedor.')); return; }
       if (!d.requiere) { caja.append(h('h3', 'Respuesta a Hacienda'), h('p', 'Este tipo de comprobante no necesita que usted lo acepte ni lo rechace.')); return; }
       if (d.hacienda_estado === '3') { caja.append(h('h3', 'Respuesta a Hacienda'), h('p', 'Hacienda rechazó esta factura cuando el proveedor la envió, así que no hay nada que responder.')); return; }
       if (d.receptor_estado) {
         const t = { '1': 'Usted aceptó esta factura completa.', '2': 'Usted aceptó esta factura parcialmente.', '3': 'Usted rechazó esta factura.' }[d.receptor_estado];
-        caja.append(h('h3', 'Respuesta a Hacienda'), h('p.rec-ok', t + (d.receptor_en ? ' El ' + fechaHora(d.receptor_en) + '.' : '')));
+        const procesando = d.receptor_envio === 'enviado';
+        const btnConsulta = h('button.btn.grande', { type: 'button', onclick: () => conBoton(btnConsulta, async () => {
+          const r = await consultarRespuesta(clave);
+          await pintarDetalle(cuerpo, clave, r.estado === 'aceptado' ? 'Hacienda ya recibió y aceptó su respuesta.' : 'Hacienda todavía está procesando su respuesta. Vuelva a revisar en un momento.');
+          if (vivo) cargar();
+        }) }, 'Revisar si Hacienda ya la procesó');
+        caja.append(...[h('h3', 'Respuesta a Hacienda'), h('p.rec-ok', t + (d.receptor_en ? ' El ' + fechaHora(d.receptor_en) + '.' : '')),
+          procesando ? h('p.tenue', 'Su respuesta ya se envió. Hacienda todavía la está procesando.') : h('p.tenue', 'Hacienda ya recibió su respuesta.'),
+          procesando ? btnConsulta : null].filter(Boolean));
         return;
       }
-      const err = h('div.error-caja', { hidden: true });
       const vencida = d.dias_restantes < 0;
-      const enviar = async (btn, accion, motivo) => {
+      const enviar = async (btn, accion, motivo, extra) => {
         err.hidden = true;
-        await conBoton(btn, async () => {
-          try {
-            const r = await responder(clave, accion, motivo);
-            toast('Respuesta enviada: ' + ({ aceptar: 'factura aceptada', parcial: 'aceptada parcialmente', rechazar: 'factura rechazada' }[accion]) + '.');
-            await pintarDetalle(cuerpo, clave, `Listo. Su respuesta quedó enviada${r?.estado ? ' (estado: ' + r.estado + ')' : ''}. Si el estado todavía aparece como pendiente, vuelva a abrir esta factura en un minuto.`);
-            if (vivo) cargar();
-          } catch (ex) { err.textContent = ex.message || String(ex); err.hidden = false; throw ex; }
-        });
+        const txt = btn.textContent; btn.disabled = true; btn.textContent = 'Enviando…';
+        try {
+          const r = await responder(clave, accion, motivo, extra);
+          if (r && r.ok === false) throw new Error('Hacienda no aceptó su respuesta' + (r.detalle ? ': ' + r.detalle : '.') + ' Puede intentarlo de nuevo.');
+          toast('Respuesta enviada: ' + ({ aceptar: 'factura aceptada', parcial: 'aceptada parcialmente', rechazar: 'factura rechazada' }[accion]) + '.');
+          await pintarDetalle(cuerpo, clave, r?.estado === 'aceptado' ? 'Listo. Hacienda recibió y aceptó su respuesta.' : 'Listo. Su respuesta se envió y Hacienda todavía la está procesando. Si el estado sigue como pendiente, vuelva a abrir esta factura en un minuto.');
+          if (vivo) cargar();
+        } catch (ex) {
+          err.textContent = ex.message || String(ex); err.hidden = false; err.scrollIntoView({ block: 'nearest' });
+          btn.disabled = false; btn.textContent = txt;
+        }
       };
+      // Aceptar: se elige cómo se trata el IVA (lo normal es acreditarlo completo)
+      const pedirAceptar = () => new Promise((ok) => {
+        let hecho = false;
+        const trato = h('select.campo', { 'aria-label': 'Cómo se trata el IVA de esta compra' },
+          h('option', { value: '01' }, 'El IVA se acredita completo (lo normal)'),
+          h('option', { value: '04' }, 'Es un gasto: el IVA no se acredita'),
+          h('option', { value: '03' }, 'Es un bien de capital (equipo o maquinaria)'));
+        const fin = (v, c) => { hecho = true; c?.(); ok(v); };
+        modal({ titulo: 'Aceptar la factura', ancho: 480, alCerrar: () => { if (!hecho) ok(null); },
+          contenido: h('div', h('p', `¿Aceptar ${quien} por ${money(f.total)}? Se le avisa a Hacienda que usted la recibió conforme.`), h('label.etq', '¿Cómo se trata el IVA de esta compra?', trato)),
+          botones: [{ texto: 'No, volver', onclick: (c) => fin(null, c) }, { texto: 'Sí, aceptar la factura', clase: 'primario', onclick: (c) => fin(trato.value, c) }] });
+      });
+      // Aceptar parcialmente: porcentaje de IVA que sí se acredita y el motivo
+      const pedirParcial = () => new Promise((ok) => {
+        let hecho = false;
+        const pct = h('input.campo', { type: 'number', min: '0', max: '100', step: '1', inputmode: 'numeric', placeholder: 'Por ejemplo: 50', 'aria-label': 'Porcentaje del IVA que se acredita' });
+        const motivo = h('textarea.campo', { rows: 3, maxlength: '160', 'aria-label': 'Motivo' });
+        const cuanto = h('small.tenue', 'Escriba el porcentaje para ver cuánto IVA se acreditaría.');
+        const aviso = h('div.error-caja', { hidden: true });
+        pct.addEventListener('input', () => { const v = Number(pct.value); cuanto.textContent = pct.value !== '' && v >= 0 && v <= 100 ? `Se acreditarían unos ${money(Math.round(f.iva * v) / 100)} de los ${money(f.iva)} de IVA de esta factura.` : 'Escriba un número entre 0 y 100.'; });
+        const fin = (v, c) => { hecho = true; c?.(); ok(v); };
+        modal({ titulo: 'Aceptar parcialmente', ancho: 500, alCerrar: () => { if (!hecho) ok(null); },
+          contenido: h('div',
+            h('p', `Use esta opción si solo una parte de ${quien} es correcta o se puede acreditar.`),
+            h('label.etq', 'Porcentaje del IVA que sí se acredita (de 0 a 100)', pct, cuanto),
+            h('label.etq', 'Motivo: qué parte no acepta y por qué', motivo, h('small', 'Hacienda lo recibe junto con la respuesta. Máximo 160 letras.')), aviso),
+          botones: [{ texto: 'Cancelar', onclick: (c) => fin(null, c) }, { texto: 'Enviar respuesta', clase: 'primario', onclick: (c) => {
+            const v = Number(pct.value), m = motivo.value.trim();
+            if (pct.value === '' || !(v >= 0 && v <= 100)) { aviso.textContent = 'Escriba el porcentaje de IVA que se acredita, un número entre 0 y 100.'; aviso.hidden = false; return; }
+            if (m.length < 5) { aviso.textContent = 'Escriba el motivo con un poco más de detalle (al menos 5 letras).'; aviso.hidden = false; return; }
+            fin({ proporcion: v, motivo: m.slice(0, 160) }, c);
+          } }] });
+      });
       const pedirMotivo = async (titulo, etiqueta) => {
         for (;;) {
           const t = await pedir({ titulo, etiqueta, multilinea: true, nota: 'Hacienda lo recibe junto con la respuesta. Máximo 160 letras.', boton: 'Enviar respuesta' });
@@ -234,14 +285,17 @@ export default {
           toast('Escriba el motivo con un poco más de detalle (al menos 5 letras).', 'error');
         }
       };
-      const bA = h('button.btn.primario.grande', { type: 'button', onclick: async () => { if (await confirmar(`¿Aceptar la factura ${d.factura.consecutivo || ''} de ${limpiarNombre(d.factura.emisor_nombre)} por ${money(d.factura.total)}? Se le avisa a Hacienda que usted la recibió conforme.`, { si: 'Sí, aceptar la factura', no: 'No, volver' })) enviar(bA, 'aceptar', ''); } }, 'Aceptar');
-      const bP = h('button.btn.grande', { type: 'button', onclick: async () => { const t = await pedirMotivo('Aceptar parcialmente', 'Motivo: qué parte no acepta y por qué'); if (t) enviar(bP, 'parcial', t); } }, 'Aceptar parcialmente');
+      const bA = h('button.btn.primario.grande', { type: 'button', onclick: async () => { const c = await pedirAceptar(); if (c) enviar(bA, 'aceptar', '', { condicion_impuesto: c }); } }, 'Aceptar');
+      const bP = h('button.btn.grande', { type: 'button', onclick: async () => { const r = await pedirParcial(); if (r) enviar(bP, 'parcial', r.motivo, { condicion_impuesto: '02', proporcion: r.proporcion }); } }, 'Aceptar parcialmente');
       const bR = h('button.btn.peligro.grande', { type: 'button', onclick: async () => { const t = await pedirMotivo('Rechazar la factura', 'Motivo: por qué rechaza esta factura'); if (t && await confirmar('¿Rechazar esta factura? Se le avisa a Hacienda que usted NO la acepta.', { si: 'Sí, rechazar', no: 'No, volver', peligro: true })) enviar(bR, 'rechazar', t); } }, 'Rechazar');
-      caja.append(h('h3', 'Respuesta a Hacienda'),
+      const pruebas = app.soc && app.soc.ambiente && app.soc.ambiente !== 'produccion';
+      caja.append(...[h('h3', 'Respuesta a Hacienda'),
         h('p.rec-plazo' + (vencida ? '.vencida' : ''), e.texto + (e.sub ? '. ' + e.sub : '') + '.', vencida ? ' Todavía puede intentar responder, pero el plazo ya pasó.' : ''),
+        pruebas ? h('p.lis-aviso', 'El sistema está en modo de pruebas. Las respuestas a facturas reales de proveedores todavía no se envían a Hacienda: si lo intenta, el sistema se lo explica y no se pierde nada.') : null,
+        ['error', 'pendiente', 'rechazado'].includes(d.receptor_envio) ? h('p.lis-aviso', 'Un intento anterior de responder esta factura no llegó a Hacienda' + (d.receptor_detalle ? ': ' + d.receptor_detalle : '.') + ' Puede intentarlo de nuevo.') : null,
         h('div.rec-acciones', bA, bP, bR),
-        h('ul.rec-ayuda', h('li', h('strong', 'Aceptar: '), 'la compra llegó bien y la factura está correcta. Es lo normal.'), h('li', h('strong', 'Aceptar parcialmente: '), 'hay una parte con error (por ejemplo un artículo que no llegó). Pide un motivo.'), h('li', h('strong', 'Rechazar: '), 'la compra no es nuestra o la factura está mal. Pide un motivo.')),
-        err);
+        h('ul.rec-ayuda', h('li', h('strong', 'Aceptar: '), 'la compra llegó bien y la factura está correcta. Es lo normal.'), h('li', h('strong', 'Aceptar parcialmente: '), 'hay una parte con error o solo se acredita parte del IVA. Pide un porcentaje y un motivo.'), h('li', h('strong', 'Rechazar: '), 'la compra no es nuestra o la factura está mal. Pide un motivo.')),
+        err].filter(Boolean));
     }
 
     cargar();

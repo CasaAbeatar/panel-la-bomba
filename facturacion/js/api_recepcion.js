@@ -21,16 +21,19 @@ export const recibida = (clave) => rpc('fx_recibida', { p_id: clave });
 // Solo el contador de pendientes (para un aviso en otra pantalla)
 export const contarPendientes = async (soc) => (await recibidas(soc, null, null, '', 'pendientes')).conteo;
 
-// Respuesta al proveedor. Función de borde "facturador-receptor" (la construye otro módulo): POST {factura_id, accion:'aceptar'|'parcial'|'rechazar', motivo} -> {ok, estado}
-// factura_id es la clave de 50 dígitos (facturas_recibidas no tiene otro identificador).
-export async function responder(clave, accion, motivo = '') {
+// Respuesta al proveedor. Función de borde "facturador-receptor": POST {factura_id (clave de 50 dígitos), accion:'aceptar'|'parcial'|'rechazar'|'consultar', motivo, condicion_impuesto?, proporcion?}
+// -> {ok, estado:'aceptado'|'enviado'|'rechazado', consecutivo, detalle}. Los errores llegan como {ok:false, error} y funcion() los convierte en ErrorApi con ese texto.
+// condicion_impuesto: '01' acredita completo (por omisión al aceptar), '03' bien de capital, '04' gasto sin crédito, '02' crédito parcial (requiere proporcion 0 a 100; por omisión al aceptar parcialmente).
+export async function responder(clave, accion, motivo = '', extra = {}) {
   try {
-    return await funcion('facturador-receptor', { factura_id: clave, clave, accion, motivo });
+    return await funcion('facturador-receptor', { factura_id: clave, accion, motivo, ...extra });
   } catch (e) {
-    if (/404|not found|NOT_FOUND|Function not found/i.test(e.message)) throw new ErrorApi('La respuesta automática a Hacienda todavía no está activada en el sistema. La factura sigue sin responder.');
+    if (/^Error 404|Requested function was not found|NOT_FOUND/i.test(e.message)) throw new ErrorApi('La respuesta automática a Hacienda todavía no está activada en el sistema. La factura sigue sin responder.');
     throw e;
   }
 }
+// Pregunta a Hacienda si ya procesó una respuesta enviada y actualiza el estado.
+export const consultarRespuesta = (clave) => funcion('facturador-receptor', { factura_id: clave, accion: 'consultar' });
 
 // Revisa los buzones de contabilidad (Microsoft Graph) y guarda las facturas nuevas. La función de borde "facturas-recibidas" exige sesión válida (verify_jwt) y por omisión lee los últimos 3 días.
 export const revisarCorreo = () => funcion('facturas-recibidas', {});
