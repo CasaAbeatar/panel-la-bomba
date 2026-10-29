@@ -137,11 +137,12 @@ export function crearCampoIdentificacion(opts = {}) {
   }
   const puedeConsultar = () => { const t = tipoActual(); return ident.value.length >= 9 && ident.value.length <= 12 && /^0[1-4]$/.test(t) && !errorLocal(); };
 
+  const deHacienda = () => acts.filter((x) => !x.manual); // las que Hacienda lista (las escritas a mano antes no cuentan)
   function modo() {
     if (!r?.ok) return 'libre';
     const igualNombre = norm(nombre.value) === norm(r.nombre);
     const a = actividad.value.trim();
-    const igualAct = a === '' ? acts.length === 0 : acts.some((x) => x.codigo === a);
+    const igualAct = a === '' ? deHacienda().length === 0 : deHacienda().some((x) => x.codigo === a);
     return igualNombre && igualAct ? 'hacienda' : 'manual';
   }
 
@@ -191,9 +192,12 @@ export function crearCampoIdentificacion(opts = {}) {
     sinConfirmar = false;
     if (resp.ok) {
       fase = 'encontrada';
-      acts = Array.isArray(resp.actividades) ? resp.actividades : [];
+      const lista = Array.isArray(resp.actividades) ? resp.actividades : [];
+      // Los códigos que se escribieron a mano antes en este cliente se conservan en su lista
+      const previos = !nuevo && String(c.identificacion) === ident.value && Array.isArray(c.actividades) ? c.actividades.filter((x) => x && x.manual && RE_ACTIVIDAD.test(String(x.codigo)) && !lista.some((y) => y.codigo === x.codigo)) : [];
+      acts = [...lista, ...previos];
       if (!nombre.value.trim() || nombre.value === auto.nombre) { nombre.value = resp.nombre; auto.nombre = resp.nombre; }
-      if (acts.length && (!actividad.value.trim() || actividad.value === auto.act)) { actividad.value = acts[0].codigo; auto.act = acts[0].codigo; }
+      if (lista.length && (!actividad.value.trim() || actividad.value === auto.act)) { actividad.value = lista[0].codigo; auto.act = lista[0].codigo; }
     } else {
       fase = resp.estado === 'no_encontrada' ? 'no_encontrada' : resp.estado === 'formato' ? 'formato' : resp.estado === 'sesion' ? 'sesion' : 'servicio';
       // En un cliente guardado antes sin confirmar, se conserva el motivo que ya tenía
@@ -279,7 +283,7 @@ export function crearCampoIdentificacion(opts = {}) {
   function usarHacienda() {
     if (!r?.ok) return;
     nombre.value = r.nombre; auto.nombre = r.nombre;
-    actividad.value = acts[0]?.codigo || ''; auto.act = actividad.value;
+    actividad.value = deHacienda()[0]?.codigo || ''; auto.act = actividad.value;
     actTocada = false;
     pintar();
     nombre.focus(); // el botón se vuelve a dibujar; el foco se queda en un lugar estable
@@ -311,7 +315,7 @@ export function crearCampoIdentificacion(opts = {}) {
       : (t === '05' || t === '06') ? 'Escriba el número del documento, solo números.'
       : 'Cédula física: 9 números. Jurídica: 10 números y empieza con 3. DIMEX: 11 o 12 números.';
 
-    ayuda.hidden = n > 0 && fase !== 'local';
+    ayuda.hidden = n > 0; // al escribir, la caja de estado ya dice lo que falta
     nombre.placeholder = ['no_encontrada', 'servicio', 'sesion', 'otro', 'formato'].includes(fase) ? 'Escriba el nombre o la razón social' : 'Se llena solo cuando Hacienda confirma el número';
 
     // Tipo en palabras
@@ -383,9 +387,9 @@ export function crearCampoIdentificacion(opts = {}) {
     datos.hidden = !r?.ok;
     if (r?.ok) {
       const igual = m === 'hacienda';
-      pon(datos, [m, r.nombre, acts[0]?.codigo].join('|'), () => [
+      pon(datos, [m, r.nombre, deHacienda()[0]?.codigo].join('|'), () => [
         h('div.txt', igual ? h('strong', 'Nombre y actividad iguales a los de Hacienda. ') : h('strong', 'Datos escritos por usted. '),
-          igual ? 'Puede cambiarlos si hace falta.' : 'Hacienda tiene: ' + r.nombre + (acts[0] ? ' · ' + acts[0].codigo : '') + '.'),
+          igual ? 'Puede cambiarlos si hace falta.' : 'Hacienda tiene: ' + r.nombre + (deHacienda()[0] ? ' · ' + deHacienda()[0].codigo : '') + '.'),
         igual ? h('button.btn', { type: 'button', onclick: noUsarHacienda }, 'No usar, escribirlos yo')
           : h('button.btn.primario', { type: 'button', onclick: usarHacienda }, 'Usar los datos de Hacienda')]);
     }
@@ -393,15 +397,15 @@ export function crearCampoIdentificacion(opts = {}) {
 
     // Actividad
     const a = actividad.value.trim();
-    const dentro = acts.find((x) => x.codigo === a);
+    const dentro = deHacienda().find((x) => x.codigo === a);
     const mal = a !== '' && !RE_ACTIVIDAD.test(a) && (actTocada || a.length >= 6);
     actividad.classList.toggle('mal', mal);
     actividad.classList.toggle('hac', !!r?.ok && !!dentro);
     let nota = null;
     if (mal) nota = ['mal', AYUDA_ACTIVIDAD];
     else if (a && RE_ACTIVIDAD.test(a) && dentro) nota = ['ok', dentro.descripcion ? a + ': ' + dentro.descripcion : null];
-    else if (a && RE_ACTIVIDAD.test(a) && r?.ok && acts.length) nota = ['aviso', 'Este código no está entre las actividades que Hacienda tiene para este número. Si el cliente lo pide, puede usarlo, pero Hacienda podría rechazar la factura si no está activo en su registro.'];
-    else if (!a && r?.ok && !acts.length) nota = ['', 'Hacienda no tiene actividad económica para este número. Puede dejarlo vacío o escribir el código que el cliente le indique.'];
+    else if (a && RE_ACTIVIDAD.test(a) && r?.ok && deHacienda().length) nota = ['aviso', 'Este código no está entre las actividades que Hacienda tiene para este número. Si el cliente lo pide, puede usarlo, pero Hacienda podría rechazar la factura si no está activo en su registro.'];
+    else if (!a && r?.ok && !deHacienda().length) nota = ['', 'Hacienda no tiene actividad económica para este número. Puede dejarlo vacío o escribir el código que el cliente le indique.'];
     actNota.hidden = !nota || !nota[1];
     actNota.className = 'ced-act-nota' + (nota?.[0] ? ' ' + nota[0] : '');
     actNota.textContent = nota?.[1] || '';
@@ -409,9 +413,9 @@ export function crearCampoIdentificacion(opts = {}) {
     actLista.hidden = acts.length < 2;
     if (acts.length >= 2) {
       pon(actLista, [!!r?.ok, a, ...acts.map((x) => x.codigo)].join('|'), () => [
-        h('div.tit', (r?.ok ? 'Hacienda tiene ' + acts.length + ' actividades para este número' : 'Actividades guardadas de este cliente') + '. Toque la que corresponde:'),
+        h('div.tit', (r?.ok ? (deHacienda().length > 1 ? 'Hacienda tiene ' + deHacienda().length + ' actividades para este número' : 'Actividades de este cliente') : 'Actividades guardadas de este cliente') + '. Toque la que corresponde:'),
         ...acts.map((x) => h('button.ced-opt', { type: 'button', 'aria-pressed': String(x.codigo === a), onclick: () => { actividad.value = x.codigo; actTocada = true; pintar(); } },
-          h('span.cod', x.codigo), h('span.desc', x.descripcion || 'Sin descripción'), x.principal ? h('span.pri', 'Principal') : null))]);
+          h('span.cod', x.codigo), h('span.desc', x.manual ? 'Código que se escribió a mano' : (x.descripcion || 'Sin descripción')), x.principal ? h('span.pri', 'Principal') : x.manual ? h('span.pri.man', 'Escrito a mano') : null))]);
     }
   }
 
