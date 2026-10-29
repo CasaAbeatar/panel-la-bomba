@@ -189,8 +189,17 @@ async function arrancar() {
   try {
     app.ctx = await api.contexto();
   } catch (e) {
-    await salir().catch(() => {});
-    return pantallaLogin(/venci|sin acceso/i.test(e.message) ? 'Ingrese de nuevo.' : null);
+    if (/venci|sin acceso|JWT|not authenticated/i.test(e.message || '')) {
+      await salir().catch(() => {});
+      return pantallaLogin('Ingrese de nuevo.');
+    }
+    // Falla momentánea de red o del servicio: no se cierra la sesión, se ofrece reintentar
+    raiz.replaceChildren(h('div.pantalla-centro', h('div.login.tarjeta.col',
+      h('h1', 'Sin conexión por un momento'),
+      h('p.sub', 'No se pudo cargar. Su sesión sigue abierta. Revise la conexión e intente de nuevo.'),
+      h('button.btn.primario.grande', { type: 'button', onclick: () => arrancar() }, 'Intentar de nuevo'),
+      h('button.btn.suave', { type: 'button', onclick: async () => { await salir(); pantallaLogin(); } }, 'Salir'))));
+    return;
   }
   if (app.ctx.debe_cambiar_pin) return pantallaCambioPin();
   const guardada = leer('soc');
