@@ -615,7 +615,7 @@ function pintarHoy(){
     h+=`<div class="g" data-c="sistema"><div class="blk"><h2>Cada empresa</h2>${f('soda','Soda La Bomba')}${f('pollos','Pollos La Bomba y Papea')}<p class="note">Las compras sin cédula del receptor o a nombre de otra persona están en el total del Grupo, pero no en una empresa. Al elegir Soda o Pollos arriba se ve solo una.</p></div></div>`;
   }
   const rv=revisar(I);
-  h+=`<div class="g" data-c="imp"><div class="blk"><h2>Por revisar</h2>${rv.length?rv.map(x=>`<div class="rev ${x.bad?'bad':''}"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></div>`).join(''):'<p class="note">Nada por revisar.</p>'}<p class="note"><a href="#" data-go="impuestos">Ver todo en Impuestos</a></p></div></div>`;
+  h+=`<div class="g" data-c="imp" id="por-revisar"><div class="blk"><h2>Por revisar</h2>${rv.length?rv.map(x=>`<div class="rev ${x.bad?'bad':''}"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></div>`).join(''):'<p class="note">Nada por revisar.</p>'}<p class="note"><a href="#" data-go="impuestos">Ver todo en Impuestos</a></p></div></div>`;
   const rec=rc.slice(0,4).reverse();
   if(rec.length)h+=`<div class="g" data-c="gasto">${cols('Compras recibidas, últimos días (bruto, con IVA)',rec.map(x=>num(x.bruto)),rec.map(x=>dl(D10(x.dia))),'Hoy aún está en curso.',null,cc,true)}</div>`;
   el.innerHTML=h;
@@ -669,7 +669,7 @@ function irSec(s){
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>irSec(b.dataset.sec));
 document.querySelectorAll('.emp button').forEach(b=>b.onclick=()=>{EMP=b.dataset.emp;document.body.dataset.emp=EMP;document.querySelectorAll('.emp button').forEach(x=>x.setAttribute('aria-pressed',x===b));pintarFin();});
 document.querySelectorAll('.subtabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.subtabs button').forEach(x=>x.setAttribute('aria-selected',x===b));['pedidos','paginas','redes'].forEach(t=>$('tab-'+t).hidden=b.dataset.sub!==t);});
-$('pill').onclick=e=>{e.preventDefault();irSec('impuestos');};
+$('pill').onclick=e=>{e.preventDefault();irSec('hoy');setTimeout(()=>{const x=$('por-revisar');if(x){x.scrollIntoView({behavior:'smooth',block:'start'});x.style.outline='2px solid var(--bad)';setTimeout(()=>x.style.outline='',2200);}},60);};
 document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(a){e.preventDefault();irSec(a.dataset.go);}});
 
 async function traer(){
