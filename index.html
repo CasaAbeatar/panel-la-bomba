@@ -572,9 +572,16 @@ const num=x=>Number(x||0);
 const cargando=m=>`<p class="nodata">${m||'Cargando…'}</p>`;
 async function traerFin(){
   FIN_ERR=false;
-  const ps=['grupo','soda','pollos'].flatMap(e=>[sb.rpc('gastos_resumen',{p_emp:e}),sb.rpc('impuestos_resumen',{p_emp:e})]);
-  const r=await Promise.all(ps);
-  ['grupo','soda','pollos'].forEach((e,i)=>{const g=r[i*2],t=r[i*2+1];if(g.error||t.error){FIN_ERR=true;return;}GG[e]=g.data;II[e]=t.data;});
+  const E=['grupo','soda','pollos'];
+  const pedir=async e=>{
+    for(let i=0;i<3;i++){
+      const [g,t]=await Promise.all([sb.rpc('gastos_resumen',{p_emp:e}),sb.rpc('impuestos_resumen',{p_emp:e})]);
+      if(!g.error&&!t.error){GG[e]=g.data;II[e]=t.data;return true;}
+      await new Promise(r=>setTimeout(r,1500*(i+1)));
+    }
+    return false;
+  };
+  for(const e of E){if(!(await pedir(e))&&!GG[e])FIN_ERR=true;}
 }
 function revisar(I){
   const out=[],cl=k=>(I.clasificacion||[]).find(x=>x.clase===k);
@@ -691,7 +698,11 @@ async function traerBcr(){
   }
   return all;
 }
+let _cargando=false;
 async function cargar(){
+  if(_cargando)return;_cargando=true;try{await cargar2();}finally{_cargando=false;}
+}
+async function cargar2(){
   try{M=await traerMeta();}catch(e){M=[];}
   pintarRedes();
   traerFin().then(pintarFin).catch(()=>{FIN_ERR=true;pintarFin();});
@@ -710,7 +721,7 @@ async function validar(session){
   $('login').hidden=true;$('app').hidden=false;
   const em=session.user.email||'';$('quien').textContent=em;$('ini').textContent=(em[0]||'B').toUpperCase();
   cargar();
-  if(!window._rt){let t=null;const rec=()=>{clearTimeout(t);t=setTimeout(()=>cargar().then(()=>{const e=$('envivo');if(e)e.textContent='Actualizado en vivo '+new Date().toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});}),4000);};
+  if(!window._rt){let t=null;const rec=()=>{clearTimeout(t);t=setTimeout(()=>cargar().then(()=>{const e=$('envivo');if(e)e.textContent='Actualizado en vivo '+new Date().toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});}),20000);};
     window._rt=sb.channel('panel-en-vivo');
     ['facturas_recibidas','mensajes_hacienda','panel_metricas','pedidos'].forEach(tb=>window._rt.on('postgres_changes',{event:'*',schema:'public',table:tb},rec));
     window._rt.subscribe();}
