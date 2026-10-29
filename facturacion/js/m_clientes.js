@@ -19,8 +19,10 @@ export default {
       h('div.mt-datos',
         h('span.mt-nombre', c.nombre),
         c.nombre_comercial ? h('span.mt-sub', c.nombre_comercial) : null,
-        h('span.mt-sub', (TIPOS_ID[c.tipo_id] || 'Identificación') + ': ', h('span.mt-codigo', c.identificacion)),
-        c.correo ? h('span.mt-sub', 'Correo: ' + c.correo) : h('span.mt-sub', h('span.chip.espera', 'Falta el correo')),
+        h('span.mt-sub', (TIPOS_ID[c.tipo_id] || 'Identificación') + ': ', h('span.mt-codigo', c.identificacion), ' ',
+          c.verificado ? h('span.chip.ok', 'Verificado en Hacienda') : h('span.chip.espera', { title: c.verificacion_motivo || 'Todavía no se ha confirmado en Hacienda. Ábralo para verificarlo.' }, 'Sin verificar')),
+        c.actividad_codigo ? h('span.mt-sub', 'Actividad económica: ', h('span.mt-codigo', c.actividad_codigo)) : null,
+        c.correo ? h('span.mt-sub', 'Correo: ' + c.correo) : h('span.mt-sub', h('span.chip', 'Sin correo')),
         c.telefono ? h('span.mt-sub', 'Teléfono: ' + c.telefono) : null),
       h('div.mt-btns', h('button.btn', { type: 'button', onclick: () => abrir(c) }, 'Ver o editar')));
 
@@ -51,6 +53,6 @@ export default {
         h('div.mt-acciones', h('button.btn.primario.grande', { type: 'button', onclick: () => abrirFormCliente(app, null, { alGuardar: () => cargar() }) }, 'Agregar cliente'))),
       q, resumen, lista);
     await cargar();
-    q.focus({ preventScroll: true });
+    if (!document.querySelector('.modal-fondo')) q.focus({ preventScroll: true }); // no le quita el foco a un formulario que ya se abrió
   },
 };

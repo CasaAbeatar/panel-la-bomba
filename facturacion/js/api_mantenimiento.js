@@ -1,5 +1,5 @@
 // Funciones de datos de Clientes, Productos y Usuarios que no estaban en api.js (se agregan aquí para no editarlo).
-import { sb, ErrorApi } from './api.js';
+import { sb, ErrorApi, funcion } from './api.js';
 
 async function rpc(nombre, args = {}) {
   const { data, error } = await sb.rpc(nombre, args);
@@ -12,6 +12,12 @@ async function rpc(nombre, args = {}) {
 }
 
 export const apiM = {
+  // Consulta de cédula en Hacienda (función de borde facturador-cedula, con copia guardada). Siempre responde ok:true|false + estado:
+  // 'encontrada' | 'padron' (nombre, tipo '01'-'04', actividades [{codigo, descripcion, principal}]), 'no_encontrada' (+ sugerencias), 'formato', 'servicio'.
+  // No trae ni muestra morosidad. forzar=true ignora la copia guardada.
+  cedula: (cedula, { forzar = false, signal } = {}) => funcion('facturador-cedula', { cedula, forzar }, { signal }),
+  // Cambia la actividad principal de un cliente (y la agrega a su lista si no estaba)
+  clienteActividadPrincipal: (id, codigo) => rpc('fx_cliente_actividad_principal', { p_id: id, p_codigo: codigo }),
   // Catálogo CABYS: por código (empieza con) o por texto. Devuelve [{codigo, descripcion, impuesto (0.13), tarifa (13)}], máximo 30
   cabysBuscar: (q) => rpc('fx_cabys_buscar', { p_q: q }),
   // De una lista de códigos, devuelve solo los que existen en el catálogo

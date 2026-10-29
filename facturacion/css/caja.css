@@ -277,3 +277,16 @@
   .linea-pie .nota-inp{flex:1 1 100%}
   .linea-pie .btn{flex:1 1 0}
 }
+
+/* ---------- Actividad del cliente para esta factura / crear cliente en el cobro ---------- */
+.cobro-act{border:1px solid var(--linea);border-radius:12px;padding:.7rem 1rem;background:#fffdf9;display:flex;flex-direction:column;gap:.5rem}
+.act-fila{display:flex;gap:.8rem;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.act-txt{flex:1 1 240px;min-width:0;overflow-wrap:anywhere;line-height:1.35}
+.act-txt .et{color:var(--tinta2)}
+.act-txt .chip{margin-left:.4rem}
+.act-aviso{padding:.55rem .75rem;border:1px solid #efd08f;background:var(--ambar-suave);color:#6b4500;border-radius:var(--r);font-size:.92rem;line-height:1.35}
+.act-aviso.info{border-color:var(--linea2);background:#f4f1ea;color:var(--tinta)}
+.cli-item[aria-pressed=true]{border-color:var(--verde);background:var(--verde-suave);box-shadow:0 0 0 1px var(--verde) inset}
+.cobro-chk{display:flex;gap:.7rem;align-items:flex-start;min-height:56px;padding:.6rem .8rem;border:1px solid var(--linea2);border-radius:var(--r);background:#fff;cursor:pointer}
+.cobro-chk input{width:26px;height:26px;margin-top:.1rem;accent-color:var(--rojo);flex:0 0 auto}
+.cobro-chk small{display:block;color:var(--tinta2);font-weight:400;line-height:1.35}

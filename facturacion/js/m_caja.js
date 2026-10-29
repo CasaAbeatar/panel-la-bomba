@@ -1,5 +1,7 @@
 // Caja: la pantalla que usa el cajero todo el día (abrir caja, cuentas, productos, prefactura y cobro).
 import { abrirSalidas } from './ui_salidas.js';
+import { crearCampoIdentificacion, leerCorreos, errorActividad, limpiarActividad } from './ui_cedula.js';
+import { apiM } from './api_mantenimiento.js';
 import { h, money, money0, num, leerNumero, toast, modal, pedir, conBoton, debounce, TIPOS_SERVICIO, TIPOS_DOC, TIPOS_ID, MEDIOS, ESTADOS } from './util.js';
 
 const CSS_URL = new URL('../css/caja.css', import.meta.url).href;
@@ -33,7 +35,6 @@ const AYUDA_TIPO = {
   llevar: 'Pedido para llevar: nombre y teléfono',
   express: 'Pedido express: nombre y teléfono',
 };
-const LONG_ID = { '01': [9, 9], '02': [10, 10], '03': [11, 12], '04': [10, 10] };
 const RAPIDOS = [1000, 2000, 5000, 10000, 20000];
 
 // Busca por palabras parciales en cualquier orden, sin tildes ni mayúsculas; por código completo o por prefijo
@@ -538,6 +539,8 @@ export default {
       const venta = cur.venta, ventaId = venta.id;
       const totalC = cents(venta.total);
       let cliente = cur.cliente || null;
+      let actividadFactura = null; // código de actividad pedido por el cliente solo para esta factura (null = la principal del cliente)
+      let cedActivo = null;
       let pagos = [];
       let medio = 'efectivo';
       let auto = true;
@@ -553,7 +556,8 @@ export default {
       /* Vista principal de pago */
       const docTxt = h('span.doc'), cliTxt = h('span.cli');
       const btnElegir = h('button.btn', { type: 'button', onclick: () => vistaClientes() }, 'Elegir cliente (factura)');
-      const btnQuitarCli = h('button.btn.suave', { type: 'button', onclick: () => { cliente = null; pintarCliente(); } }, 'Quitar cliente');
+      const btnQuitarCli = h('button.btn.suave', { type: 'button', onclick: () => { cliente = null; actividadFactura = null; pintarCliente(); } }, 'Quitar cliente');
+      const actEl = h('div.cobro-act', { hidden: true });
       const mediosBtns = Object.entries(MEDIOS).map(([k, v]) => h('button.medio-btn', { type: 'button', dataset: { medio: k }, onclick: () => { medio = k; auto = true; sugerir(); actualizar(); inpMonto.focus(); inpMonto.select(); } }, v));
       const inpMonto = h('input.campo.monto-grande', { type: 'text', inputmode: 'decimal', autocomplete: 'off', 'aria-label': 'Monto' });
       const lblMonto = h('span');
@@ -574,6 +578,7 @@ export default {
         h('div.cobro-total', h('div.et', 'Total a cobrar (IVA incluido)'), h('div.monto', money(venta.total))),
         resumen,
         h('div.cobro-doc', h('div', h('div', docTxt), h('div', cliTxt)), h('div.fila', btnElegir, btnQuitarCli)),
+        actEl,
         h('div.col', h('strong', 'Forma de pago'), h('div.medios', mediosBtns)),
         h('label.etq', lblMonto, inpMonto),
         rapidos, refEtq, btnOtro, listaPagos, errEl,
@@ -604,6 +609,32 @@ export default {
         cliTxt.textContent = cliente ? 'Cliente: ' + cliente.nombre + ' · ' + cliente.identificacion : 'Si el cliente pide factura con su nombre, toque «Elegir cliente».';
         btnElegir.textContent = cliente ? 'Cambiar cliente' : 'Elegir cliente (factura)';
         btnQuitarCli.hidden = !cliente;
+        pintarActividad();
+      }
+
+      /* Actividad del cliente para esta factura: la principal del cliente, o la que pida para esta factura */
+      const codigoActividad = () => actividadFactura || cliente?.actividad_codigo || '';
+      const descripcionActividad = (cod) => {
+        const a = (cliente?.actividades || []).find((x) => x.codigo === cod);
+        return !a ? '' : a.manual ? 'escrita a mano' : (a.descripcion || '');
+      };
+      function pintarActividad() {
+        actEl.hidden = !cliente;
+        if (!cliente) { actEl.replaceChildren(); return; }
+        const cod = codigoActividad();
+        const desc = descripcionActividad(cod);
+        const lista = cliente.actividades || [];
+        const fueraDeLista = !!cod && !!cliente.verificado && lista.some((x) => !x.manual) && !lista.some((x) => x.codigo === cod && !x.manual);
+        actEl.replaceChildren(...[
+          h('div.act-fila',
+            h('div.act-txt', h('span.et', 'Actividad del cliente para esta factura: '),
+              cod ? h('strong', cod + (desc ? ' - ' + desc : '')) : h('strong', 'sin código de actividad'),
+              actividadFactura ? h('span.chip.espera', 'Solo para esta factura') : null),
+            h('button.btn', { type: 'button', onclick: () => vistaActividad() }, 'Cambiar')),
+          cod ? null : h('small.tenue', 'Si el cliente declara IVA y pide su actividad, toque «Cambiar» y escriba el código.'),
+          fueraDeLista ? h('div.act-aviso', 'Este código no está entre las actividades que Hacienda tiene para este cliente. Hacienda podría rechazar la factura.') : null,
+          !cliente.correo ? h('div.act-aviso', 'Este cliente no tiene correo. La factura se emite igual, pero no se le podrá enviar por correo.') : null,
+        ].filter(Boolean));
       }
       function pintarFormato() { [...seg.children].forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.f === formato))); }
       function actualizar() {
@@ -654,7 +685,7 @@ export default {
             const r = await api.clientes(socId, q.value.trim());
             if (mi !== seq) return;
             if (!r.length) { lista.replaceChildren(h('div.vacio', 'No hay clientes con ese dato. Puede crearlo con el botón «Crear cliente nuevo».')); return; }
-            lista.replaceChildren(...r.map((c) => h('button.cli-item', { type: 'button', onclick: () => { cliente = c; pintarCliente(); actualizar(); mostrar(vistaPago); } },
+            lista.replaceChildren(...r.map((c) => h('button.cli-item', { type: 'button', onclick: () => { cliente = c; actividadFactura = null; pintarCliente(); actualizar(); mostrar(vistaPago); } },
               h('b', c.nombre), h('small', (TIPOS_ID[c.tipo_id] || '') + ' ' + c.identificacion + (c.correo ? ' · ' + c.correo : '')))));
           } catch (e) { if (mi === seq) lista.replaceChildren(h('div.error-caja', e.message || String(e))); }
         }
@@ -669,43 +700,122 @@ export default {
       }
 
       function vistaNuevoCliente() {
-        const tipo = h('select.campo', Object.entries(TIPOS_ID).map(([k, v]) => h('option', { value: k }, v)));
-        const ident = h('input.campo', { type: 'text', inputmode: 'numeric', maxlength: 14, autocomplete: 'off' });
-        const nombre = h('input.campo', { type: 'text', maxlength: 120, autocomplete: 'off' });
-        const correo = h('input.campo', { type: 'email', inputmode: 'email', maxlength: 120, autocomplete: 'off', autocapitalize: 'none' });
+        const correo = h('input.campo', { type: 'text', inputmode: 'email', maxlength: 160, autocomplete: 'off', autocapitalize: 'none', 'aria-label': 'Correo electrónico' });
         const tel = h('input.campo', { type: 'tel', inputmode: 'tel', maxlength: 20, autocomplete: 'off' });
         const comercial = h('input.campo', { type: 'text', maxlength: 120, autocomplete: 'off' });
-        const actividad = h('input.campo', { type: 'text', maxlength: 12, autocomplete: 'off', placeholder: 'Ej. 5610.0' });
+        const avisoCorreo = h('small.tenue');
+        const refrescarCorreo = () => { avisoCorreo.textContent = correo.value.trim() ? '' : 'Sin correo la factura se emite igual, pero no se le puede enviar por correo.'; };
+        correo.addEventListener('input', refrescarCorreo);
+        refrescarCorreo();
         const err = h('div.error-caja', { hidden: true });
         const falla = (t, el) => { err.textContent = t; err.hidden = false; el?.focus(); };
         const guardar = h('button.btn.primario', { type: 'button' }, 'Guardar y usar este cliente');
+        const usar = (c, aviso) => { cliente = c; actividadFactura = null; pintarCliente(); actualizar(); mostrar(vistaPago); if (aviso) toast(aviso); };
+        cedActivo?.destruir();
+        // Número, nombre y actividad: se verifican en Hacienda mientras se escribe (js/ui_cedula.js)
+        const ced = cedActivo = crearCampoIdentificacion({
+          revisarDuplicado: async (id) => (await api.clientes(socId, id)).find((c) => c.identificacion === id) || null,
+          accionDuplicado: { texto: 'Usar este cliente', primario: true, fn: (ya) => usar(ya, 'Se usa el cliente que ya estaba guardado.') },
+          alTerminar: () => correo.focus(),
+        });
         guardar.addEventListener('click', () => conBoton(guardar, async () => {
           err.hidden = true;
-          const id = ident.value.replace(/\D/g, '');
-          const lim = LONG_ID[tipo.value];
-          if (!id) return falla('Escriba el número de identificación.', ident);
-          if (lim && (id.length < lim[0] || id.length > lim[1])) return falla('La identificación de ' + TIPOS_ID[tipo.value].toLowerCase() + ' lleva ' + (lim[0] === lim[1] ? lim[0] : lim[0] + ' o ' + lim[1]) + ' números, sin guiones. Usted escribió ' + id.length + '.', ident);
-          if (!nombre.value.trim()) return falla('Escriba el nombre del cliente.', nombre);
-          const mail = correo.value.trim();
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) return falla('Escriba un correo válido: Hacienda lo pide para entregar la factura.', correo);
+          const v = await ced.validar();
+          if (v) return falla(v.mensaje, v.campo);
+          const cr = leerCorreos(correo.value);
+          if (cr.error) return falla(cr.error, correo);
+          const telDig = tel.value.replace(/\D/g, '');
+          if (telDig && (telDig.length < 8 || telDig.length > 20)) return falla('El teléfono debe tener al menos 8 números.', tel);
+          const val = ced.valores();
           // Si la cédula ya existe, se usa el cliente que ya está guardado para no pisar sus datos
-          const ya = (await api.clientes(socId, id)).find((c) => c.identificacion === id);
-          if (ya) { cliente = ya; toast('Ya existía un cliente con esa identificación. Se usa el que estaba guardado.'); pintarCliente(); actualizar(); mostrar(vistaPago); return; }
-          const c = await api.clienteGuardar({ sociedad_id: socId, tipo_id: tipo.value, identificacion: id, nombre: nombre.value.trim(), nombre_comercial: comercial.value.trim(), correo: mail, telefono: tel.value.trim(), actividad_codigo: actividad.value.trim() });
-          cliente = c; pintarCliente(); actualizar(); mostrar(vistaPago);
-          toast('Cliente guardado.');
+          const ya = (await api.clientes(socId, val.identificacion)).find((c) => c.identificacion === val.identificacion);
+          if (ya) return usar(ya, 'Ya existía un cliente con esa identificación. Se usa el que estaba guardado.');
+          const c = await api.clienteGuardar({
+            sociedad_id: socId, solo_nuevo: true, tipo_id: val.tipo_id, identificacion: val.identificacion, nombre: val.nombre,
+            nombre_comercial: comercial.value.trim(), correo: cr.lista.join(', '), telefono: telDig, actividad_codigo: val.actividad_codigo,
+            sin_verificar_motivo: val.sin_verificar_motivo,
+          });
+          usar(c, c.verificado ? 'Cliente guardado.' : 'Cliente guardado. Quedó marcado como sin verificar en Hacienda.');
         }));
         mostrar(h('div.col',
           h('h3', 'Crear cliente nuevo'),
-          h('p.tenue-linea', 'Datos mínimos para la factura: tipo y número de identificación, nombre y correo. Lo demás es opcional.'),
-          h('div.rejilla.dos', h('label.etq', 'Tipo de identificación', tipo), h('label.etq', 'Número de identificación (sin guiones)', ident)),
-          h('label.etq', 'Nombre completo o razón social', nombre),
-          h('label.etq', 'Correo electrónico', correo),
+          h('p.tenue-linea', 'Escriba la cédula: el sistema la busca en Hacienda y llena el nombre y la actividad. El correo y lo demás son opcionales.'),
+          ced.el,
+          h('label.etq', 'Correo electrónico (opcional)', correo, avisoCorreo),
           h('details.mas-datos', h('summary', 'Más datos (opcionales)'), h('div.col', { style: 'margin:.5rem 0' },
-            h('label.etq', 'Teléfono', tel), h('label.etq', 'Nombre comercial', comercial), h('label.etq', 'Actividad económica (código de Hacienda)', actividad))),
+            h('label.etq', 'Teléfono', tel), h('label.etq', 'Nombre comercial', comercial))),
           err,
-          h('div.fila', h('button.btn', { type: 'button', onclick: () => vistaClientes() }, 'Volver'), guardar)));
-        ident.focus();
+          h('div.fila', h('button.btn', { type: 'button', style: 'flex:1 1 120px', onclick: () => vistaClientes() }, 'Volver'), guardar)));
+        guardar.style.flex = '2 1 200px';
+        ced.enfocar();
+      }
+
+      /* Cambiar la actividad que va en ESTA factura (no cambia al cliente salvo que se marque guardarla como principal) */
+      function vistaActividad() {
+        let lista = (cliente.actividades || []).map((x) => ({ ...x }));
+        if (cliente.actividad_codigo && !lista.some((x) => x.codigo === cliente.actividad_codigo)) lista.unshift({ codigo: cliente.actividad_codigo, descripcion: '', manual: true });
+        const err = h('div.error-caja', { hidden: true });
+        const nota = h('div.act-aviso.info', { hidden: true });
+        const cajaLista = h('div.lista-clientes');
+        const chk = h('input', { type: 'checkbox' });
+        const inp = h('input.campo', { type: 'text', inputmode: 'decimal', maxlength: 6, autocomplete: 'off', placeholder: 'Ej. 5610.0', 'aria-label': 'Otro código de actividad' });
+        inp.addEventListener('input', () => { const v = limpiarActividad(inp.value); if (v !== inp.value) inp.value = v; });
+        let ocupado = false;
+        async function elegir(cod) {
+          if (ocupado) return;
+          err.hidden = true;
+          ocupado = true;
+          try {
+            if (chk.checked) {
+              cliente = await apiM.clienteActividadPrincipal(cliente.id, cod);
+              actividadFactura = null;
+              toast('Quedó como actividad principal del cliente.');
+            } else actividadFactura = cod === (cliente.actividad_codigo || '') ? null : cod;
+          } catch (e) { ocupado = false; err.textContent = e.message || String(e); err.hidden = false; return; }
+          ocupado = false;
+          pintarCliente(); actualizar(); mostrar(vistaPago);
+        }
+        function pintarLista() {
+          const actual = codigoActividad();
+          cajaLista.replaceChildren(...(lista.length ? lista.map((x) => h('button.cli-item', { type: 'button', 'aria-pressed': String(x.codigo === actual), onclick: () => elegir(x.codigo) },
+            h('b', x.codigo + (x.codigo === actual ? ' (la que está en esta factura)' : '')),
+            h('small', (x.manual ? 'Escrita a mano' : (x.descripcion || 'Sin descripción')) + (x.codigo === cliente.actividad_codigo ? ' · Principal del cliente' : '')))) : [h('div.vacio', 'Este cliente no tiene actividades guardadas. Escriba el código abajo o consulte a Hacienda.')]));
+        }
+        const btnHac = h('button.btn', { type: 'button' }, 'Consultar actividades en Hacienda');
+        btnHac.hidden = !/^0[1-4]$/.test(cliente.tipo_id || '');
+        btnHac.addEventListener('click', () => conBoton(btnHac, async () => {
+          btnHac.textContent = 'Consultando…';
+          nota.hidden = true;
+          let r = null;
+          try { r = await apiM.cedula(cliente.identificacion, { forzar: true }); } catch { r = null; }
+          nota.hidden = false;
+          if (!r || !r.ok) { nota.textContent = 'Hacienda no respondió o no encontró este número. Puede escribir el código a mano.'; return; }
+          const mapa = new Map(lista.map((x) => [x.codigo, x]));
+          (r.actividades || []).forEach((a) => mapa.set(a.codigo, { ...(mapa.get(a.codigo) || {}), ...a, manual: false }));
+          lista = [...mapa.values()];
+          pintarLista();
+          nota.textContent = (r.actividades || []).length ? 'Hacienda tiene ' + r.actividades.length + (r.actividades.length === 1 ? ' actividad' : ' actividades') + ' para este cliente. Toque la que va en la factura.' : 'Hacienda no tiene actividades registradas para este cliente. Puede escribir el código a mano.';
+        }));
+        const btnOtro = h('button.btn.primario', { type: 'button', style: 'flex:1 1 150px' }, 'Usar este código');
+        btnOtro.addEventListener('click', () => {
+          const v = inp.value.trim();
+          if (!v) return falla('Escriba el código de actividad (por ejemplo 5610.0).');
+          const e = errorActividad(v);
+          if (e) return falla(e);
+          elegir(v);
+        });
+        const falla = (t) => { err.textContent = t; err.hidden = false; inp.focus(); };
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); btnOtro.click(); } });
+        pintarLista();
+        mostrar(h('div.col',
+          h('h3', 'Actividad para esta factura'),
+          h('p.tenue-linea', 'Cliente: ' + cliente.nombre + '. Si el cliente tiene varias actividades, elija la que pide en esta factura. Esto no cambia los datos del cliente, salvo que marque la casilla de abajo.'),
+          cajaLista, btnHac, nota,
+          h('label.etq', 'O escriba otro código de actividad', inp, h('small', 'Cuatro números, un punto y un número (por ejemplo 5610.0), o seis números seguidos.')),
+          h('label.cobro-chk', chk, h('span', h('b', 'Guardar también como actividad principal del cliente'), h('small', 'Si no la marca, el código vale solo para esta factura y el cliente queda como estaba.'))),
+          err,
+          h('div.fila', h('button.btn', { type: 'button', style: 'flex:1 1 150px', onclick: () => mostrar(vistaPago) }, 'Volver al cobro'), btnOtro)));
+        inp.focus();
       }
 
       /* Confirmar el cobro: un solo intento a la vez; si falla la red se revisa si igual quedó cobrado */
@@ -718,7 +828,7 @@ export default {
         const aplicados = r.aplicados.map((p) => ({ medio: p.medio, monto: p.monto, referencia: p.referencia }));
         let comp = null, aviso = '';
         try {
-          comp = await api.cobrar(ventaId, aplicados, cliente ? cliente.id : null, app.terminal);
+          comp = await api.cobrar(ventaId, aplicados, cliente ? cliente.id : null, app.terminal, cliente ? actividadFactura : null);
         } catch (e) {
           try {
             const v = await api.venta(ventaId);
@@ -732,7 +842,7 @@ export default {
         if (vivo) exito(comp, r.vuelto / 100, aviso, formato);
       }
 
-      m = modal({ titulo: 'Cobrar', contenido: raiz, ancho: 720, alCerrar: () => { if (vivo && !terminado && buscador && fino()) buscador.inp.focus(); } });
+      m = modal({ titulo: 'Cobrar', contenido: raiz, ancho: 720, alCerrar: () => { cedActivo?.destruir(); if (vivo && !terminado && buscador && fino()) buscador.inp.focus(); } });
       mostrar(vistaPago);
       pintarCliente(); pintarFormato(); sugerir(); actualizar();
       inpMonto.focus(); inpMonto.select();

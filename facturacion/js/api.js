@@ -31,7 +31,9 @@ export const api = {
   cajonGuardar: (p) => rpc('fx_cajon_guardar', { p }), // {sociedad_id,codigo,nombre,orden,activo}
   // Clientes
   clientes: (soc, q = '') => rpc('fx_clientes', { p_soc: soc, p_q: q }),
-  clienteGuardar: (p) => rpc('fx_cliente_guardar', { p }), // {sociedad_id,tipo_id,identificacion,nombre,nombre_comercial,correo,telefono,provincia,canton,distrito,otras_senas,actividad_codigo,notas}
+  // {id?,solo_nuevo?,sociedad_id,tipo_id,identificacion,nombre,nombre_comercial,correo(opcional),telefono,provincia,canton,distrito,barrio,otras_senas,actividad_codigo ("5610.0" o 6 números),notas,sin_verificar_motivo}.
+  // El servidor decide verificado/verificado_en/actividades con la caché de Hacienda; el navegador no puede declararlo.
+  clienteGuardar: (p) => rpc('fx_cliente_guardar', { p }),
   // Turnos y caja
   turnoAbrir: (soc, terminal, fondo = 0) => rpc('fx_turno_abrir', { p_soc: soc, p_terminal: terminal, p_fondo: fondo }),
   turnoEstado: (turno) => rpc('fx_turno_estado', { p_turno: turno }),
@@ -53,7 +55,8 @@ export const api = {
   ventaAnular: (id, motivo = null) => rpc('fx_venta_anular', { p_venta: id, p_motivo: motivo }),
   prefacturar: (id) => rpc('fx_prefacturar', { p_venta: id }),
   // Cobro: pagos = [{medio:'efectivo|tarjeta|sinpe|transferencia', monto, referencia?}] y su suma debe ser igual al total. Devuelve el comprobante completo (ver comprobante()).
-  cobrar: (venta, pagos, cliente = null, terminal = 1) => rpc('fx_cobrar', { p_venta: venta, p_pagos: pagos, p_cliente: cliente, p_terminal: terminal }),
+  // actividad (opcional): código de actividad del cliente SOLO para esta factura ("5610.0"); queda en el snapshot del receptor y no cambia al cliente.
+  cobrar: (venta, pagos, cliente = null, terminal = 1, actividad = null) => rpc('fx_cobrar', { p_venta: venta, p_pagos: pagos, p_cliente: cliente, p_terminal: terminal, p_actividad_receptor: actividad || null }),
   // Comprobantes
   comprobante: (id) => rpc('fx_comprobante', { p_id: id }), // incluye sociedad, venta, original, cliente_snapshot, lineas_snapshot, pagos_snapshot
   comprobantes: (soc, desde, hasta, q = '') => rpc('fx_comprobantes', { p_soc: soc, p_desde: desde, p_hasta: hasta, p_q: q }),
@@ -65,12 +68,14 @@ export const api = {
 };
 
 // Funciones de borde (edge functions) con la sesión del usuario
-export async function funcion(nombre, cuerpo = {}) {
+// opciones.signal (AbortSignal) permite cancelar la consulta si ya no hace falta (p. ej. la cajera siguió escribiendo).
+export async function funcion(nombre, cuerpo = {}, opciones = {}) {
   const { data: s } = await sb.auth.getSession();
   const r = await fetch(`${SUPA_URL}/functions/v1/${nombre}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + (s.session?.access_token || SUPA_KEY) },
     body: JSON.stringify(cuerpo),
+    signal: opciones.signal,
   });
   const t = await r.text();
   let j; try { j = JSON.parse(t); } catch { j = { error: t.slice(0, 200) }; }
