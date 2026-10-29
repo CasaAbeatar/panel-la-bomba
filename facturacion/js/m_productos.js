@@ -37,7 +37,7 @@ function nombreGrupo(prods) {
     if (partes.every((x) => x[i] && norm(x[i].replace(/[,:;]+$/, '')) === norm(w.replace(/[,:;]+$/, '')))) comun.push(w); else break;
   }
   const t = comun.join(' ').replace(/[,:;\s]+$/, '');
-  return t || 'Varios productos';
+  return t || (prods[0].nombre + ' y otros ' + (prods.length - 1));
 }
 
 /* ---------- CSV ---------- */
@@ -618,6 +618,7 @@ export default {
         const hist = await apiM.productoHistorial(soc.id, p?.id || null, 300);
         if (!hist.length) return cuerpo.replaceChildren(h('div.vacio', 'Todavía no hay cambios registrados.'));
         const hoy = diaCR(new Date());
+        const porLote = {}; hist.forEach((x) => { if (x.lote) porLote[x.lote] = (porLote[x.lote] || 0) + 1; });
         const partes = []; let dia = '';
         hist.forEach((x) => {
           const d = diaCR(x.cambiado_en);
@@ -625,7 +626,7 @@ export default {
           partes.push(h('div.ev',
             h('div.hora', new Intl.DateTimeFormat('es-CR', { timeZone: 'America/Costa_Rica', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(x.cambiado_en))),
             h('div', h('div', p ? null : h('span.mt-codigo', x.codigo + ' '), p ? null : h('strong', x.nombre + ': '), describir(x)),
-              h('div.quien', 'Lo hizo ' + (x.usuario || 'alguien') + (x.lote ? ' · cambio en lote' : '') + (x.motivo ? ' · ' + x.motivo : '')))));
+              h('div.quien', 'Lo hizo ' + (x.usuario || 'alguien') + (x.lote && porLote[x.lote] > 1 ? ' · cambio en lote' : '') + (x.motivo ? ' · ' + x.motivo : '')))));
         });
         cuerpo.replaceChildren(...partes);
       } catch (e) { cuerpo.replaceChildren(h('div.error-caja', e.message || 'No se pudo cargar el historial.')); }

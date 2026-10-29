@@ -262,7 +262,8 @@
 .hist th{white-space:normal;min-width:84px}
 
 @media(max-width:979px){
-  .caja-cuerpo{display:flex;flex-direction:column;gap:.7rem}
+  .caja-cuerpo{display:flex;flex-direction:column;align-items:stretch;gap:.7rem}
+  .caja-cuerpo>*,.caja-izq>*{min-width:0;max-width:100%}
   .caja-izq{display:contents}
   .buscador{order:-1}
   .buscador-caja .rotulo small{display:none}
