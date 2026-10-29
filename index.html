@@ -602,7 +602,7 @@ function pintarHoy(){
   const k=[];
   const bk=Object.keys(B).sort(),ult=bk[bk.length-1];
   if(EMP!=='pollos'){
-    k.push(ult?{c:'ventas',l:'Ventas con tarjeta (Soda)',v:crc(B[ult].b),s:'bruto, '+fmt(B[ult].v)+' vouchers, '+fl(ult)}:{c:'ventas',l:'Ventas con tarjeta (Soda)',v:'—',s:'sin datos'});
+    k.push(ult?{c:'ventas',l:'Ventas con tarjeta (Soda)',v:crc(B[ult].b),s:(ult===hoyCR()?'bruto, ':'bruto del '+fl(ult)+'. Hoy aún no hay: el BCR reporta con un día de atraso. ')+fmt(B[ult].v)+' vouchers'}:{c:'ventas',l:'Ventas con tarjeta (Soda)',v:'—',s:'sin datos'});
   }else k.push({c:'ventas',l:'Ventas de Pollos',v:'Por conectar',s:'falta definir la fuente'});
   k.push({c:'gasto',l:'Compras recibidas hoy',v:fmt(G.hoy.docs)+(G.hoy.docs===1?' factura':' facturas'),s:crc(G.hoy.bruto)+' con IVA. IVA soportado: '+crc(G.hoy.iva)});
   const th=hoyCR(),pe=PED.filter(r=>new Date(r.creado_en).toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'})===th&&(EMP==='grupo'||(EMP==='soda'?r.sitio==='soda':r.sitio!=='soda'))).length;
@@ -657,7 +657,7 @@ function pintarImpuestos(){
 function pintarAviso(){
   const a=$('ing-aviso');
   if(EMP==='pollos'){a.innerHTML=`<div class="g" data-c="ventas"><div class="blk"><h2>Ingresos de Pollos La Bomba y Papea</h2><p class="note">Todavía no hay una fuente de ventas conectada. Aparecerán aquí cuando se defina de dónde salen.</p></div></div>`;$('tab-ingresos').hidden=true;}
-  else{a.innerHTML=EMP==='grupo'?`<p class="note" style="margin:0 0 18px">Hoy solo están conectados los cobros digitales de la Soda. Las ventas de Pollos y Papea se sumarán cuando se defina la fuente.</p>`:'';$('tab-ingresos').hidden=false;}
+  else{const _bk=Object.keys(B).sort(),_u=_bk[_bk.length-1];const _av=(_u&&_u!==hoyCR()&&EMP!=='pollos')?`<p class="note" style="margin:0 0 18px">Hoy ${fl(hoyCR())} todavía no hay comprobante del BCR: el banco reporta con un día de atraso. Lo último cargado es del ${fl(_u)}.</p>`:'';a.innerHTML=_av+(EMP==='grupo'?`<p class="note" style="margin:0 0 18px">Hoy solo están conectados los cobros digitales de la Soda. Las ventas de Pollos y Papea se sumarán cuando se defina la fuente.</p>`:'');$('tab-ingresos').hidden=false;}
 }
 function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();}
 function irSec(s){
