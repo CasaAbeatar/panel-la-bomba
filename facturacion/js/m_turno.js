@@ -382,21 +382,20 @@ export default {
         const dif = !abierto && !sinDato ? (t.diferencia_efectivo != null ? Number(t.diferencia_efectivo) : r2(Number(t.contado_efectivo) - Number(t.esperado_efectivo))) : null;
         return h('tr',
           h('td', fechaHora(t.abierto_en)),
-          h('td', abierto ? h('span.chip.ok', 'Abierta') : [fechaHora(t.cerrado_en), cruza ? h('div.tenue.noche', 'Cruzó la medianoche') : null]),
-          h('td', abierto ? duracion(t.abierto_en, new Date()) : duracion(t.abierto_en, t.cerrado_en)),
+          h('td', abierto ? h('span.chip.ok', 'Abierta') : [fechaHora(t.cerrado_en), h('div.tenue.noche', 'Duró ' + duracion(t.abierto_en, t.cerrado_en) + (cruza ? ' · cruzó la medianoche' : ''))]),
           h('td', t.abierto_por || ''),
           h('td.der', money(t.fondo_inicial)),
           h('td.der', abierto || sinDato ? '—' : money(t.esperado_efectivo)),
           h('td.der', abierto ? '—' : money(t.contado_efectivo)),
-          ...ventasFila(t, abierto, sinDato),
           h('td', abierto ? h('span.tenue', 'En curso') : sinDato ? h('span.tenue', 'Sin dato') : [chipDif(dif), (t.discrepancia || (dif != null && cents(dif) !== 0)) ? h('div', h('span.chip.espera', 'Con discrepancia')) : null]),
+          ...ventasFila(t, abierto, sinDato),
           h('td', h('button.btn.chico', { type: 'button', 'aria-label': 'Ver resumen del turno del ' + fechaHora(t.abierto_en), onclick: () => verDetalle(t) }, 'Ver resumen')));
       });
       return h('section.col',
         h('h2', 'Turnos anteriores'),
         h('p.tenue', 'Del más reciente al más antiguo. Las horas son de Costa Rica. Lo vendido por cada medio lo registra el sistema; solo el efectivo se cuenta a mano.'),
         h('div.tabla-caja', h('table.tabla.hist',
-          h('thead', h('tr', ['Abrió', 'Cerró', 'Duración', 'Abierta por', 'Fondo', 'Debía haber en caja', 'Contado', 'Vendido en efectivo', 'Vendido con tarjeta', 'Vendido por SINPE', 'Vendido por transferencia', 'Total vendido', 'Diferencia', ''].map((x, i) => h('th' + (i >= 4 && i <= 11 ? '.der' : ''), x)))),
+          h('thead', h('tr', ['Abrió', 'Cerró', 'Abierta por', 'Fondo', 'Debía haber en caja', 'Contado', 'Diferencia', 'Vendido en efectivo', 'Vendido con tarjeta', 'Vendido por SINPE', 'Vendido por transferencia', 'Total vendido', ''].map((x, i) => h('th' + (i === 3 || i === 4 || i === 5 || i >= 7 && i <= 11 ? '.der' : ''), x)))),
           h('tbody', filas))));
     }
 
