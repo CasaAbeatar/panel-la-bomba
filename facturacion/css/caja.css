@@ -260,3 +260,14 @@
 .ventas-medios .dato.total{border-color:var(--tinta);background:#fff;box-shadow:0 0 0 1px var(--tinta) inset}
 .ventas-medios .dato.total .val{font-size:1.5rem}
 .hist th{white-space:normal;min-width:84px}
+
+@media(max-width:979px){
+  .caja-cuerpo{display:flex;flex-direction:column;gap:.7rem}
+  .caja-izq{display:contents}
+  .buscador{order:-1}
+  .buscador-caja .rotulo small{display:none}
+  .caja.v-cuenta .cuentas-extras{display:none}
+  .cobro-pie{flex-wrap:nowrap}
+  .cobro-pie .btn:not(.primario){flex:0 0 auto}
+  .cobro-pie .btn.primario{flex:1 1 0;min-width:0}
+}

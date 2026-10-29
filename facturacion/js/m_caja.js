@@ -193,7 +193,7 @@ export default {
           asideCuenta),
         barraMovil);
       root.replaceChildren(cajaEl);
-      buscador.inp.addEventListener('focus', () => cajaEl.classList.add('bus-activo'));
+      buscador.inp.addEventListener('focus', () => { cajaEl.classList.add('bus-activo'); if (!fino()) setTimeout(irAlBuscador, 250); });
       buscador.inp.addEventListener('blur', () => cajaEl.classList.remove('bus-activo'));
       midePegajosos();
       pintarCajones(); pintarProductos();
@@ -205,11 +205,16 @@ export default {
       if (cab) document.documentElement.style.setProperty('--cab-h', (window.matchMedia('(max-width:979px)').matches ? 0 : cab.offsetHeight) + 'px');
       if (buscadorWrap) document.documentElement.style.setProperty('--bus-h', buscadorWrap.offsetHeight + 'px');
     }
+    // En celular deja el buscador arriba de la pantalla (la cabecera de la app sube y se va)
+    function irAlBuscador() {
+      if (!cajaEl || !window.matchMedia('(max-width:979px)').matches) return;
+      window.scrollTo({ top: Math.max(0, cajaEl.getBoundingClientRect().top + window.scrollY - 4) });
+    }
     function cambiarVista(v) {
       vista = v;
       cajaEl.classList.remove('v-productos', 'v-cuenta'); cajaEl.classList.add('v-' + v);
       pintarMovil();
-      window.scrollTo({ top: 0 });
+      irAlBuscador();
     }
 
     /* ---------- Buscador reutilizable ---------- */
@@ -217,7 +222,7 @@ export default {
     function crearBuscador({ alElegir, enLinea }) {
       const id = 'bus-' + (++contadorBus);
       let res = [], sel = 0;
-      const inp = h('input.campo.buscador-inp', { id, type: 'text', placeholder: 'Escriba el nombre o el código', 'aria-label': 'Buscar producto', autocomplete: 'off', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'search' });
+      const inp = h('input.campo.buscador-inp', { id, type: 'text', placeholder: 'Nombre o código (ej. ham dob)', 'aria-label': 'Buscar producto', autocomplete: 'off', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'search' });
       const borrar = h('button.btn', { type: 'button', hidden: true, onclick: () => { limpiar(); inp.focus(); } }, 'Borrar búsqueda');
       const lista = h('div.resultados', { role: 'listbox', 'aria-label': 'Resultados', hidden: true });
       const el = h('div.buscador-caja' + (enLinea ? '.en-linea' : ''),
@@ -563,7 +568,7 @@ export default {
       const errEl = h('div.error-caja', { hidden: true });
       const seg = h('div.seg', { role: 'group', 'aria-label': 'Qué imprimir al cobrar' },
         [['tiquete', 'Tiquete'], ['carta', 'Factura carta'], ['ninguno', 'No imprimir']].map(([k, t]) => h('button', { type: 'button', dataset: { f: k }, onclick: () => { formato = k; lsSet('formato', k); pintarFormato(); } }, t)));
-      const btnVolver = h('button.btn', { type: 'button', onclick: () => m.cerrar() }, 'Volver a la cuenta');
+      const btnVolver = h('button.btn', { type: 'button', onclick: () => m.cerrar() }, 'Volver');
       const btnCobrar = h('button.btn.primario.grande.btn-confirmar-cobro', { type: 'button', onclick: confirmarCobro }, 'Cobrar');
       const vistaPago = h('div.cobro',
         h('div.cobro-total', h('div.et', 'Total a cobrar (IVA incluido)'), h('div.monto', money(venta.total))),
@@ -596,7 +601,7 @@ export default {
       }
       function pintarCliente() {
         docTxt.textContent = 'Documento: ' + (cliente ? TIPOS_DOC['01'] : TIPOS_DOC['04'] + ' (sin cliente)');
-        cliTxt.textContent = cliente ? 'Cliente: ' + cliente.nombre + ' · ' + cliente.identificacion : 'Sin cliente. Si el cliente pide factura con su nombre, toque «Elegir cliente».';
+        cliTxt.textContent = cliente ? 'Cliente: ' + cliente.nombre + ' · ' + cliente.identificacion : 'Si el cliente pide factura con su nombre, toque «Elegir cliente».';
         btnElegir.textContent = cliente ? 'Cambiar cliente' : 'Elegir cliente (factura)';
         btnQuitarCli.hidden = !cliente;
       }
