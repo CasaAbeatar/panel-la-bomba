@@ -191,7 +191,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 <div id="app" class="wrap" hidden>
   <div class="top">
     <div class="who"><div class="av" id="ini">B</div><span id="quien"></span></div>
-    <a class="pill" id="pill" href="#" aria-label="Asuntos por revisar"></a><button class="out" id="btnSalir">Salir</button>
+    <a class="pill" id="pill" href="#" aria-label="Asuntos por revisar"></a><button class="out" id="btnAct" title="Trae las facturas nuevas y actualiza todo">Actualizar ahora</button><button class="out" id="btnSalir">Salir</button>
   </div>
   <div class="emp" role="group" aria-label="Empresa">
     <button type="button" data-emp="grupo" aria-pressed="true">Grupo</button>
@@ -698,6 +698,11 @@ async function validar(session){
   cargar();
 }
 $('btnLogin').onclick=()=>sb.auth.signInWithOAuth({provider:'azure',options:{scopes:'email',redirectTo:location.origin+location.pathname}});
+$('btnAct').onclick=async()=>{const b=$('btnAct');b.disabled=true;b.textContent='Actualizando…';
+  try{await fetch(SUPA_URL+'/functions/v1/facturas-recibidas',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});await cargar();
+    const d=new Date();b.textContent='Actualizado '+d.toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});}
+  catch(e){b.textContent='No se pudo actualizar';}
+  setTimeout(()=>{b.disabled=false;},4000);};
 $('btnSalir').onclick=async()=>{await sb.auth.signOut();location.reload();};
 sb.auth.getSession().then(({data})=>validar(data.session));
 sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT')validar(null);});
