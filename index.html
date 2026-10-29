@@ -699,7 +699,7 @@ async function validar(session){
 }
 $('btnLogin').onclick=()=>sb.auth.signInWithOAuth({provider:'azure',options:{scopes:'email',redirectTo:location.origin+location.pathname}});
 $('btnAct').onclick=async()=>{const b=$('btnAct');b.disabled=true;b.textContent='Actualizando…';
-  try{await fetch(SUPA_URL+'/functions/v1/facturas-recibidas',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});await cargar();
+  try{const H={headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}};await Promise.allSettled([fetch(SUPA_URL+'/functions/v1/facturas-recibidas',H),fetch(SUPA_URL+'/functions/v1/bcr-diario?dias=4',{method:'POST',headers:{...H.headers,'Content-Type':'application/json'},body:'{}'})]);await cargar();
     const d=new Date();b.textContent='Actualizado '+d.toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});}
   catch(e){b.textContent='No se pudo actualizar';}
   setTimeout(()=>{b.disabled=false;},4000);};
