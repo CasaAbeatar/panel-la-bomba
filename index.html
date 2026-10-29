@@ -190,6 +190,7 @@ body::before{content:'';position:fixed;left:0;right:0;top:0;height:5px;backgroun
 </head>
 <body data-emp="grupo">
 
+<div id="espera" class="center"><p style="color:var(--mute)">Cargando el panel…</p></div>
 <div id="login" class="center" hidden>
   <div class="login">
     <div class="av">B</div>
@@ -715,8 +716,11 @@ async function cargar2(){
   pintarPill();pintarHoy();
 }
 async function validar(session){
+  $('espera').hidden=true;
   if(!session){$('app').hidden=true;$('login').hidden=false;return;}
-  const {data:ok,error}=await sb.rpc('es_panel');
+  $('espera').hidden=false;
+  let ok,error;for(let i=0;i<4;i++){({data:ok,error}=await sb.rpc('es_panel'));if(!error)break;await new Promise(r=>setTimeout(r,1500*(i+1)));}
+  $('espera').hidden=true;
   if(error||ok!==true){await sb.auth.signOut();$('app').hidden=true;$('login').hidden=false;$('err').textContent='Esta cuenta no tiene acceso al panel.';return;}
   $('login').hidden=true;$('app').hidden=false;
   const em=session.user.email||'';$('quien').textContent=em;$('ini').textContent=(em[0]||'B').toUpperCase();
