@@ -202,6 +202,7 @@ body::before{content:'';position:fixed;left:0;right:0;top:0;height:5px;backgroun
     <div class="who"><div class="av" id="ini">B</div><span id="quien"></span></div>
     <a class="pill" id="pill" href="#" aria-label="Asuntos por revisar"></a><button class="out" id="btnAct" title="Trae las facturas nuevas y actualiza todo">Actualizar ahora</button><button class="out" id="btnSalir">Salir</button>
   </div>
+  <p id="envivo" class="note" style="margin:0 0 10px;font-size:12px">Se actualiza solo cuando entra un dato nuevo.</p>
   <div class="emp" role="group" aria-label="Empresa">
     <button type="button" data-emp="grupo" aria-pressed="true"><i style="background:#171212"></i>Grupo</button>
     <button type="button" data-emp="soda" aria-pressed="false"><i style="background:#B81622"></i>Soda</button>
@@ -706,6 +707,10 @@ async function validar(session){
   $('login').hidden=true;$('app').hidden=false;
   const em=session.user.email||'';$('quien').textContent=em;$('ini').textContent=(em[0]||'B').toUpperCase();
   cargar();
+  if(!window._rt){let t=null;const rec=()=>{clearTimeout(t);t=setTimeout(()=>cargar().then(()=>{const e=$('envivo');if(e)e.textContent='Actualizado en vivo '+new Date().toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});}),4000);};
+    window._rt=sb.channel('panel-en-vivo');
+    ['facturas_recibidas','mensajes_hacienda','panel_metricas','pedidos'].forEach(tb=>window._rt.on('postgres_changes',{event:'*',schema:'public',table:tb},rec));
+    window._rt.subscribe();}
 }
 $('btnLogin').onclick=()=>sb.auth.signInWithOAuth({provider:'azure',options:{scopes:'email',redirectTo:location.origin+location.pathname}});
 $('btnAct').onclick=async()=>{const b=$('btnAct');b.disabled=true;b.textContent='Actualizando…';
