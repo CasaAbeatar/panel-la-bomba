@@ -105,6 +105,9 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset
 @media(max-width:859px){.g[data-c].c2{gap:18px}}
 
 html{background:#f6f1e8}
+body[data-emp=soda]{--bg:#f6dcd9;--line:#e3b9b4}
+body[data-emp=pollos]{--bg:#fbe7bd;--line:#e8cb8e}
+body{transition:background-color .25s}
 body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(520px 420px at 10% 8%,rgba(27,107,122,.40),transparent 70%),radial-gradient(480px 420px at 92% 30%,rgba(122,63,120,.30),transparent 70%),radial-gradient(560px 460px at 14% 70%,rgba(31,107,74,.30),transparent 70%),radial-gradient(520px 440px at 88% 92%,rgba(184,116,10,.34),transparent 70%)}
 [data-c] .blk,.blk[data-c],.kpi[data-c]:not([data-c='']){background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(255,255,255,.22));-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);border:1px solid rgba(255,255,255,.8);box-shadow:0 1px 0 rgba(255,255,255,.85) inset,0 10px 30px -14px color-mix(in srgb,var(--cat) 45%,transparent);border-radius:14px;position:relative}
 [data-c] .blk::before,.blk[data-c]::before{content:'';position:absolute;left:18px;right:18px;top:0;height:2px;background:var(--cat);opacity:.85;border-radius:0 0 2px 2px}
