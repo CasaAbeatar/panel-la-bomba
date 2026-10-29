@@ -272,3 +272,8 @@
   .cobro-pie .btn:not(.primario){flex:0 0 auto}
   .cobro-pie .btn.primario{flex:1 1 0;min-width:0}
 }
+.linea-pie .btn{min-height:48px}
+@media(max-width:979px){
+  .linea-pie .nota-inp{flex:1 1 100%}
+  .linea-pie .btn{flex:1 1 0}
+}
