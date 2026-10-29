@@ -182,7 +182,7 @@ export default {
       const respuesta = h('div.rec-resp');
       pintarRespuesta(respuesta, d, clave, cuerpo, e);
       cuerpo.replaceChildren(
-        aviso ? h('div.rec-ok', aviso) : null,
+        ...(aviso ? [h('div.rec-ok', aviso)] : []),
         h('div.rec-detalle-cab', h('div', h('h2', limpiarNombre(f.emisor_nombre)), h('p.tenue', `${nombreTipo(f.tipo)} · consecutivo ${f.consecutivo || 's/d'} · cédula del proveedor ${f.emisor_cedula || 's/d'}`)),
           h('span.chip' + (e.clase ? '.' + e.clase : ''), e.texto)),
         h('div.rec-datos',

@@ -72,7 +72,7 @@ export function modal({ titulo, contenido, botones = [], ancho = 520, alCerrar }
   const caja = h('div.modal', { style: `max-width:${ancho}px`, role: 'dialog', 'aria-modal': 'true' },
     titulo ? h('div.modal-tit', h('h2', titulo), h('button.cerrar', { 'aria-label': 'Cerrar', onclick: cerrar }, 'Cerrar ✕')) : null,
     h('div.modal-cuerpo', contenido),
-    botones.length ? h('div.modal-pie', botones.map((b) => h('button.btn.' + (b.clase || ''), { onclick: () => b.onclick?.(cerrar) }, b.texto))) : null);
+    botones.length ? h('div.modal-pie', botones.map((b) => h('button.btn' + (b.clase ? '.' + b.clase : ''), { onclick: () => b.onclick?.(cerrar) }, b.texto))) : null);
   fondo.append(caja);
   fondo.addEventListener('mousedown', (e) => { if (e.target === fondo) cerrar(); });
   document.addEventListener('keydown', esc_);
