@@ -159,6 +159,15 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 .emp button{flex:1;min-height:44px;font-size:14px;font-weight:600;color:var(--mute);border-radius:9px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 8px}
 .emp button[aria-pressed=true]{background:var(--ink);color:#fff}
 .emp i{width:9px;height:9px;border-radius:50%;display:inline-block}
+body{--emp:#171212;--on-emp:#fff}
+body[data-emp=soda]{--emp:#B81622;--on-emp:#fff}
+body[data-emp=pollos]{--emp:#F3A62C;--on-emp:#171212}
+body::before{content:'';position:fixed;left:0;right:0;top:0;height:5px;background:var(--emp);z-index:20}
+.tabs button[aria-selected=true]{border-bottom-color:var(--emp)!important}
+.hero::before{background:var(--emp)!important}
+.emp button[aria-pressed=true]{background:var(--emp)!important;color:var(--on-emp)!important}
+.emp button[aria-pressed=true] i{box-shadow:0 0 0 1.5px var(--on-emp)}
+
 .pill{border:1px solid var(--bad);color:var(--bad);border-radius:10px;padding:0 14px;min-height:44px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px;background:#fff}
 .pill.on{display:inline-flex}
 .pill::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--bad)}
@@ -176,7 +185,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 @media(max-width:559px){.top .pill{order:3}}
 </style>
 </head>
-<body>
+<body data-emp="grupo">
 
 <div id="login" class="center" hidden>
   <div class="login">
@@ -194,7 +203,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
     <a class="pill" id="pill" href="#" aria-label="Asuntos por revisar"></a><button class="out" id="btnAct" title="Trae las facturas nuevas y actualiza todo">Actualizar ahora</button><button class="out" id="btnSalir">Salir</button>
   </div>
   <div class="emp" role="group" aria-label="Empresa">
-    <button type="button" data-emp="grupo" aria-pressed="true">Grupo</button>
+    <button type="button" data-emp="grupo" aria-pressed="true"><i style="background:#171212"></i>Grupo</button>
     <button type="button" data-emp="soda" aria-pressed="false"><i style="background:#B81622"></i>Soda</button>
     <button type="button" data-emp="pollos" aria-pressed="false"><i style="background:#F3A62C"></i>Pollos</button>
   </div>
@@ -653,7 +662,7 @@ function irSec(s){
   window.scrollTo(0,0);
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>irSec(b.dataset.sec));
-document.querySelectorAll('.emp button').forEach(b=>b.onclick=()=>{EMP=b.dataset.emp;document.querySelectorAll('.emp button').forEach(x=>x.setAttribute('aria-pressed',x===b));pintarFin();});
+document.querySelectorAll('.emp button').forEach(b=>b.onclick=()=>{EMP=b.dataset.emp;document.body.dataset.emp=EMP;document.querySelectorAll('.emp button').forEach(x=>x.setAttribute('aria-pressed',x===b));pintarFin();});
 document.querySelectorAll('.subtabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.subtabs button').forEach(x=>x.setAttribute('aria-selected',x===b));['pedidos','paginas','redes'].forEach(t=>$('tab-'+t).hidden=b.dataset.sub!==t);});
 $('pill').onclick=e=>{e.preventDefault();irSec('impuestos');};
 document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(a){e.preventDefault();irSec(a.dataset.go);}});
