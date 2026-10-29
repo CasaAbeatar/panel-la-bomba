@@ -650,7 +650,7 @@ function pintarImpuestos(){
   const im=I.iva_mensual||[];
   if(im.length)h+=`<div class="g" data-c="imp">${cols('IVA soportado por mes',im.map(x=>num(x.iva)),im.map(x=>ml(x.mes)),'Sin comprobantes rechazados. Las notas de crédito restan.',null,cc,true)}</div>`;
   const rc=(I.receptores||[]);
-  if(rc.length)h+=`<div class="g" data-c="imp">${table('Receptores que aparecen en las facturas',['Receptor','Docs','Bruto','IVA'],rc.map(r=>[(()=>{const e=EMPCED[String(r.ced||'').replace(/\D/g,'')];return e?'<b>'+e+'</b> <span style="color:var(--mute)">'+esc(r.nombre||'')+'</span>':esc(r.nombre||'Sin nombre')})()+'<small>'+esc(r.ced)+'</small>',fmt(r.docs),crc(r.bruto),crc(r.iva)]))}</div>`;
+  if(rc.length)h+=`<div class="g" data-c="imp">${table('Receptores que aparecen en las facturas',['Receptor','Docs','Bruto','IVA'],rc.map(r=>[(()=>{const e=EMPCED[String(r.ced||'').replace(/\D/g,'')];return e?'<b>'+e+'</b>'+(/la bomba/i.test(r.nombre||'')?'':' <span style="color:var(--mute)">'+esc(r.nombre||'')+'</span>'):esc(r.nombre||'Sin nombre')})()+'<small>'+esc(r.ced)+'</small>',fmt(r.docs),crc(r.bruto),crc(r.iva)]))}</div>`;
   h+=`<p class="note">Es crédito potencial: la decisión final es del contador. El IVA de ventas todavía no está conectado${num(I.usd.docs)?'. Además hay '+fmt(I.usd.docs)+' comprobantes en dólares (US$ '+fmt(I.usd.total)+') que no se suman aquí':''}.</p>`;
   el.innerHTML=h;
 }
