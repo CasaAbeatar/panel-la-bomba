@@ -562,6 +562,7 @@ const MS3=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','di
 const ml=m=>MS3[+m.slice(5,7)-1];
 const D10=x=>String(x).slice(0,10);
 const hoyCR=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'});
+const EMPCED={'3102111943':'Pollos La Bomba y Papea','3102765594':'Soda La Bomba'};
 const CLASE={credito_soda:'A nombre de Soda',credito_pollos:'A nombre de Pollos',otro_receptor:'A nombre de otra persona',sin_cedula:'Sin cédula del receptor',tiquetes:'Tiquetes electrónicos'};
 const num=x=>Number(x||0);
 const cargando=m=>`<p class="nodata">${m||'Cargando…'}</p>`;
@@ -645,7 +646,7 @@ function pintarImpuestos(){
   const im=I.iva_mensual||[];
   if(im.length)h+=`<div class="g" data-c="imp">${cols('IVA soportado por mes',im.map(x=>num(x.iva)),im.map(x=>ml(x.mes)),'Sin comprobantes rechazados. Las notas de crédito restan.',null,cc,true)}</div>`;
   const rc=(I.receptores||[]);
-  if(rc.length)h+=`<div class="g" data-c="imp">${table('Receptores que aparecen en las facturas',['Receptor','Docs','Bruto','IVA'],rc.map(r=>[esc(r.nombre||'Sin nombre')+'<small>'+esc(r.ced)+'</small>',fmt(r.docs),crc(r.bruto),crc(r.iva)]))}</div>`;
+  if(rc.length)h+=`<div class="g" data-c="imp">${table('Receptores que aparecen en las facturas',['Receptor','Docs','Bruto','IVA'],rc.map(r=>[(()=>{const e=EMPCED[String(r.ced||'').replace(/\D/g,'')];return e?'<b>'+e+'</b> <span style="color:var(--mute)">'+esc(r.nombre||'')+'</span>':esc(r.nombre||'Sin nombre')})()+'<small>'+esc(r.ced)+'</small>',fmt(r.docs),crc(r.bruto),crc(r.iva)]))}</div>`;
   h+=`<p class="note">Es crédito potencial: la decisión final es del contador. El IVA de ventas todavía no está conectado${num(I.usd.docs)?'. Además hay '+fmt(I.usd.docs)+' comprobantes en dólares (US$ '+fmt(I.usd.total)+') que no se suman aquí':''}.</p>`;
   el.innerHTML=h;
 }
