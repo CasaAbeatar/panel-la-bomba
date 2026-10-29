@@ -763,7 +763,7 @@ export default {
         impEstado.className = 'tenue-linea'; impEstado.textContent = 'Enviando a la impresora…';
         try {
           await (await imp()).imprimirComprobante(compId, { formato: fmt, copias: 1 });
-          impEstado.textContent = fmt === 'carta' ? 'Factura en formato carta enviada a imprimir.' : 'Tiquete enviado a imprimir.';
+          impEstado.textContent = fmt === 'carta' ? 'Comprobante en formato carta enviado a imprimir.' : 'Comprobante en formato tiquete (80 mm) enviado a imprimir.';
         } catch (e) {
           impEstado.className = 'tenue-linea msg-mal';
           impEstado.textContent = 'No se pudo imprimir: ' + (e.message || e) + ' Toque «Imprimir otra vez» o revise el botón «Impresora».';
