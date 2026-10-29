@@ -699,7 +699,7 @@ async function validar(session){
 }
 $('btnLogin').onclick=()=>sb.auth.signInWithOAuth({provider:'azure',options:{scopes:'email',redirectTo:location.origin+location.pathname}});
 $('btnAct').onclick=async()=>{const b=$('btnAct');b.disabled=true;b.textContent='Actualizando…';
-  try{const H={headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}};await Promise.allSettled([fetch(SUPA_URL+'/functions/v1/facturas-recibidas',H),fetch(SUPA_URL+'/functions/v1/bcr-diario?dias=4',{method:'POST',headers:{...H.headers,'Content-Type':'application/json'},body:'{}'})]);await cargar();
+  try{const H={headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}};const P={method:'POST',headers:{...H.headers,'Content-Type':'application/json'},body:'{}'};const F=SUPA_URL+'/functions/v1/';await Promise.allSettled([fetch(F+'facturas-recibidas',H),fetch(F+'bcr-diario?dias=4',P),fetch(F+'meta-diario?dias=3',P),fetch(F+'goatcounter-diario?dias=2',P)]);await cargar();
     const d=new Date();b.textContent='Actualizado '+d.toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});}
   catch(e){b.textContent='No se pudo actualizar';}
   setTimeout(()=>{b.disabled=false;},4000);};
