@@ -586,7 +586,7 @@ function pintarPag(){
 
 
 /* ---- Gastos, Impuestos y Hoy ---- */
-let RAROS=[],EMP='grupo',SEC='hoy',GG={},II={},PED=[],FIN_ERR=false;
+let RAROS=[],EMP='grupo',SEC='hoy',GG={},II={},INV={},PED=[],FIN_ERR=false;
 const EMPN={grupo:'Grupo DMA-La Bomba',soda:'Soda La Bomba',pollos:'Pollos La Bomba y Papea'};
 const MS3=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const ml=m=>MS3[+m.slice(5,7)-1];
@@ -608,6 +608,17 @@ async function traerFin(){
     return false;
   };
   for(const e of E){if(!(await pedir(e))&&!GG[e])FIN_ERR=true;}
+}
+async function traerInv(){
+  const out={};
+  for(const e of ['grupo','soda','pollos']){const r=await sb.rpc('inventario_valor_resumen',{p_emp:e});if(r.error)throw r.error;out[e]=r.data;}
+  return out;
+}
+const GRUPO_INV={comida_preparada:'Comida preparada',unitario:'Unitarios (bebidas y empacados)',suministro:'Suministros'};
+function bloqueInv(){
+  const v=INV[EMP];if(!v)return '';
+  const f=g=>`<div class="br"><div class="t"><b>${GRUPO_INV[g.grupo]||esc(g.grupo)}</b><i>${crc(g.valor)}</i></div></div>`;
+  return `<div class="g" data-c="gasto"><div class="blk"><h2>Valor del inventario</h2><div class="br"><div class="t"><b>Total</b><i><b>${crc(v.total)}</b></i></div><div class="s2">a costo, sin IVA, de lo que ya se recibió en el facturador</div></div>${(v.grupos||[]).length?v.grupos.map(f).join(''):'<p class="note">Todavía no hay existencias recibidas.</p>'}</div></div>`;
 }
 function revisar(I){
   const out=[],cl=k=>(I.clasificacion||[]).find(x=>x.clase===k);
@@ -647,6 +658,7 @@ function pintarHoy(){
     const f=(e,n,c)=>{const g=GG[e];return `<div class="br"><div class="t"><b>${n}</b><i>${crc(g.hoy.bruto)} hoy</i></div><div class="s2">${fmt(g.hoy.docs)} facturas hoy. Compras desde enero: ${crc(g.totales.bruto)} (bruto)</div></div>`;};
     h+=`<div class="g" data-c="sistema"><div class="blk"><h2>Cada empresa</h2>${f('soda','Soda La Bomba')}${f('pollos','Pollos La Bomba y Papea')}<p class="note">Las compras sin cédula del receptor o a nombre de otra persona están en el total del Grupo, pero no en una empresa. Al elegir Soda o Pollos arriba se ve solo una.</p></div></div>`;
   }
+  h+=bloqueInv();
   const rv=revisar(I);
   h+=`<div class="g" data-c="imp" id="por-revisar"><div class="blk"><h2>Por revisar</h2>${rv.length?rv.map(x=>`<div class="rev ${x.bad?'bad':''}"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></div>`).join(''):'<p class="note">Nada por revisar.</p>'}<p class="note"><a href="#" data-go="impuestos">Ver todo en Impuestos</a></p></div></div>`;
   const rec=rc.slice(0,4).reverse();
@@ -730,6 +742,7 @@ async function cargar(){
 async function cargar2(){
   try{MALL=await traerMeta();M=MALL.filter(r=>r.fecha>=addd(HOYCR(),-60));}catch(e){MALL=[];M=[];}
   pintarRedes();
+  traerInv().then(v=>{INV=v;pintarHoy();}).catch(()=>{});
   traerFin().then(pintarFin).catch(()=>{FIN_ERR=true;pintarFin();});
   try{armarB(await traerBcr());pintarIng();}
   catch(e){$('tab-ingresos').innerHTML='<div class="blk"><h2>No se pudieron cargar los ingresos</h2></div>';}
@@ -752,7 +765,7 @@ function conCopia(nombre,fn){return async(...a)=>{const k=nombre+':'+JSON.string
   const dePrueba=async()=>{const c=await cGet(k);if(c){ultimaCopia=Math.min(ultimaCopia||c.t,c.t);avisoCon(ultimaCopia);return c.v;}throw new Error('sin copia');};
   if(!navigator.onLine)return dePrueba();
   try{const r=await fn(...a);cPut(k,r);return r;}catch(e){try{return await dePrueba();}catch(_){throw e;}}};}
-traerMeta=conCopia('meta',traerMeta);traerTabla=conCopia('tabla',traerTabla);traerFin=conCopia('fin',traerFin);traer=conCopia('traer',traer);traerBcr=conCopia('bcr',traerBcr);
+traerMeta=conCopia('meta',traerMeta);traerTabla=conCopia('tabla',traerTabla);traerFin=conCopia('fin',traerFin);traerInv=conCopia('inv',traerInv);traer=conCopia('traer',traer);traerBcr=conCopia('bcr',traerBcr);
 addEventListener('online',()=>{ultimaCopia=0;avisoCon(0);});
 addEventListener('offline',()=>{if(!$('app').hidden)avisoCon(ultimaCopia||Date.now());});
 async function validar(session){
