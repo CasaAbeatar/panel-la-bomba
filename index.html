@@ -2,7 +2,15 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fbf8f2">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Panel">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="robots" content="noindex, nofollow">
 <title>Panel La Bomba</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,9 +24,9 @@
 [data-c=sistema]{--cat:#51657A}
 [data-c=ped]{--cat:#B8740A}
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--ink);font:300 16px/1.45 Figtree,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-feature-settings:"tnum" 1}
-.wrap{max-width:760px;margin:0 auto;padding:20px 20px 72px}
+.wrap{max-width:760px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(72px,calc(env(safe-area-inset-bottom) + 40px)) max(20px,env(safe-area-inset-left))}
 .top{display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:26px}
 .who{display:flex;align-items:center;gap:12px;color:var(--mute);font-size:14px}
 .av{width:34px;height:34px;border-radius:50%;border:1px solid var(--acc);color:var(--acc);display:grid;place-items:center;font-weight:600;font-size:14px;background:transparent}
@@ -47,13 +55,22 @@ button{font:inherit;cursor:pointer;border:0;color:var(--ink);background:none}
 .rv b{display:block;font-size:22px;font-weight:300;letter-spacing:-.02em}
 .spark{width:72px;height:26px;flex:none}
 @media (max-width:440px){.spark{display:none}}
-.center{min-height:100vh;display:grid;place-items:center;padding:20px}
+.center{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
 .login{max-width:360px;width:100%;text-align:center}
 .login .av{width:56px;height:56px;font-size:22px;margin:0 auto 22px}
 .login h1{font-size:34px;font-weight:300;letter-spacing:-.025em;margin:0 0 8px}
 .login p{color:var(--mute);margin:0 0 28px}
 .cta{border:1px solid var(--ink);width:100%;padding:16px;border-radius:999px;font-weight:400;letter-spacing:.06em;font-size:15px}
 .cta:hover{background:var(--ink);color:var(--bg)}
+.pin{width:100%;border:1px solid var(--line);border-radius:999px;padding:16px;font:300 28px/1 Figtree,system-ui,sans-serif;letter-spacing:.6em;text-align:center;background:transparent;color:var(--ink);margin-bottom:14px;-webkit-text-security:disc}
+.pin:focus{outline:none;border-color:var(--ink)}
+.pin::placeholder{letter-spacing:.3em;color:var(--line)}
+.cta:disabled{opacity:.5;cursor:default}
+.dlg{position:fixed;inset:0;background:rgba(23,18,18,.45);display:grid;place-items:center;padding:20px;z-index:50}
+.dlg .box{background:var(--bg);border-radius:18px;padding:24px;max-width:340px;width:100%}
+.dlg h2{margin:0 0 14px;font-weight:300;font-size:22px}
+.dlg .pin{font-size:22px;margin-bottom:10px}
+.dlg .fila{display:flex;gap:10px;margin-top:6px}.dlg .fila button{flex:1}
 .err{color:var(--down);margin-top:14px;min-height:1.4em}
 [hidden]{display:none!important}
 a:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
@@ -182,8 +199,8 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
   <div class="login">
     <div class="av">B</div>
     <h1>Panel La Bomba</h1>
-    <p>Acceso privado.</p>
-    <button class="cta" id="btnLogin">Entrar con Microsoft</button>
+    <p>Escriba su PIN de 4 números.</p>
+    <form id="fLogin" autocomplete="off"><input class="pin" id="pin" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="····" autocomplete="one-time-code" aria-label="PIN de 4 números"><button class="cta" id="btnLogin" type="submit">Entrar</button></form>
     <div class="err" id="err" role="alert"></div>
   </div>
 </div>
@@ -191,7 +208,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 <div id="app" class="wrap" hidden>
   <div class="top">
     <div class="who"><div class="av" id="ini">B</div><span id="quien"></span></div>
-    <a class="pill" id="pill" href="#" aria-label="Asuntos por revisar"></a><button class="out" id="btnAct" title="Trae las facturas nuevas y actualiza todo">Actualizar ahora</button><button class="out" id="btnSalir">Salir</button>
+    <a class="pill" id="pill" href="#" aria-label="Asuntos por revisar"></a><button class="out" id="btnAct" title="Trae las facturas nuevas y actualiza todo">Actualizar ahora</button><button class="out" id="btnPin">Cambiar PIN</button><button class="out" id="btnSalir">Salir</button>
   </div>
   <div class="emp" role="group" aria-label="Empresa">
     <button type="button" data-emp="grupo" aria-pressed="true">Grupo</button>
@@ -221,6 +238,11 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
   </section>
 </div>
 
+<div class="dlg" id="dPin" hidden><form class="box" id="fPin" autocomplete="off"><h2>Cambiar PIN</h2>
+<input class="pin" id="pinA" type="tel" inputmode="numeric" maxlength="4" placeholder="PIN actual" autocomplete="off">
+<input class="pin" id="pinN" type="tel" inputmode="numeric" maxlength="4" placeholder="PIN nuevo" autocomplete="off">
+<div class="err" id="errPin" role="alert"></div>
+<div class="fila"><button class="out" type="button" id="pinNo">Cancelar</button><button class="cta" type="submit" id="pinSi">Guardar</button></div></form></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const SUPA_URL='https://dwlbcbtwdungyrykgahm.supabase.co';
@@ -692,12 +714,45 @@ async function cargar(){
 async function validar(session){
   if(!session){$('app').hidden=true;$('login').hidden=false;return;}
   const {data:ok,error}=await sb.rpc('es_panel');
-  if(error||ok!==true){await sb.auth.signOut();$('app').hidden=true;$('login').hidden=false;$('err').textContent='Esta cuenta no tiene acceso al panel.';return;}
+  if(error||ok!==true){await sb.auth.signOut();$('app').hidden=true;$('login').hidden=false;$('err').textContent='Esta sesión no tiene acceso al panel.';return;}
   $('login').hidden=true;$('app').hidden=false;
   const em=session.user.email||'';$('quien').textContent=em;$('ini').textContent=(em[0]||'B').toUpperCase();
   cargar();
 }
-$('btnLogin').onclick=()=>sb.auth.signInWithOAuth({provider:'azure',options:{scopes:'email',redirectTo:location.origin+location.pathname}});
+const ACC=SUPA_URL+'/functions/v1/panel-acceso';
+async function llamarAcceso(cuerpo){
+  const r=await fetch(ACC,{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},body:JSON.stringify(cuerpo)});
+  let j={};try{j=await r.json();}catch(e){}
+  return j;
+}
+$('pin').oninput=e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,4);};
+$('fLogin').onsubmit=async ev=>{
+  ev.preventDefault();const pin=$('pin').value;$('err').textContent='';
+  if(!/^[0-9]{4}$/.test(pin)){$('err').textContent='Escriba los 4 números del PIN.';return;}
+  const b=$('btnLogin');b.disabled=true;b.textContent='Verificando…';
+  try{
+    const j=await llamarAcceso({pin});
+    if(j.ok&&j.access_token){
+      const {error}=await sb.auth.setSession({access_token:j.access_token,refresh_token:j.refresh_token});
+      if(error)throw error;$('pin').value='';
+      const {data}=await sb.auth.getSession();validar(data.session);
+    }else{$('err').textContent=j.error||'No se pudo entrar.';$('pin').value='';}
+  }catch(e){$('err').textContent='No se pudo entrar. Intente de nuevo.';}
+  b.disabled=false;b.textContent='Entrar';
+};
+$('btnPin').onclick=()=>{$('pinA').value='';$('pinN').value='';$('errPin').textContent='';$('dPin').hidden=false;$('pinA').focus();};
+$('pinNo').onclick=()=>{$('dPin').hidden=true;};
+['pinA','pinN'].forEach(i=>$(i).oninput=e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,4);});
+$('fPin').onsubmit=async ev=>{
+  ev.preventDefault();const a=$('pinA').value,n=$('pinN').value;
+  if(!/^[0-9]{4}$/.test(a)||!/^[0-9]{4}$/.test(n)){$('errPin').textContent='Ambos PIN deben tener 4 números.';return;}
+  const b=$('pinSi');b.disabled=true;
+  const j=await llamarAcceso({accion:'cambiar',pin:a,nuevo:n}).catch(()=>({}));
+  b.disabled=false;
+  if(j.ok){$('dPin').hidden=true;alert_ok();}else $('errPin').textContent=j.error||'No se pudo cambiar el PIN.';
+};
+function alert_ok(){const b=$('btnPin');b.textContent='PIN cambiado';setTimeout(()=>{b.textContent='Cambiar PIN';},3000);}
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 $('btnAct').onclick=async()=>{const b=$('btnAct');b.disabled=true;b.textContent='Actualizando…';
   try{const H={headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}};const P={method:'POST',headers:{...H.headers,'Content-Type':'application/json'},body:'{}'};const F=SUPA_URL+'/functions/v1/';await Promise.allSettled([fetch(F+'facturas-recibidas',H),fetch(F+'bcr-diario?dias=4',P),fetch(F+'meta-diario?dias=3',P),fetch(F+'goatcounter-diario?dias=2',P)]);await cargar();
     const d=new Date();b.textContent='Actualizado '+d.toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});}
