@@ -71,6 +71,7 @@ button{font:inherit;cursor:pointer;border:0;color:var(--ink);background:none}
 .dlg h2{margin:0 0 14px;font-weight:300;font-size:22px}
 .dlg .pin{font-size:22px;margin-bottom:10px}
 .dlg .fila{display:flex;gap:10px;margin-top:6px}.dlg .fila button{flex:1}
+#sinCon{position:fixed;left:0;right:0;top:0;z-index:60;padding:calc(6px + env(safe-area-inset-top,0px)) 12px 6px;background:var(--ink);color:#fff;font-size:14px;text-align:center}
 .err{color:var(--down);margin-top:14px;min-height:1.4em}
 [hidden]{display:none!important}
 a:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
@@ -238,6 +239,7 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
   </section>
 </div>
 
+<div id="sinCon" role="status" hidden></div>
 <div class="dlg" id="dPin" hidden><form class="box" id="fPin" autocomplete="off"><h2>Cambiar PIN</h2>
 <input class="pin" id="pinA" type="tel" inputmode="numeric" maxlength="4" placeholder="PIN actual" autocomplete="off">
 <input class="pin" id="pinN" type="tel" inputmode="numeric" maxlength="4" placeholder="PIN nuevo" autocomplete="off">
@@ -711,10 +713,30 @@ async function cargar(){
   try{pintarPag();}catch(e){$('tab-paginas').innerHTML='<div class="blk"><h2>No se pudieron cargar las visitas</h2></div>';}
   pintarPill();pintarHoy();
 }
+
+// ---- Copia local: sin internet se ve lo ultimo que se trajo (solo lectura). Se borra al salir. ----
+const IDB=()=>new Promise((ok,no)=>{try{const q=indexedDB.open('panel-copia',1);q.onupgradeneeded=()=>q.result.createObjectStore('c');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error);}catch(e){no(e);}});
+async function cGet(k){try{const d=await IDB();return await new Promise((ok)=>{const r=d.transaction('c').objectStore('c').get(k);r.onsuccess=()=>ok(r.result||null);r.onerror=()=>ok(null);});}catch(e){return null;}}
+async function cPut(k,v){try{const d=await IDB();await new Promise((ok)=>{const t=d.transaction('c','readwrite');t.objectStore('c').put({t:Date.now(),v},k);t.oncomplete=ok;t.onerror=ok;t.onabort=ok;});}catch(e){}}
+async function cClear(){try{const d=await IDB();await new Promise((ok)=>{const t=d.transaction('c','readwrite');t.objectStore('c').clear();t.oncomplete=ok;t.onerror=ok;});}catch(e){}}
+function avisoCon(t){const b=$('sinCon');if(!t){b.hidden=true;document.body.style.paddingTop='';return;}
+  b.textContent='Sin conexión · datos de '+new Date(t).toLocaleString('es-CR',{timeZone:'America/Costa_Rica',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});b.hidden=false;document.body.style.paddingTop='34px';}
+let ultimaCopia=0;
+function conCopia(nombre,fn){return async(...a)=>{const k=nombre+':'+JSON.stringify(a);
+  const dePrueba=async()=>{const c=await cGet(k);if(c){ultimaCopia=Math.min(ultimaCopia||c.t,c.t);avisoCon(ultimaCopia);return c.v;}throw new Error('sin copia');};
+  if(!navigator.onLine)return dePrueba();
+  try{const r=await fn(...a);cPut(k,r);return r;}catch(e){try{return await dePrueba();}catch(_){throw e;}}};}
+traerMeta=conCopia('meta',traerMeta);traerTabla=conCopia('tabla',traerTabla);traerFin=conCopia('fin',traerFin);traer=conCopia('traer',traer);traerBcr=conCopia('bcr',traerBcr);
+addEventListener('online',()=>{ultimaCopia=0;avisoCon(0);});
+addEventListener('offline',()=>{if(!$('app').hidden)avisoCon(ultimaCopia||Date.now());});
 async function validar(session){
+  const yaEntro=localStorage.getItem('panel.entro')==='1';
+  if(!navigator.onLine&&yaEntro){$('login').hidden=true;$('app').hidden=false;$('quien').textContent='';$('ini').textContent='B';avisoCon(ultimaCopia||Date.now());cargar();return;}
   if(!session){$('app').hidden=true;$('login').hidden=false;return;}
-  const {data:ok,error}=await sb.rpc('es_panel');
+  let ok,error;try{({data:ok,error}=await sb.rpc('es_panel'));}catch(e){error=e;}
+  if(error&&yaEntro){$('login').hidden=true;$('app').hidden=false;avisoCon(ultimaCopia||Date.now());cargar();return;}
   if(error||ok!==true){await sb.auth.signOut();$('app').hidden=true;$('login').hidden=false;$('err').textContent='Esta sesión no tiene acceso al panel.';return;}
+  try{localStorage.setItem('panel.entro','1');}catch(e){}
   $('login').hidden=true;$('app').hidden=false;
   const em=session.user.email||'';$('quien').textContent=em;$('ini').textContent=(em[0]||'B').toUpperCase();
   cargar();
@@ -758,7 +780,7 @@ $('btnAct').onclick=async()=>{const b=$('btnAct');b.disabled=true;b.textContent=
     const d=new Date();b.textContent='Actualizado '+d.toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});}
   catch(e){b.textContent='No se pudo actualizar';}
   setTimeout(()=>{b.disabled=false;},4000);};
-$('btnSalir').onclick=async()=>{await sb.auth.signOut();location.reload();};
+$('btnSalir').onclick=async()=>{try{localStorage.removeItem('panel.entro');}catch(e){}await cClear();try{await sb.auth.signOut();}catch(e){}location.reload();};
 sb.auth.getSession().then(({data})=>validar(data.session));
 sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT')validar(null);});
 </script>
