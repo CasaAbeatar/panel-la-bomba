@@ -270,7 +270,8 @@ const fmt=n=>new Intl.NumberFormat('es-CR').format(Math.round(n));
 const crc=n=>'₡'+fmt(n);
 const pct=(a,b)=>b?Math.round(a/b*100)+' %':'—';
 const NEG={soda:'Soda La Bomba',pollos:'Pollos La Bomba',papea:'Papea'};
-let R=[];
+let R=[],RALL=[],MALL=[],PEDALL=[],CARALL=[];
+const HOYCR=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'});
 
 /* ---- datos ---- */
 const rows=(o)=>R.filter(r=>(!o.fuente||r.fuente===o.fuente)&&(!o.metrica||r.metrica===o.metrica)&&(o.sitio===undefined||r.sitio===o.sitio)&&(o.detalle===undefined||r.detalle===o.detalle));
@@ -441,7 +442,7 @@ function pintarIng(){
 
 /* ---- Redes sociales (Meta, API oficial) ---- */
 let M=[];
-async function traerMeta(){let all=[],from=0;const desde=addd(new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'}),-60);for(;;){const {data,error}=await sb.from('panel_metricas').select('fecha,sitio,metrica,valor').eq('fuente','meta').gte('fecha',desde).order('fecha').range(from,from+999);if(error)throw error;all=all.concat(data);if(data.length<1000)break;from+=1000;}return all;}
+async function traerMeta(){let all=[],from=0;for(;;){const {data,error}=await sb.from('panel_metricas').select('fecha,sitio,metrica,valor').eq('fuente','meta').order('fecha').range(from,from+999);if(error)throw error;all=all.concat(data);if(data.length<1000)break;from+=1000;}return all;}
 const CUENTAS=[['fb-soda','Facebook · Soda La Bomba'],['fb-pollos','Facebook · Pollos La Bomba & PAPEA'],['ig-sodaypolloslabomba','Instagram · @sodaypolloslabomba']];
 // métrica equivalente en Facebook e Instagram
 const EQ={vistas:{fb:'page_media_view',ig:'views'},alcance:{fb:'page_total_media_view_unique',ig:'reach'},perfil:{fb:'page_views_total',ig:'profile_views'},inter:{fb:'page_post_engagements',ig:'total_interactions'},nuevos:{fb:'page_daily_follows_unique',ig:'seguidores_nuevos'}};
@@ -485,7 +486,7 @@ function stdev(a){if(a.length<2)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length
 function mediana(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;}
 const RANGOS=[[0,1500,'Menos de ₡1.500'],[1500,3000,'₡1.500 a ₡2.999'],[3000,5000,'₡3.000 a ₡4.999'],[5000,10000,'₡5.000 a ₡9.999'],[10000,20000,'₡10.000 a ₡19.999'],[20000,1e12,'₡20.000 o más']];
 const rangoDe=v=>RANGOS.findIndex(r=>v>=r[0]&&v<r[1]);
-async function traerTabla(t,campos){const desde=new Date(Date.now()-30*864e5).toISOString();let all=[],from=0;for(;;){const {data,error}=await sb.from(t).select(campos).gte('creado_en',desde).order('creado_en').range(from,from+999);if(error)throw error;all=all.concat(data);if(data.length<1000)break;from+=1000;}return all;}
+async function traerTabla(t,campos){let all=[],from=0;for(;;){const {data,error}=await sb.from(t).select(campos).order('creado_en').range(from,from+999);if(error)throw error;all=all.concat(data);if(data.length<1000)break;from+=1000;}return all;}
 function heat(titulo,M,filas,colsL,sub){const mx=Math.max(1,...M.flat());return `<div class="blk"><h2>${titulo}</h2><div class="hm"><table><thead><tr><th></th>${colsL.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${M.map((r,i)=>`<tr><th>${filas[i]}</th>${r.map(v=>`<td style="background:rgba(184,22,34,${(v/mx*0.85).toFixed(2)})" title="${fmt(v)}">${v?fmt(v):''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>${sub?`<p class="note">${sub}</p>`:''}</div>`;}
 const visitasEn=(desdeF)=>rows({fuente:'goatcounter',metrica:'visitas'}).filter(r=>r.fecha>=desdeF).reduce((a,r)=>a+Number(r.valor),0);
 
@@ -705,10 +706,9 @@ $('pill').onclick=e=>{e.preventDefault();irSec('hoy');setTimeout(()=>{const x=$(
 document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(a){e.preventDefault();irSec(a.dataset.go);}});
 
 async function traer(){
-  const desde=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
   let all=[],from=0;
   for(;;){
-    const {data,error}=await sb.from('panel_metricas').select('fecha,fuente,sitio,metrica,detalle,valor').gte('fecha',desde).order('fecha').range(from,from+999);
+    const {data,error}=await sb.from('panel_metricas').select('fecha,fuente,sitio,metrica,detalle,valor').order('fecha').range(from,from+999);
     if(error) throw error;
     all=all.concat(data); if(data.length<1000) break; from+=1000;
   }
@@ -728,13 +728,13 @@ async function cargar(){
   if(_cargando)return;_cargando=true;try{await cargar2();}finally{_cargando=false;}
 }
 async function cargar2(){
-  try{M=await traerMeta();}catch(e){M=[];}
+  try{MALL=await traerMeta();M=MALL.filter(r=>r.fecha>=addd(HOYCR(),-60));}catch(e){MALL=[];M=[];}
   pintarRedes();
   traerFin().then(pintarFin).catch(()=>{FIN_ERR=true;pintarFin();});
   try{armarB(await traerBcr());pintarIng();}
   catch(e){$('tab-ingresos').innerHTML='<div class="blk"><h2>No se pudieron cargar los ingresos</h2></div>';}
-  try{R=await traer();}catch(e){R=[];}
-  try{const _p=await traerTabla('pedidos','creado_en,sitio,items,total,direccion,cliente_telefono');PED=_p;pintarPed(_p,await traerTabla('carritos','creado_en,actualizado_en,sitio,items,total,enviado'));}
+  try{RALL=await traer();R=RALL.filter(r=>r.fecha>=addd(HOYCR(),-14));}catch(e){RALL=[];R=[];}
+  try{const l30=new Date(Date.now()-30*864e5).toISOString(),v30=a=>a.filter(x=>x.creado_en>=l30);PEDALL=await traerTabla('pedidos','creado_en,sitio,items,total,direccion,cliente_telefono');CARALL=await traerTabla('carritos','creado_en,actualizado_en,sitio,items,total,enviado');PED=v30(PEDALL);pintarPed(PED,v30(CARALL));}
   catch(e){$('tab-pedidos').innerHTML='<div class="blk"><h2>No se pudieron cargar los pedidos</h2></div>';}
   try{pintarPag();}catch(e){$('tab-paginas').innerHTML='<div class="blk"><h2>No se pudieron cargar las visitas</h2></div>';}
   pintarPill();pintarHoy();
