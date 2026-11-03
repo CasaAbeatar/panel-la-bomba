@@ -72,6 +72,9 @@ button{font:inherit;cursor:pointer;border:0;color:var(--ink);background:none}
 .dlg .pin{font-size:22px;margin-bottom:10px}
 .dlg .fila{display:flex;gap:10px;margin-top:6px}.dlg .fila button{flex:1}
 #sinCon{position:fixed;left:0;right:0;top:0;z-index:60;padding:calc(6px + env(safe-area-inset-top,0px)) 12px 6px;background:var(--ink);color:#fff;font-size:14px;text-align:center}
+.avisos{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.avisos .tx{flex:1 1 220px;min-width:0}.avisos b{font-weight:600;display:block;font-size:14px}.avisos span{color:var(--mute);font-size:13px;display:block}
+.avisos .bt{display:flex;gap:8px;flex-wrap:wrap}.avisos .cta{width:auto;padding:12px 20px;font-size:14px}
 .err{color:var(--down);margin-top:14px;min-height:1.4em}
 [hidden]{display:none!important}
 a:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
@@ -225,6 +228,7 @@ body::before{content:'';position:fixed;left:0;right:0;top:0;height:5px;backgroun
     <a class="pill" id="pill" href="#" aria-label="Asuntos por revisar"></a><button class="out" id="btnAct" title="Trae las facturas nuevas y actualiza todo">Actualizar ahora</button><button class="out" id="btnPin">Cambiar PIN</button><button class="out" id="btnSalir">Salir</button>
   </div>
   <p id="envivo" class="note" style="margin:0 0 10px;font-size:12px">Se actualiza solo cuando entra un dato nuevo.</p>
+  <div id="avisos" class="avisos" hidden></div>
   <div class="emp" role="group" aria-label="Empresa">
     <button type="button" data-emp="grupo" aria-pressed="true"><i style="background:#171212"></i>Grupo</button>
     <button type="button" data-emp="soda" aria-pressed="false"><i style="background:#B81622"></i>Soda</button>
@@ -768,7 +772,7 @@ async function validar(session){
   try{localStorage.setItem('panel.entro','1');}catch(e){}
   $('login').hidden=true;$('app').hidden=false;
   const em=session.user.email||'';$('quien').textContent=em;$('ini').textContent=(em[0]||'B').toUpperCase();
-  cargar();
+  cargar();if(window.panelAvisos)panelAvisos();
   if(!window._rt){let t=null;const rec=()=>{clearTimeout(t);t=setTimeout(()=>cargar().then(()=>{const e=$('envivo');if(e)e.textContent='Actualizado en vivo '+new Date().toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});}),20000);};
     window._rt=sb.channel('panel-en-vivo');
     ['facturas_recibidas','mensajes_hacienda','panel_metricas','pedidos'].forEach(tb=>window._rt.on('postgres_changes',{event:'*',schema:'public',table:tb},rec));
@@ -814,6 +818,53 @@ $('btnAct').onclick=async()=>{const b=$('btnAct');b.disabled=true;b.textContent=
   catch(e){b.textContent='No se pudo actualizar';}
   setTimeout(()=>{b.disabled=false;},4000);};
 $('btnSalir').onclick=async()=>{try{localStorage.removeItem('panel.entro');}catch(e){}await cClear();try{await sb.auth.signOut();}catch(e){}location.reload();};
+
+// ===== Avisos al telefono (Hacienda rechazo) =====
+(function(){
+  const box=$('avisos');if(!box)return;
+  const b64=v=>{const p='='.repeat((4-v.length%4)%4),r=(v+p).replace(/-/g,'+').replace(/_/g,'/'),x=atob(r),o=new Uint8Array(x.length);for(let i=0;i<x.length;i++)o[i]=x.charCodeAt(i);return o;};
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent),instalada=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+  const soporta='serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+  let msg='';
+  function pinta(t,s,bots){box.hidden=false;box.innerHTML='';const a=document.createElement('div');a.className='tx';const b=document.createElement('b');b.textContent=t;const sp=document.createElement('span');sp.textContent=s;a.append(b,sp);box.append(a);
+    if(bots&&bots.length){const w=document.createElement('div');w.className='bt';bots.forEach(([n,f,c])=>{const k=document.createElement('button');k.type='button';k.className=c||'out';k.textContent=n;k.onclick=f;w.append(k);});box.append(w);}}
+  async function sub(){const r=await navigator.serviceWorker.ready;return r.pushManager.getSubscription();}
+  async function estado(){
+    if(!soporta){
+      if(ios&&!instalada)return pinta('Avisos de Hacienda en el iPhone','Para recibirlos, primero abra el panel desde su pantalla de inicio: en Safari toque Compartir, luego «Agregar a pantalla de inicio», y abra el panel desde ese ícono.');
+      return pinta('Avisos de Hacienda','Este navegador no puede recibir avisos. En el iPhone, use el panel instalado desde la pantalla de inicio.');}
+    if(Notification.permission==='denied')return pinta('Avisos bloqueados','Este teléfono tiene los avisos del panel bloqueados. Para activarlos, abra Ajustes, Notificaciones, Panel La Bomba, y permítalos.');
+    let s=null;try{s=await sub();}catch(e){}
+    let activo=false;if(s&&navigator.onLine){try{const {data}=await sb.rpc('panel_push_estado',{p_endpoint:s.endpoint});activo=data===true;}catch(e){activo=!!s;}}else activo=!!s;
+    if(activo)return pinta('Avisos de Hacienda activados en este teléfono',msg||'Le avisaremos aquí cuando Hacienda rechace un comprobante. El aviso no trae montos ni datos de clientes.',[['Enviar aviso de prueba',prueba,'out'],['Desactivar avisos',quitar,'out']]);
+    pinta('Avisos de Hacienda en este teléfono',msg||'Active los avisos y le llegará una notificación cuando Hacienda rechace un comprobante.',[['Activar avisos en este teléfono',activar,'cta']]);
+  }
+  async function activar(){
+    msg='';
+    try{
+      const p=await Notification.requestPermission();
+      if(p!=='granted'){msg=p==='denied'?'':'No se activaron los avisos porque no se permitió la notificación.';return estado();}
+      const {data:clave,error:e1}=await sb.rpc('panel_push_clave');if(e1||!clave)throw e1||new Error('sin clave');
+      const reg=await navigator.serviceWorker.ready;
+      let s=await reg.pushManager.getSubscription();
+      if(!s)s=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(clave)});
+      const j=s.toJSON();
+      const {error:e2}=await sb.rpc('panel_push_suscribir',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth,p_dispositivo:(ios?'iPhone':'Navegador')+(instalada?' (app instalada)':'')});
+      if(e2)throw e2;
+      msg='Listo: los avisos quedaron activados.';
+    }catch(e){msg='No se pudieron activar los avisos. Intente de nuevo en un momento.';}
+    estado();
+  }
+  async function quitar(){
+    try{const s=await sub();if(s){await sb.rpc('panel_push_quitar',{p_endpoint:s.endpoint});await s.unsubscribe();}msg='Los avisos quedaron desactivados en este teléfono.';}catch(e){msg='No se pudieron desactivar los avisos. Intente de nuevo.';}
+    estado();
+  }
+  async function prueba(){
+    try{const {error}=await sb.rpc('panel_push_prueba');if(error)throw error;msg='Enviamos un aviso de prueba. Si no le llega en un minuto, desactive y vuelva a activar los avisos.';}catch(e){msg='No se pudo enviar la prueba.';}
+    estado();
+  }
+  window.panelAvisos=estado;
+})();
 sb.auth.getSession().then(({data})=>validar(data.session));
 sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT')validar(null);});
 </script>

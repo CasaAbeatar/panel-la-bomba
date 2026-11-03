@@ -9,3 +9,17 @@ self.addEventListener('fetch',e=>{
   if(r.mode==='navigate'){e.respondWith(fetch(r).then(x=>{const cp=x.clone();caches.open(V).then(c=>c.put('index.html',cp));return x;}).catch(()=>caches.match('index.html')));return;}
   e.respondWith(caches.match(r).then(h=>h||fetch(r)));
 });
+// Avisos push (Hacienda rechazo): el servidor manda titulo y cuerpo sin montos ni datos del cliente.
+self.addEventListener('push',e=>{
+  let d={};try{d=e.data?e.data.json():{};}catch(x){d={cuerpo:e.data?e.data.text():''};}
+  const titulo=d.titulo||'Panel La Bomba';
+  e.waitUntil(self.registration.showNotification(titulo,{body:d.cuerpo||'Hay un aviso nuevo en el panel.',icon:'icon-192.png',badge:'icon-192.png',tag:d.tag||'panel',renotify:true,data:{url:d.url||'./'}}));
+});
+self.addEventListener('notificationclick',e=>{
+  e.notification.close();
+  const destino=new URL((e.notification.data&&e.notification.data.url)||'./',self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(l=>{
+    for(const c of l){if(c.url.startsWith(self.registration.scope)&&'focus' in c)return c.focus();}
+    return self.clients.openWindow(destino);
+  }));
+});
