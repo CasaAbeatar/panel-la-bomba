@@ -66,6 +66,9 @@ button{font:inherit;cursor:pointer;border:0;color:var(--ink);background:none}
 .pin:focus{outline:none;border-color:var(--ink)}
 .pin::placeholder{letter-spacing:.3em;color:var(--line)}
 .cta:disabled{opacity:.5;cursor:default}
+#pin{letter-spacing:.35em}#pin::placeholder{letter-spacing:.1em}
+.cta-entrar{background:var(--ink);color:var(--bg);min-height:52px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.cta-entrar:hover{opacity:.88}.cta-entrar:active{transform:translateY(1px)}
 .dlg{position:fixed;inset:0;background:rgba(23,18,18,.45);display:grid;place-items:center;padding:20px;z-index:50}
 .dlg .box{background:var(--bg);border-radius:18px;padding:24px;max-width:340px;width:100%}
 .dlg h2{margin:0 0 14px;font-weight:300;font-size:22px}
@@ -273,8 +276,8 @@ body::before{content:'';position:fixed;left:0;right:0;top:0;height:5px;backgroun
   <div class="login">
     <div class="av">B</div>
     <h1>Panel La Bomba</h1>
-    <p>Escriba su PIN de 4 números.</p>
-    <form id="fLogin" autocomplete="off"><input class="pin" id="pin" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="····" autocomplete="one-time-code" aria-label="PIN de 4 números"><button class="cta" id="btnLogin" type="submit">Entrar</button></form>
+    <p>Escriba su PIN.</p>
+    <form id="fLogin" autocomplete="off"><input class="pin" id="pin" type="password" inputmode="numeric" placeholder="PIN" autocomplete="one-time-code" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="PIN"><button class="cta cta-entrar" id="btnLogin" type="submit">Entrar</button></form>
     <div class="err" id="err" role="alert"></div>
   </div>
 </div>
@@ -862,18 +865,22 @@ async function llamarAcceso(cuerpo){
   let j={};try{j=await r.json();}catch(e){}
   return j;
 }
-$('pin').oninput=e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,4);};
+// PIN FINAL: el campo del PIN no tiene largo fijo ni se envia solo; nada en la pantalla dice cuantos digitos tiene. Se envia al dar Enter o tocar «Entrar».
+$('pin').oninput=e=>{e.target.value=e.target.value.replace(/\D/g,'').slice(0,32);};
+// Aparato de confianza: el servidor entrega un token al entrar bien; con el, la espera de otros intentos no le llega a este aparato
+const apaLeer=()=>{try{return localStorage.getItem('panel.aparato')||'';}catch(e){return '';}};
+const apaGuardar=t=>{try{if(t)localStorage.setItem('panel.aparato',t);}catch(e){}};
 $('fLogin').onsubmit=async ev=>{
   ev.preventDefault();const pin=$('pin').value;$('err').textContent='';
-  if(!/^[0-9]{4}$/.test(pin)){$('err').textContent='Escriba los 4 números del PIN.';return;}
+  if(!pin){$('err').textContent='Escriba su PIN.';$('pin').focus();return;}
   const b=$('btnLogin');b.disabled=true;b.textContent='Verificando…';
   try{
-    const j=await llamarAcceso({pin});
+    const j=await llamarAcceso({pin,aparato:apaLeer()});
     if(j.ok&&j.access_token){
       const {error}=await sb.auth.setSession({access_token:j.access_token,refresh_token:j.refresh_token});
-      if(error)throw error;$('pin').value='';
+      if(error)throw error;apaGuardar(j.aparato_token);$('pin').value='';
       const {data}=await sb.auth.getSession();validar(data.session);
-    }else{$('err').textContent=j.error||'No se pudo entrar.';$('pin').value='';}
+    }else{$('err').textContent=j.error||'No se pudo entrar.';$('pin').value='';$('pin').focus();}
   }catch(e){$('err').textContent='No se pudo entrar. Intente de nuevo.';}
   b.disabled=false;b.textContent='Entrar';
 };
@@ -884,7 +891,7 @@ $('fPin').onsubmit=async ev=>{
   ev.preventDefault();const a=$('pinA').value,n=$('pinN').value;
   if(!/^[0-9]{4}$/.test(a)||!/^[0-9]{4}$/.test(n)){$('errPin').textContent='Ambos PIN deben tener 4 números.';return;}
   const b=$('pinSi');b.disabled=true;
-  const j=await llamarAcceso({accion:'cambiar',pin:a,nuevo:n}).catch(()=>({}));
+  const j=await llamarAcceso({accion:'cambiar',pin:a,nuevo:n,aparato:apaLeer()}).catch(()=>({}));
   b.disabled=false;
   if(j.ok){$('dPin').hidden=true;alert_ok();}else $('errPin').textContent=j.error||'No se pudo cambiar el PIN.';
 };
