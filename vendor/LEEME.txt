@@ -1,0 +1,4 @@
+supabase-js 2.45.4 (paquete UMD de npm, copiado tal cual, sin tocar una letra). Es el mismo archivo que usa el facturador (dmalabomba.com/facturacion/vendor).
+SHA-256 del archivo: 8596965fe918e656600a1b568d3a168f5c0d3d22a600886bb6f44a6555db01e7
+Origen: paquete npm @supabase/supabase-js@2.45.4, archivo dist/umd/supabase.js. Licencia MIT (copia en supabase-js-2.45.4-LICENSE.txt).
+Para comprobar: sha256sum vendor/supabase-js-2.45.4.umd.js
