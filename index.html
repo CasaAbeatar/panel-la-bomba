@@ -288,7 +288,7 @@ body::before{content:'';position:fixed;left:0;right:0;top:0;height:5px;backgroun
 <div id="app" class="wrap" hidden>
   <div class="top">
     <div class="who"><div class="av" id="ini">B</div><span id="quien"></span></div>
-    <a class="pill" id="pill" href="#" aria-label="Asuntos por revisar"></a><button class="out" id="btnAct" title="Trae las facturas nuevas y actualiza todo">Actualizar ahora</button><button class="out" id="btnPin">Cambiar PIN</button><button class="out" id="btnSalir">Salir</button>
+    <a class="pill" id="pill" href="#" aria-label="Asuntos por revisar"></a><button class="out" id="btnAct" title="Trae las facturas nuevas y actualiza todo">Actualizar ahora</button><button class="out" id="btnPin">Cambiar clave</button><button class="out" id="btnSalir">Salir</button>
   </div>
   <p id="envivo" class="note" style="margin:0 0 10px;font-size:12px">Se actualiza solo cuando entra un dato nuevo.</p>
   <div id="avisos" class="avisos" hidden></div>
@@ -323,9 +323,9 @@ body::before{content:'';position:fixed;left:0;right:0;top:0;height:5px;backgroun
 </div>
 
 <div id="sinCon" role="status" hidden></div>
-<div class="dlg" id="dPin" hidden><form class="box" id="fPin" autocomplete="off"><h2>Cambiar PIN</h2>
-<input class="pin" id="pinA" type="tel" inputmode="numeric" maxlength="4" placeholder="PIN actual" autocomplete="off">
-<input class="pin" id="pinN" type="tel" inputmode="numeric" maxlength="4" placeholder="PIN nuevo" autocomplete="off">
+<div class="dlg" id="dPin" hidden><form class="box" id="fPin" autocomplete="off"><h2>Cambiar clave</h2>
+<input class="pin" id="pinA" type="tel" inputmode="numeric" placeholder="Clave actual" autocomplete="off">
+<input class="pin" id="pinN" type="tel" inputmode="numeric" placeholder="Clave nueva" autocomplete="off">
 <div class="err" id="errPin" role="alert"></div>
 <div class="fila"><button class="out" type="button" id="pinNo">Cancelar</button><button class="cta" type="submit" id="pinSi">Guardar</button></div></form></div>
 <script src="vendor/supabase-js-2.45.4.umd.js"></script>
