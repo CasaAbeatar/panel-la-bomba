@@ -376,7 +376,7 @@ function pintarIng(){
   const mk=T.slice(0,7);
   const sel=mesSel||mk;
   // ---- el día
-  let h=`<div class="dayl">Último día con datos · <b>${fl(T)}</b></div>`;
+  let h=T===hoyCR()?`<div class="dayl">Hoy · <b>${fl(T)}</b></div>`:`<div class="dayl">Último día con datos · <b>${fl(T)}</b> · reporte del BCR, que llega con un día de atraso</div>`;
   const raros=ks.slice(-30).filter(k=>{const w=dts(k).getDay(),ref=mean(ks.filter(z=>dts(z).getDay()===w&&z!==k).map(V));return ref&&(V(k)<0.4*ref||V(k)>2.5*ref);});
   RAROS=raros.map(k=>({k,v:V(k)}));
   if(raros.length)h+=`<div class="alerta"><b>Revisar ${raros.length===1?'un día':raros.length+' días'} con valores fuera de lo normal</b>${raros.map(k=>{const w=dts(k).getDay(),ref=mean(ks.filter(z=>dts(z).getDay()===w&&z!==k).map(V));return `<span>${fl(k)}: ${crc(V(k))} en tarjeta, frente a ${crc(ref)} de un ${DIA[w]} típico (${dif(V(k),ref)}). Puede faltar un comprobante o haber un problema con el datáfono.</span>`;}).join('')}</div>`;
@@ -673,8 +673,9 @@ function pintarGastos(){
   const el=$('sec-gastos'),G=GG[EMP];
   if(!G){el.innerHTML=cargando(FIN_ERR?'No se pudieron cargar los gastos.':'');return;}
   const t=G.totales,m=G.mensual||[];
-  let h=`<div class="lblx">${EMPN[EMP]} · desde el 1 de enero · colones</div><h1 class="h1">Gastos</h1>`;
-  h+=kpis([{c:'gasto',l:'Compras (bruto)',v:crc(t.bruto),s:'con IVA, '+fmt(t.docs)+' comprobantes'},{c:'gasto',l:'Compras (neto)',v:crc(t.neto),s:'sin IVA'},{c:'gasto',l:'IVA soportado',v:crc(t.iva),s:'crédito potencial en Impuestos'},{c:'gasto',l:'Hoy',v:crc(G.hoy.bruto),s:fmt(G.hoy.docs)+' facturas recibidas'}]);
+  let h=`<div class="lblx">${EMPN[EMP]} · colones</div><h1 class="h1">Gastos</h1>`;
+  h+=`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>`+kpis([{c:'gasto',l:'Compras recibidas hoy (bruto)',v:crc(G.hoy.bruto),s:'con IVA, '+fmt(G.hoy.docs)+(G.hoy.docs===1?' factura recibida':' facturas recibidas')},{c:'gasto',l:'Compras recibidas hoy (neto)',v:crc(G.hoy.neto!=null?G.hoy.neto:num(G.hoy.bruto)-num(G.hoy.iva)),s:'sin IVA'},{c:'gasto',l:'IVA soportado hoy',v:crc(G.hoy.iva),s:'en las facturas de hoy'},{c:'gasto',l:'Facturas recibidas hoy',v:fmt(G.hoy.docs),s:G.hoy.docs===1?'comprobante electrónico':'comprobantes electrónicos'}]);
+  h+=`<div class="dayl">Acumulado desde el 1 de enero</div>`+kpis([{c:'gasto',l:'Compras (bruto)',v:crc(t.bruto),s:'con IVA, '+fmt(t.docs)+' comprobantes'},{c:'gasto',l:'Compras (neto)',v:crc(t.neto),s:'sin IVA'},{c:'gasto',l:'IVA soportado',v:crc(t.iva),s:'crédito potencial en Impuestos'},{c:'gasto',l:'Comprobantes',v:fmt(t.docs),s:'recibidos desde enero'}]);
   if(m.length)h+=`<div class="g" data-c="gasto">${cols('Compras por mes (bruto, con IVA)',m.map(x=>num(x.bruto)),m.map(x=>ml(x.mes)),'Cada barra es un mes completo desde enero. El último puede estar en curso. Las notas de crédito restan.',null,cc,true)}</div>`;
   const c2=(G.categorias||[]).map(c=>[c.cat||'Sin categoría',num(c.bruto),'IVA '+crc(c.iva)]);
   const c3=(G.tipos||[]).map(c=>[c.tipo||'Sin tipo',num(c.bruto)]);
@@ -689,8 +690,10 @@ function pintarImpuestos(){
   if(!I){el.innerHTML=cargando(FIN_ERR?'No se pudieron cargar los impuestos.':'');return;}
   const cl=k=>(I.clasificacion||[]).find(x=>x.clase===k)||{docs:0,bruto:0,iva:0};
   const dudaIva=['otro_receptor','sin_cedula','tiquetes'].reduce((a,k)=>a+num(cl(k).iva),0);
-  let h=`<div class="lblx">${EMPN[EMP]} · desde el 1 de enero · colones</div><h1 class="h1">Impuestos</h1>`;
-  h+=kpis([{c:'imp',l:'IVA soportado',v:crc(I.iva_total),s:'en compras válidas, sin los rechazados'},{c:'imp',l:'Crédito potencial Soda',v:crc(cl('credito_soda').iva),s:fmt(cl('credito_soda').docs)+' facturas a su nombre'},{c:'imp',l:'Crédito potencial Pollos',v:crc(cl('credito_pollos').iva),s:fmt(cl('credito_pollos').docs)+' facturas a su nombre'},{c:'imp',l:'IVA en duda',v:crc(dudaIva),s:'otra persona, sin cédula o tiquete'}]);
+  const GH=GG[EMP]&&GG[EMP].hoy,nrev=revisar(I).length;
+  let h=`<div class="lblx">${EMPN[EMP]} · colones</div><h1 class="h1">Impuestos</h1>`;
+  h+=`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>`+kpis([{c:'imp',l:'IVA soportado hoy',v:GH?crc(GH.iva):'—',s:GH?'en '+fmt(GH.docs)+(GH.docs===1?' factura recibida hoy':' facturas recibidas hoy'):'sin datos'},{c:'imp',l:'Por revisar ahora',v:fmt(nrev),s:nrev?'cosas que piden atención, abajo':'nada pendiente'},{c:'imp',l:'Rechazadas por Hacienda',v:fmt(num((I.rechazadas||{}).docs)),s:'no cuentan en el crédito'}]);
+  h+=`<div class="dayl">Acumulado desde el 1 de enero</div>`+kpis([{c:'imp',l:'IVA soportado',v:crc(I.iva_total),s:'en compras válidas, sin los rechazados'},{c:'imp',l:'Crédito potencial Soda',v:crc(cl('credito_soda').iva),s:fmt(cl('credito_soda').docs)+' facturas a su nombre'},{c:'imp',l:'Crédito potencial Pollos',v:crc(cl('credito_pollos').iva),s:fmt(cl('credito_pollos').docs)+' facturas a su nombre'},{c:'imp',l:'IVA en duda',v:crc(dudaIva),s:'otra persona, sin cédula o tiquete'}]);
   const al=I.alertas||[];
   h+=`<div class="g" data-c="imp"><div class="blk"><h2>Facturas sin XML</h2>${al.length?al.map(a=>`<div class="rev bad"><b>${esc(a.emisor_nombre||'Proveedor sin nombre')}, ${crc(a.total_factura)}</b><span>Recibida el ${dl(D10(a.recibido))}. Tenemos el aviso de Hacienda, pero no el XML de la factura, que es el que sirve para el crédito. ${esc(a.asunto||'')}</span></div>`).join(''):'<p class="note">No hay facturas aceptadas por Hacienda sin su XML.</p>'}</div></div>`;
   const rj=I.rechazadas||{},rd=I.rechazadas_detalle||[];
@@ -704,9 +707,12 @@ function pintarImpuestos(){
   el.innerHTML=h;
 }
 function pintarAviso(){
-  const a=$('ing-aviso');
-  if(EMP==='pollos'){a.innerHTML=`<div class="g" data-c="ventas"><div class="blk"><h2>Ingresos de Pollos La Bomba y Papea</h2><p class="note">Todavía no hay una fuente de ventas conectada. Aparecerán aquí cuando se defina de dónde salen.</p></div></div>`;$('tab-ingresos').hidden=true;}
-  else{const _bk=Object.keys(B).sort(),_u=_bk[_bk.length-1];const _av=(_u&&_u!==hoyCR()&&EMP!=='pollos')?`<p class="note" style="margin:0 0 18px">Hoy ${fl(hoyCR())} todavía no hay comprobante del BCR: el banco reporta con un día de atraso. Lo último cargado es del ${fl(_u)}.</p>`:'';a.innerHTML=_av+(EMP==='grupo'?`<p class="note" style="margin:0 0 18px">Hoy solo están conectados los cobros digitales de la Soda. Las ventas de Pollos y Papea se sumarán cuando se defina la fuente.</p>`:'');$('tab-ingresos').hidden=false;}
+  const a=$('ing-aviso'),hy=hoyCR();
+  const hoyBloque=(v,s)=>`<div class="dayl">Hoy · <b>${fl(hy)}</b></div>`+kpis([{c:'ventas',l:'Ventas con tarjeta de hoy',v:v,s:s}]).replace('<div class="kpis">','<div class="kpis" style="grid-template-columns:minmax(0,1fr)">');
+  if(EMP==='pollos'){a.innerHTML=hoyBloque('Sin fuente conectada','Todavía no hay una fuente de ventas para Pollos y Papea.')+`<div class="g" data-c="ventas"><div class="blk"><h2>Ingresos de Pollos La Bomba y Papea</h2><p class="note">Todavía no hay una fuente de ventas conectada. Aparecerán aquí cuando se defina de dónde salen.</p></div></div>`;$('tab-ingresos').hidden=true;}
+  else{const _bk=Object.keys(B).sort(),_u=_bk[_bk.length-1];
+    const _av=(_u&&_u===hy)?'':hoyBloque('Aún sin reporte del BCR','El banco reporta con un día de atraso, así que el comprobante de hoy llega mañana.'+(_u?' Lo último cargado es del '+fl(_u)+'.':''));
+    a.innerHTML=_av+(EMP==='grupo'?`<p class="note" style="margin:0 0 18px">Hoy solo están conectados los cobros digitales de la Soda. Las ventas de Pollos y Papea se sumarán cuando se defina la fuente.</p>`:'');$('tab-ingresos').hidden=false;}
 }
 function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();}
 function irSec(s){
