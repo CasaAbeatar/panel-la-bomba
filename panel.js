@@ -329,6 +329,8 @@ let RAROS=[],EMP='grupo',SEC='hoy',GG={},II={},INV={},PED=[],FIN_ERR=false;
 const EMPN={grupo:'Grupo DMA-La Bomba',soda:'Soda La Bomba',pollos:'Pollos La Bomba y Papea'};
 const MS3=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const ml=m=>MS3[+m.slice(5,7)-1];
+const mla=m=>ml(m)+' '+m.slice(2,4);          // mes con año (ene 25), para series que cruzan de un año a otro
+const GASTOS_DESDE='2025-01-01';              // Gastos arranca en enero de 2025 (la RPC por defecto empieza en 2026)
 const D10=x=>String(x).slice(0,10);
 const hoyCR=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'});
 const EMPCED={'3102111943':'Pollos La Bomba y Papea','3102765594':'Soda La Bomba'};
@@ -340,7 +342,7 @@ async function traerFin(){
   const E=['grupo','soda','pollos'];
   const pedir=async e=>{
     for(let i=0;i<3;i++){
-      const [g,t]=await Promise.all([sb.rpc('gastos_resumen',{p_emp:e}),sb.rpc('impuestos_resumen',{p_emp:e})]);
+      const [g,t]=await Promise.all([sb.rpc('gastos_resumen',{p_desde:GASTOS_DESDE,p_emp:e}),sb.rpc('impuestos_resumen',{p_emp:e})]);
       if(!g.error&&!t.error){GG[e]=g.data;II[e]=t.data;return true;}
       await new Promise(r=>setTimeout(r,1500*(i+1)));
     }
@@ -394,7 +396,7 @@ function pintarHoy(){
   k.push({c:'gasto',l:'Ayer',v:rc[1]?crc(rc[1].bruto):'—',s:rc[1]?fmt(rc[1].docs)+' facturas con IVA':'sin datos'});
   h+=kpis(k);
   if(EMP==='grupo'){
-    const f=(e,n,c)=>{const g=GG[e];return `<div class="br"><div class="t"><b>${n}</b><i>${crc(g.hoy.bruto)} hoy</i></div><div class="s2">${fmt(g.hoy.docs)} facturas hoy. Compras desde enero: ${crc(g.totales.bruto)} (bruto)</div></div>`;};
+    const f=(e,n,c)=>{const g=GG[e];return `<div class="br"><div class="t"><b>${n}</b><i>${crc(g.hoy.bruto)} hoy</i></div><div class="s2">${fmt(g.hoy.docs)} facturas hoy. Compras desde enero de 2025: ${crc(g.totales.bruto)} (bruto)</div></div>`;};
     h+=`<div class="g" data-c="sistema"><div class="blk"><h2>Cada empresa</h2>${f('soda','Soda La Bomba')}${f('pollos','Pollos La Bomba y Papea')}<p class="note">Las compras sin cédula del receptor o a nombre de otra persona están en el total del Grupo, pero no en una empresa. Al elegir Soda o Pollos arriba se ve solo una.</p></div></div>`;
   }
   h+=bloqueInv();
@@ -410,8 +412,8 @@ function pintarGastos(){
   const t=G.totales,m=G.mensual||[];
   let h=`<div class="lblx">${EMPN[EMP]} · colones</div><h1 class="h1">Gastos</h1>`;
   h+=`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>`+kpis([{c:'gasto',l:'Compras recibidas hoy (bruto)',v:crc(G.hoy.bruto),s:'con IVA, '+fmt(G.hoy.docs)+(G.hoy.docs===1?' factura recibida':' facturas recibidas')},{c:'gasto',l:'Compras recibidas hoy (neto)',v:crc(G.hoy.neto!=null?G.hoy.neto:num(G.hoy.bruto)-num(G.hoy.iva)),s:'sin IVA'},{c:'gasto',l:'IVA soportado hoy',v:crc(G.hoy.iva),s:'en las facturas de hoy'},{c:'gasto',l:'Facturas recibidas hoy',v:fmt(G.hoy.docs),s:G.hoy.docs===1?'comprobante electrónico':'comprobantes electrónicos'}]);
-  h+=`<div class="dayl">Acumulado desde el 1 de enero</div>`+kpis([{c:'gasto',l:'Compras (bruto)',v:crc(t.bruto),s:'con IVA, '+fmt(t.docs)+' comprobantes'},{c:'gasto',l:'Compras (neto)',v:crc(t.neto),s:'sin IVA'},{c:'gasto',l:'IVA soportado',v:crc(t.iva),s:'crédito potencial en Impuestos'},{c:'gasto',l:'Comprobantes',v:fmt(t.docs),s:'recibidos desde enero'}]);
-  if(m.length)h+=`<div class="g" data-c="gasto">${cols('Compras por mes (bruto, con IVA)',m.map(x=>num(x.bruto)),m.map(x=>ml(x.mes)),'Cada barra es un mes completo desde enero. El último puede estar en curso. Las notas de crédito restan.',null,cc,true)}</div>`;
+  h+=`<div class="dayl">Acumulado desde el 1 de enero de 2025</div>`+kpis([{c:'gasto',l:'Compras (bruto)',v:crc(t.bruto),s:'con IVA, '+fmt(t.docs)+' comprobantes'},{c:'gasto',l:'Compras (neto)',v:crc(t.neto),s:'sin IVA'},{c:'gasto',l:'IVA soportado',v:crc(t.iva),s:'crédito potencial en Impuestos'},{c:'gasto',l:'Comprobantes',v:fmt(t.docs),s:'recibidos desde enero de 2025'}]);
+  if(m.length)h+=`<div class="g" data-c="gasto">${cols('Compras por mes (bruto, con IVA)',m.map(x=>num(x.bruto)),m.map((x,i)=>i%3===0?mla(x.mes):''),'Cada barra es un mes, de enero de 2025 al actual, de izquierda a derecha; el eje marca uno de cada tres meses. El último puede estar en curso. Las notas de crédito restan.',null,cc,false)}</div>`;
   const c2=(G.categorias||[]).map(c=>[c.cat||'Sin categoría',num(c.bruto),'IVA '+crc(c.iva)]);
   const c3=(G.tipos||[]).map(c=>[c.tipo||'Sin tipo',num(c.bruto)]);
   h+=`<div class="g c2" data-c="gasto">${c2.length?bars('Categorías (CABYS)',c2,crc,null,'Monto bruto. Clasificación oficial de Hacienda.'):''}${c3.length?bars('Productos y servicios',c3,crc,null,'Monto bruto, agrupado por tipo.'):''}</div>`;
@@ -571,7 +573,7 @@ $('fPin').onsubmit=async ev=>{
 function alert_ok(){const b=$('btnPin');b.textContent='PIN cambiado';setTimeout(()=>{b.textContent='Cambiar PIN';},3000);}
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 $('btnAct').onclick=async()=>{const b=$('btnAct');b.disabled=true;b.textContent='Actualizando…';
-  try{const H={headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}};const P={method:'POST',headers:{...H.headers,'Content-Type':'application/json'},body:'{}'};const F=SUPA_URL+'/functions/v1/';await Promise.allSettled([fetch(F+'facturas-recibidas',H),fetch(F+'bcr-diario?dias=4',P),fetch(F+'meta-diario?dias=3',P),fetch(F+'goatcounter-diario?dias=2',P)]);await cargar();
+  try{const {data:ss}=await sb.auth.getSession();const tk=ss&&ss.session?ss.session.access_token:SUPA_KEY;const H={headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}};const HS={apikey:SUPA_KEY,Authorization:'Bearer '+tk};const P={method:'POST',headers:{...HS,'Content-Type':'application/json'},body:'{}'};const F=SUPA_URL+'/functions/v1/';await Promise.allSettled([fetch(F+'facturas-recibidas',H),fetch(F+'bcr-diario?dias=4',P),fetch(F+'meta-diario?dias=3',P),fetch(F+'goatcounter-diario?dias=2',P)]);await cargar();
     const d=new Date();b.textContent='Actualizado '+d.toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});}
   catch(e){b.textContent='No se pudo actualizar';}
   setTimeout(()=>{b.disabled=false;},4000);};
