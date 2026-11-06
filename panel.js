@@ -456,7 +456,7 @@ function irSec(s){
   SEC=s;
   document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x.dataset.sec===s));
   ['hoy','atender','ingresos','gastos','precios','impuestos','presencia'].forEach(t=>$('sec-'+t).hidden=t!==s);
-  window.scrollTo(0,0);if(s==='precios'&&typeof precios!=='undefined')precios.ver();if(s==='atender'&&typeof atender!=='undefined')atender.ver();
+  window.scrollTo(0,0);if(s==='precios'&&typeof precios!=='undefined')precios.ver();if(s==='atender'&&typeof atender!=='undefined')atender.ver();if(typeof atender!=='undefined')atender.notas();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>irSec(b.dataset.sec));
 document.querySelectorAll('.emp button').forEach(b=>b.onclick=()=>{EMP=b.dataset.emp;document.body.dataset.emp=EMP;document.querySelectorAll('.emp button').forEach(x=>x.setAttribute('aria-pressed',x===b));pintarFin();});

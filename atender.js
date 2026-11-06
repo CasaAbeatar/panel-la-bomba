@@ -8,7 +8,7 @@ let D=null,cargando=false,err=null;
 async function traer(){
   if(cargando)return;cargando=true;
   try{const {data,error}=await sb.rpc('panel_atender_lista');if(error)throw error;D=data;err=null;}catch(e){err='No se pudo cargar la lista. Toque «Actualizar» para intentarlo otra vez.';}
-  cargando=false;pintar();if(typeof pintarGastos==='function'&&typeof GG!=='undefined'&&GG[EMP]){try{pintarGastos();pintarImpuestos();}catch(e){}}
+  cargando=false;pintar();notas();if(typeof pintarGastos==='function'&&typeof GG!=='undefined'&&GG[EMP]){try{pintarGastos();pintarImpuestos();}catch(e){}}
 }
 function visibles(){return D?(D.items||[]).filter(x=>EMP==='grupo'||x.empresa===EMP||x.empresa==='grupo'):[];}
 function pintarN(){const n=$('at-n');if(!n)return;const c=visibles().filter(x=>x.estado==='abierto').length+((D&&D.vivos)||[]).filter(x=>EMP==='grupo'||x.empresa===EMP||x.empresa==='grupo').length;n.textContent=c;n.hidden=!c;}
@@ -47,9 +47,12 @@ document.addEventListener('click',async e=>{
 function nota(tema){
   if(!D)return '';
   const vv=(D.vivos||[]).filter(x=>EMP==='grupo'||x.empresa===EMP||x.empresa==='grupo');
-  const t={gastos:/^(recibir|hac-precio|hac-cabys|hac-tarifa)/,impuestos:/^(hac-|receptor)/,precios:/^hac-precio/}[tema];if(!t)return '';
-  const n=vv.filter(x=>t.test(x.clave)).reduce((a,x)=>a+x.n,0);
+  const t={gastos:/^(recibir|hac-precio|hac-cabys|hac-tarifa)/,impuestos:/^(hac-|receptor)/,precios:/^hac-precio/}[tema];
+  const CT={gastos:['proveedores'],impuestos:['hacienda'],ingresos:['banco','pagos'],presencia:['otro'],precios:[]}[tema];if(!t&&!CT)return '';
+  let n=t?vv.filter(x=>t.test(x.clave)).reduce((a,x)=>a+x.n,0):0;
+  n+=visibles().filter(x=>x.estado==='abierto'&&(CT||[]).includes(x.categoria)).length;
   return n?`<a class="atlink" href="#" data-go="atender"><b>${fmtN(n)}</b> cosa${n>1?'s':''} de esta pestaña ${n>1?'esperan':'espera'} en el Asistente. Toque para verlas.</a>`:'';
 }
-return {ver(){if(!D)pintar();traer();},contar(){traer();},nota};
+function notas(){document.querySelectorAll('.atnota').forEach(el=>{const t=el.dataset.tema;el.innerHTML=nota(t);el.hidden=(typeof SEC==='undefined')||SEC!==t;});}
+return {notas,ver(){if(!D)pintar();traer();},contar(){traer();},nota};
 })();
