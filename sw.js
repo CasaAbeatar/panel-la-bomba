@@ -1,6 +1,6 @@
 // Panel La Bomba: solo guarda la cascara de la app para abrir rapido. Los datos (Supabase) nunca se guardan.
-const V='panel-v6';
-const CASCARA=['./','index.html','panel.js','precios.js','vendor/supabase-js-2.45.4.umd.js','manifest.webmanifest','icon-192.png'];
+const V='panel-v7';
+const CASCARA=['./','index.html','panel.js','precios.js','atender.js','vendor/supabase-js-2.45.4.umd.js','manifest.webmanifest','icon-192.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(CASCARA)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==V).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{

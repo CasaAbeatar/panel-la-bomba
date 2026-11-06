@@ -215,6 +215,25 @@ body::before{content:'';position:fixed;left:0;right:0;top:0;height:5px;backgroun
 @media(max-width:480px){.tabs{gap:9px}.tabs button{font-size:10px;letter-spacing:.02em}}
 @media(max-width:559px){.top .pill{order:3}}
 
+/* ---- Atender (lo que llega al correo y hay que resolver) ---- */
+.atn{display:inline-block;min-width:18px;height:18px;margin-left:8px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;line-height:18px;letter-spacing:0;text-align:center;vertical-align:2px}
+.at-card{border-bottom:1px solid var(--line);padding:18px 0}
+.at-card[data-i="1"]{border-left:3px solid var(--bad);padding-left:14px}
+.at-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
+.at-chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px}
+.at-card h3{font-size:17px;font-weight:400;margin:8px 0 4px;line-height:1.3}
+.at-card p{margin:0;color:var(--mute);font-size:14px;line-height:1.5}
+.at-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.at-btns button,.at-btns a{border:1px solid var(--ink);border-radius:999px;padding:10px 18px;min-height:44px;font-size:14px;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center}
+.at-btns button.main{background:var(--ink);color:var(--bg)}
+.at-btns button:disabled{opacity:.5}
+.at-h{font-size:12px;color:var(--mute);font-weight:400;margin:26px 0 0;text-transform:uppercase;letter-spacing:.16em;padding-bottom:12px;border-bottom:1px solid var(--hair)}
+.at-vivo{display:flex;justify-content:space-between;gap:12px;padding:16px 0;border-bottom:1px solid var(--line);font-size:15px}
+.at-vivo b{font-weight:600}.at-vivo[data-i="1"] b{color:var(--bad)}
+.at-ir{border:1px solid var(--ink);border-radius:999px;padding:8px 16px;min-height:36px;display:inline-flex;align-items:center;font-size:13px;color:var(--ink);text-decoration:none}
+.at-vivo>span:first-child{min-width:0}
+.atlink{display:block;border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:0 0 18px;font-size:14px;color:var(--ink);text-decoration:none}
+.atlink b{font-weight:600}
 /* ---- Precios (análisis de precios de compra) ---- */
 [data-c=precio]{--cat:#2D5FA0}
 .pr-up{color:var(--bad)}.pr-dn{color:var(--ok)}.pr-eq{color:var(--mute)}
@@ -299,6 +318,7 @@ body::before{content:'';position:fixed;left:0;right:0;top:0;height:5px;backgroun
   </div>
   <div class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-sec="hoy">Hoy</button>
+    <button role="tab" aria-selected="false" data-sec="atender">Asistente<span id="at-n" class="atn" hidden></span></button>
     <button role="tab" aria-selected="false" data-sec="ingresos">Ingresos</button>
     <button role="tab" aria-selected="false" data-sec="gastos">Gastos</button>
     <button role="tab" aria-selected="false" data-sec="precios">Precios</button>
@@ -306,6 +326,7 @@ body::before{content:'';position:fixed;left:0;right:0;top:0;height:5px;backgroun
     <button role="tab" aria-selected="false" data-sec="presencia">Presencia</button>
   </div>
   <section id="sec-hoy"></section>
+  <section id="sec-atender" hidden></section>
   <section id="sec-ingresos" hidden><div id="ing-aviso"></div><section id="tab-ingresos"></section></section>
   <section id="sec-gastos" hidden></section>
   <section id="sec-precios" hidden></section>
@@ -331,5 +352,6 @@ body::before{content:'';position:fixed;left:0;right:0;top:0;height:5px;backgroun
 <script src="vendor/supabase-js-2.45.4.umd.js"></script>
 <script src="panel.js"></script>
 <script src="precios.js"></script>
+<script src="atender.js"></script>
 </body>
 </html>

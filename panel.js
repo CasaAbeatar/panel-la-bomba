@@ -411,7 +411,7 @@ function pintarGastos(){
   if(!G){el.innerHTML=cargando(FIN_ERR?'No se pudieron cargar los gastos.':'');return;}
   const t=G.totales,m=G.mensual||[];
   let h=`<div class="lblx">${EMPN[EMP]} · colones</div><h1 class="h1">Gastos</h1>`;
-  h+=`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>`+kpis([{c:'gasto',l:'Compras recibidas hoy (bruto)',v:crc(G.hoy.bruto),s:'con IVA, '+fmt(G.hoy.docs)+(G.hoy.docs===1?' factura recibida':' facturas recibidas')},{c:'gasto',l:'Compras recibidas hoy (neto)',v:crc(G.hoy.neto!=null?G.hoy.neto:num(G.hoy.bruto)-num(G.hoy.iva)),s:'sin IVA'},{c:'gasto',l:'IVA soportado hoy',v:crc(G.hoy.iva),s:'en las facturas de hoy'},{c:'gasto',l:'Facturas recibidas hoy',v:fmt(G.hoy.docs),s:G.hoy.docs===1?'comprobante electrónico':'comprobantes electrónicos'}]);
+  h+=(typeof atender!=='undefined'?atender.nota('gastos'):'')+`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>`+kpis([{c:'gasto',l:'Compras recibidas hoy (bruto)',v:crc(G.hoy.bruto),s:'con IVA, '+fmt(G.hoy.docs)+(G.hoy.docs===1?' factura recibida':' facturas recibidas')},{c:'gasto',l:'Compras recibidas hoy (neto)',v:crc(G.hoy.neto!=null?G.hoy.neto:num(G.hoy.bruto)-num(G.hoy.iva)),s:'sin IVA'},{c:'gasto',l:'IVA soportado hoy',v:crc(G.hoy.iva),s:'en las facturas de hoy'},{c:'gasto',l:'Facturas recibidas hoy',v:fmt(G.hoy.docs),s:G.hoy.docs===1?'comprobante electrónico':'comprobantes electrónicos'}]);
   h+=`<div class="dayl">Acumulado desde el 1 de enero de 2025</div>`+kpis([{c:'gasto',l:'Compras (bruto)',v:crc(t.bruto),s:'con IVA, '+fmt(t.docs)+' comprobantes'},{c:'gasto',l:'Compras (neto)',v:crc(t.neto),s:'sin IVA'},{c:'gasto',l:'IVA soportado',v:crc(t.iva),s:'crédito potencial en Impuestos'},{c:'gasto',l:'Comprobantes',v:fmt(t.docs),s:'recibidos desde enero de 2025'}]);
   if(m.length)h+=`<div class="g" data-c="gasto">${cols('Compras por mes (bruto, con IVA)',m.map(x=>num(x.bruto)),m.map((x,i)=>i%3===0?mla(x.mes):''),'Cada barra es un mes, de enero de 2025 al actual, de izquierda a derecha; el eje marca uno de cada tres meses. El último puede estar en curso. Las notas de crédito restan.',null,cc,false)}</div>`;
   const c2=(G.categorias||[]).map(c=>[c.cat||'Sin categoría',num(c.bruto),'IVA '+crc(c.iva)]);
@@ -429,7 +429,7 @@ function pintarImpuestos(){
   const dudaIva=['otro_receptor','sin_cedula','tiquetes'].reduce((a,k)=>a+num(cl(k).iva),0);
   const GH=GG[EMP]&&GG[EMP].hoy,nrev=revisar(I).length;
   let h=`<div class="lblx">${EMPN[EMP]} · colones</div><h1 class="h1">Impuestos</h1>`;
-  h+=`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>`+kpis([{c:'imp',l:'IVA soportado hoy',v:GH?crc(GH.iva):'—',s:GH?'en '+fmt(GH.docs)+(GH.docs===1?' factura recibida hoy':' facturas recibidas hoy'):'sin datos'},{c:'imp',l:'Por revisar ahora',v:fmt(nrev),s:nrev?'cosas que piden atención, abajo':'nada pendiente'},{c:'imp',l:'Rechazadas por Hacienda',v:fmt(num((I.rechazadas||{}).docs)),s:'no cuentan en el crédito'}]);
+  h+=(typeof atender!=='undefined'?atender.nota('impuestos'):'')+`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>`+kpis([{c:'imp',l:'IVA soportado hoy',v:GH?crc(GH.iva):'—',s:GH?'en '+fmt(GH.docs)+(GH.docs===1?' factura recibida hoy':' facturas recibidas hoy'):'sin datos'},{c:'imp',l:'Por revisar ahora',v:fmt(nrev),s:nrev?'cosas que piden atención, abajo':'nada pendiente'},{c:'imp',l:'Rechazadas por Hacienda',v:fmt(num((I.rechazadas||{}).docs)),s:'no cuentan en el crédito'}]);
   h+=`<div class="dayl">Acumulado desde el 1 de enero</div>`+kpis([{c:'imp',l:'IVA soportado',v:crc(I.iva_total),s:'en compras válidas, sin los rechazados'},{c:'imp',l:'Crédito potencial Soda',v:crc(cl('credito_soda').iva),s:fmt(cl('credito_soda').docs)+' facturas a su nombre'},{c:'imp',l:'Crédito potencial Pollos',v:crc(cl('credito_pollos').iva),s:fmt(cl('credito_pollos').docs)+' facturas a su nombre'},{c:'imp',l:'IVA en duda',v:crc(dudaIva),s:'otra persona, sin cédula o tiquete'}]);
   const al=I.alertas||[];
   h+=`<div class="g" data-c="imp"><div class="blk"><h2>Facturas sin XML</h2>${al.length?al.map(a=>`<div class="rev bad"><b>${esc(a.emisor_nombre||'Proveedor sin nombre')}, ${crc(a.total_factura)}</b><span>Recibida el ${dl(D10(a.recibido))}. Tenemos el aviso de Hacienda, pero no el XML de la factura, que es el que sirve para el crédito. ${esc(a.asunto||'')}</span></div>`).join(''):'<p class="note">No hay facturas aceptadas por Hacienda sin su XML.</p>'}</div></div>`;
@@ -451,12 +451,12 @@ function pintarAviso(){
     const _av=(_u&&_u===hy)?'':hoyBloque('Aún sin reporte del BCR','El banco reporta con un día de atraso, así que el comprobante de hoy llega mañana.'+(_u?' Lo último cargado es del '+fl(_u)+'.':''));
     a.innerHTML=_av+(EMP==='grupo'?`<p class="note" style="margin:0 0 18px">Hoy solo están conectados los cobros digitales de la Soda. Las ventas de Pollos y Papea se sumarán cuando se defina la fuente.</p>`:'');$('tab-ingresos').hidden=false;}
 }
-function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();if(typeof precios!=='undefined')precios.ver();}
+function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();if(typeof precios!=='undefined')precios.ver();if(typeof atender!=='undefined')atender.contar();}
 function irSec(s){
   SEC=s;
   document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x.dataset.sec===s));
-  ['hoy','ingresos','gastos','precios','impuestos','presencia'].forEach(t=>$('sec-'+t).hidden=t!==s);
-  window.scrollTo(0,0);if(s==='precios'&&typeof precios!=='undefined')precios.ver();
+  ['hoy','atender','ingresos','gastos','precios','impuestos','presencia'].forEach(t=>$('sec-'+t).hidden=t!==s);
+  window.scrollTo(0,0);if(s==='precios'&&typeof precios!=='undefined')precios.ver();if(s==='atender'&&typeof atender!=='undefined')atender.ver();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>irSec(b.dataset.sec));
 document.querySelectorAll('.emp button').forEach(b=>b.onclick=()=>{EMP=b.dataset.emp;document.body.dataset.emp=EMP;document.querySelectorAll('.emp button').forEach(x=>x.setAttribute('aria-pressed',x===b));pintarFin();});
