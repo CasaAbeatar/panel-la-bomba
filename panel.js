@@ -371,7 +371,7 @@ function pintarPag(){
 
 
 /* ---- Gastos, Impuestos y Hoy ---- */
-let RAROS=[],EMP='grupo',SEC='hoy',GG={},II={},INV={},PED=[],FIN_ERR=false;
+let RAROS=[],EMP='grupo',SEC='hoy',GG={},II={},INV={},BZ={},PED=[],FIN_ERR=false;
 const EMPN={grupo:'Grupo DMA-La Bomba',soda:'Soda La Bomba',pollos:'Pollos La Bomba y Papea'};
 const MS3=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const ml=m=>MS3[+m.slice(5,7)-1];
@@ -400,6 +400,20 @@ async function traerInv(){
   const out={};
   for(const e of ['grupo','soda','pollos']){const r=await sb.rpc('inventario_valor_resumen',{p_emp:e});if(r.error)throw r.error;out[e]=r.data;}
   return out;
+}
+async function traerBz(){
+  const out={};
+  for(const e of ['grupo','soda','pollos']){const r=await sb.rpc('panel_control_buzones',{p_emp:e});if(r.error)throw r.error;out[e]=r.data;}
+  return out;
+}
+function bloqueBuzones(){
+  const v=BZ[EMP];if(!v)return '';
+  const f=(t,n,s)=>`<div class="br"><div class="t"><b>${t}</b><i>${fmt(n)}</i></div>${s?`<div class="s2">${s}</div>`:''}</div>`;
+  const falta=num(v.faltan),llegan=Math.max(0,num(v.recibidas)-num(v.registradas)-falta);
+  const frase=v.estado==='error'?'No se pudo revisar los buzones':v.estado==='falta'?(falta===1?'Falta 1 factura':'Faltan '+fmt(falta)+' facturas'):'Todo en orden';
+  const cuando=v.actualizado?new Date(v.actualizado).toLocaleString('es-CR',{timeZone:'America/Costa_Rica',weekday:'long',day:'numeric',month:'long',hour:'numeric',minute:'2-digit'}).replace(/\.$/,''):'';
+  const sub=(v.estado==='error'?'La última revisión no terminó y se repetirá sola. ':'')+(cuando?'Última revisión: '+cuando+(llegan?' · ':'.'):'')+(llegan?(llegan===1?'1 factura llegó hace poco y se registrará en la próxima lectura.':fmt(llegan)+' facturas llegaron hace poco y se registrarán en la próxima lectura.'):'');
+  return `<div class="g" data-c="sistema"><div class="blk"><h2>Control de buzones</h2><div class="rev ${v.estado==='ok'?'':'bad'}"><b>${frase}</b><span>${esc(sub.trim())}</span></div>${f('Facturas recibidas',v.recibidas,'en los buzones, últimos '+fmt(v.dias||7)+' días')}${f('Facturas registradas',v.registradas,'ya están en el panel y en Impuestos')}${f('Sin IVA registrado',v.sin_iva,num(v.sin_iva)?'el IVA no quedó anotado':'el IVA está anotado en todas')}${f('Líneas de inventario pendientes',v.inventario_lineas,num(v.inventario_facturas_mas3)?fmt(v.inventario_facturas_mas3)+(num(v.inventario_facturas_mas3)===1?' factura espera':' facturas esperan')+' hace más de 3 días':'por recibir en el inventario')}</div></div>`;
 }
 const GRUPO_INV={comida_preparada:'Comida preparada',unitario:'Unitarios (bebidas y empacados)',suministro:'Suministros'};
 function bloqueInv(){
@@ -446,6 +460,7 @@ function pintarHoy(){
     h+=`<div class="g" data-c="sistema"><div class="blk"><h2>Cada empresa</h2>${f('soda','Soda La Bomba')}${f('pollos','Pollos La Bomba y Papea')}<p class="note">Las compras sin cédula del receptor o a nombre de otra persona están en el total del Grupo, pero no en una empresa. Al elegir Soda o Pollos arriba se ve solo una.</p></div></div>`;
   }
   h+=bloqueInv();
+  h+=bloqueBuzones();
   const rv=revisar(I);
   h+=`<div class="g" data-c="imp" id="por-revisar"><div class="blk"><h2>Por revisar</h2>${rv.length?rv.map(x=>`<div class="rev ${x.bad?'bad':''}"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></div>`).join(''):'<p class="note">Nada por revisar.</p>'}<p class="note"><a href="#" data-go="impuestos">Ver todo en Impuestos</a></p></div></div>`;
   const rec=rc.slice(0,4).reverse();
@@ -554,6 +569,7 @@ async function cargar2(){
   try{MALL=await traerMeta();M=MALL.filter(r=>r.fecha>=addd(HOYCR(),-60));}catch(e){MALL=[];M=[];}
   pintarRedes();
   traerInv().then(v=>{INV=v;pintarHoy();}).catch(()=>{});
+  traerBz().then(v=>{BZ=v;pintarHoy();}).catch(()=>{});
   traerFin().then(pintarFin).catch(()=>{FIN_ERR=true;pintarFin();});
   try{armarB(await traerBcr());pintarIng();}
   catch(e){$('tab-ingresos').innerHTML='<div class="blk"><h2>No se pudieron cargar los ingresos</h2></div>';}
@@ -576,7 +592,7 @@ function conCopia(nombre,fn){return async(...a)=>{const k=nombre+':'+JSON.string
   const dePrueba=async()=>{const c=await cGet(k);if(c){ultimaCopia=Math.min(ultimaCopia||c.t,c.t);avisoCon(ultimaCopia);return c.v;}throw new Error('sin copia');};
   if(!navigator.onLine)return dePrueba();
   try{const r=await fn(...a);cPut(k,r);return r;}catch(e){try{return await dePrueba();}catch(_){throw e;}}};}
-traerMeta=conCopia('meta',traerMeta);traerTabla=conCopia('tabla',traerTabla);traerFin=conCopia('fin',traerFin);traerInv=conCopia('inv',traerInv);traer=conCopia('traer',traer);traerBcr=conCopia('bcr',traerBcr);traerHist=conCopia('hist',traerHist);
+traerMeta=conCopia('meta',traerMeta);traerTabla=conCopia('tabla',traerTabla);traerFin=conCopia('fin',traerFin);traerInv=conCopia('inv',traerInv);traerBz=conCopia('bz',traerBz);traer=conCopia('traer',traer);traerBcr=conCopia('bcr',traerBcr);traerHist=conCopia('hist',traerHist);
 addEventListener('online',()=>{ultimaCopia=0;avisoCon(0);});
 addEventListener('offline',()=>{if(!$('app').hidden)avisoCon(ultimaCopia||Date.now());});
 async function validar(session){
