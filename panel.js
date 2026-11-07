@@ -41,10 +41,11 @@ function xlab(labels,n,bars){return labels.map((l,i)=>{if(!l)return'';const k=la
 function axes(plot,t,lo,hi,f,labels,n){const R=(hi-lo)||1;return `<div class="ch"><div class="yl">${t.map(v=>`<span style="bottom:${((v-lo)/R*100).toFixed(2)}%">${f(v)}</span>`).join('')}</div><div class="pl">${t.map(v=>`<div class="gl" style="bottom:${((v-lo)/R*100).toFixed(2)}%"></div>`).join('')}${plot}</div></div><div class="xl">${xlab(labels,n)}</div>`;}
 function barsAx(vals,labels,f,vl,avg){const t=ticks(0,Math.max(...vals,1),vals.every(Number.isInteger)),hi=t[t.length-1];return axes(`<div class="bs${vals.length<=12?' g2':''}">${vals.map(v=>`<div style="height:${Math.max(0,v/hi*100)}%" title="${f(v)}">${vl?`<i>${f(v)}</i>`:''}</div>`).join('')}</div>${avg?`<div class="pm" style="bottom:${(avg/hi*100).toFixed(2)}%" title="promedio"></div>`:''}`,t,0,hi,f,labels,vals.length);}
 function lineAx(v,labels,f){if(v.length<2)return'';const t=ticks(Math.min(...v),Math.max(...v)),lo=t[0],hi=t[t.length-1],R=(hi-lo)||1,pts=v.map((x,i)=>[i/(v.length-1)*100,100-(x-lo)/R*100]),d=pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(2)+' '+q[1].toFixed(2)).join(' ');return axes(`<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="${d} L100 100 L0 100 Z" fill="var(--cat)" opacity=".10"/><path d="${d}" fill="none" stroke="var(--cat)" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`,t,lo,hi,f,labels,v.length);}
+const dly=f=>{const d=new Date(f+'T12:00:00');return d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]+' '+d.getFullYear();};
 const dl=f=>{const d=new Date(f+'T12:00:00');return d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];};
 const dlabs=ds=>[0,1,2,3,4].map(i=>dl(ds[Math.round(i*(ds.length-1)/4)]));
 function cols(titulo,vals,labels,sub,w,f,vl,avg){return `<div class="blk"><h2>${titulo}</h2>${barsAx(vals,labels,f||fmt,vl,avg)}${sub?`<p class="note">${sub}</p>`:''}</div>`;}
-function table(titulo,head,body){return `<div class="blk"><h2>${titulo}</h2><table class="tb"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
+function table(titulo,head,body,stk){return `<div class="blk"><h2>${titulo}</h2><table class="tb${stk?' stk':''}"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body.map(r=>`<tr>${r.map((c,j)=>`<td${stk?` data-l="${head[j]}"`:''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
 
 /* ---- Ingresos digitales (tarjetas del BCR) ---- */
 const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -80,7 +81,7 @@ function sinpeHtml(){
   // rangos de pago
   const rl=Object.keys(SPR).sort(),rt=l=>Object.values(SPR[l]).reduce((a,q)=>({n:a.n+q.n,m:a.m+q.m}),{n:0,m:0}),RT=rl.map(rt),RN=RT.reduce((a,q)=>a+q.n,0),RM=RT.reduce((a,q)=>a+q.m,0);
   if(rl.length){const lim=l=>l.replace(/^\d+ · /,'');
-    h+=`<div class="g c2" data-c="banco">`+table('Pagos por rango de monto · año',['Rango','Pagos','% pagos','Monto','% monto','Prom.'],rl.map((l,i)=>[lim(l),fmt(RT[i].n),p1(RT[i].n/RN),crc(RT[i].m),p1(RT[i].m/RM),crc(RT[i].m/RT[i].n)]))+
+    h+=`<div class="g c2" data-c="banco">`+table('Pagos por rango de monto · '+dly(sk[0])+' al '+dly(sk[sk.length-1]),['Rango','Pagos','% pagos','Monto','% monto','Prom.'],rl.map((l,i)=>[lim(l),fmt(RT[i].n),p1(RT[i].n/RN),crc(RT[i].m),p1(RT[i].m/RM),crc(RT[i].m/RT[i].n)]),1)+
     heat('Peso de cada rango por mes · % del monto',rl.map(l=>ms.filter(m=>m>='2026-03').map(m=>{const q=SPR[l][m];const tot=rl.reduce((a,x)=>a+((SPR[x][m]||{}).m||0),0);return q&&tot?Math.round(q.m/tot*100):0;})),rl.map(lim),ms.filter(m=>m>='2026-03').map(m=>MES[Number(m.slice(5))-1].slice(0,3)),'Cada columna suma 100 %. Rangos fijados con cortes naturales de la distribución (método de Jenks sobre el logaritmo del monto), redondeados a precios del menú.')+`</div>`;
     h+=`<p class="note">Lectura de los rangos: menos de ₡1.500 es café, refresco o un extra; ₡1.500 a ₡2.999, un antojo o desayuno liviano; ₡3.000 a ₡4.999, un plato individual como el casado; ₡5.000 a ₡9.999, comida con bebida o para dos; ₡10.000 a ₡19.999, grupo o familia; ₡20.000 o más, pedido grande. Las ventas especiales van aparte.</p>`;}
   // ciclos y tendencia
@@ -178,9 +179,9 @@ function pintarIng(){
   h+=kpis([{c:'banco',l:'Ventas brutas acumuladas',v:crc(tot('b')),s:dp.length?dif(tot('b'),sm(dp))+' vs '+MES[Number(mp.slice(5))-1]+' (mismos días)':''},{c:'banco',l:'Promedio por día',v:crc(tot('b')/dm.length)},{c:'banco',l:'Neto acumulado',v:crc(tot('n')),s:p1(tot('n')/tot('b'))+' de la venta'},{c:'banco',l:'Comisión y retenciones acumuladas',v:crc(tot('c')+tot('i')+tot('r')),s:p1((tot('c')+tot('i')+tot('r'))/tot('b'))+' de la venta'}]);
   // ---- acumulado del año
   const ya=q=>ks.reduce((t,k)=>t+B[k][q],0),yb=ya('b'),yn=ya('n'),yc=ya('c'),yi=ya('i'),yr=ya('r'),yv=ya('v');
-  h+=`<div class="dayl" style="margin-top:34px">Acumulado del año</div><div class="mes">${T.slice(0,4)}<small>${dl(ks[0])} al ${dl(T)} · ${ks.length} días con datos</small></div>`;
+  h+=`<div class="dayl" style="margin-top:34px">Acumulado del periodo</div><div class="mes" style="text-transform:none">${dly(ks[0])} al ${dly(T)}<small>${ks.length} días con datos · cifras brutas salvo donde dice neto</small></div>`;
   h+=kpis([{c:'banco',l:'Ventas brutas acumuladas',v:crc(yb),s:crc(yb/ks.length)+' por día'},{c:'banco',l:'Neto acumulado',v:crc(yn),s:p1(yn/yb)+' de la venta'},{c:'banco',l:'Comisión y retenciones acumuladas',v:crc(yc+yi+yr),s:'comisión '+crc(yc)+' · IVA '+crc(yi)+' · renta '+crc(yr)},{c:'banco',l:'Vouchers acumulados',v:fmt(yv),s:'ticket '+crc(yb/yv)+' bruto · '+crc(yn/yv)+' neto'}]);
-  h+=`<div class="g" data-c="banco"><div class="blk"><h2>Ventas brutas por mes · ${T.slice(0,4)}</h2>${(()=>{const mm=[...new Set(ks.map(k=>k.slice(0,7)))],tv=mm.map(m=>ks.filter(k=>k.slice(0,7)===m).reduce((t,k)=>t+B[k].b,0)),pa=mm.map(m=>!(ks.filter(k=>k.slice(0,7)===m).length>=new Date(Number(m.slice(0,4)),Number(m.slice(5)),0).getDate())),t=ticks(0,Math.max(...tv)),hi=t[t.length-1];return axes(`<div class="bs g2">${tv.map((v,i)=>`<div class="${pa[i]?'pa':''}" style="height:${v/hi*100}%" title="${crc(v)}"><i>₡${cc(v)}</i></div>`).join('')}</div>`,t,0,hi,v=>'₡'+cc(v),mm.map(m=>MES[Number(m.slice(5))-1].slice(0,3)),mm.length)+`<p class="lg">${pa.some(x=>x)?'La barra clara es un mes parcial ('+ks.filter(k=>k.slice(0,7)===mm[mm.length-1]).length+' días con datos).':''}</p>`;})()}</div></div>`;
+  h+=`<div class="g" data-c="banco"><div class="blk"><h2>Ventas brutas por mes · ${dly(ks[0]).replace(/^\d+ /,'')} a ${dly(T).replace(/^\d+ /,'')}</h2>${(()=>{const mm=[...new Set(ks.map(k=>k.slice(0,7)))],tv=mm.map(m=>ks.filter(k=>k.slice(0,7)===m).reduce((t,k)=>t+B[k].b,0)),pa=mm.map(m=>!(ks.filter(k=>k.slice(0,7)===m).length>=new Date(Number(m.slice(0,4)),Number(m.slice(5)),0).getDate())),t=ticks(0,Math.max(...tv)),hi=t[t.length-1];return axes(`<div class="bs g2">${tv.map((v,i)=>`<div class="${pa[i]?'pa':''}" style="height:${v/hi*100}%" title="${crc(v)}"><i>₡${cc(v)}</i></div>`).join('')}</div>`,t,0,hi,v=>'₡'+cc(v),mm.map(m=>MES[Number(m.slice(5))-1].slice(0,3)),mm.length)+`<p class="lg">${pa.some(x=>x)?'La barra clara es un mes parcial ('+ks.filter(k=>k.slice(0,7)===mm[mm.length-1]).length+' días con datos).':''}</p>`;})()}</div></div>`;
   // ---- meses
   const ms=[...new Set(ks.map(k=>k.slice(0,7)))];
   const comp=ms.filter(m=>m!==mk||ks.filter(k=>k.slice(0,7)===m).length>=new Date(Number(m.slice(0,4)),Number(m.slice(5)),0).getDate());
@@ -199,7 +200,7 @@ function pintarIng(){
   // ---- tendencia
   const ma=(n,end)=>{const a=ks.slice(Math.max(0,end-n),end);return mean(a.map(V));};
   const L=ks.length,m7=ma(7,L),m7p=ma(7,L-7),m30=ma(30,L),m30p=ma(30,L-30);
-  h+=`<div class="dayl" style="margin-top:34px">Tendencia</div>`+kpis([{c:'banco',l:'Promedio móvil 7 días',v:crc(m7),s:dif(m7,m7p)+' vs 7 días previos'},{c:'banco',l:'Promedio móvil 30 días',v:crc(m30),s:dif(m30,m30p)+' vs 30 días previos'},{c:'banco',l:'Promedio del año',v:crc(mean(ks.map(V))),s:ks.length+' días'},{c:'banco',l:'Variación diaria',v:p1(sd(ks.map(V))/mean(ks.map(V))),s:'coef. de variación de las ventas'}]);
+  h+=`<div class="dayl" style="margin-top:34px">Tendencia</div>`+kpis([{c:'banco',l:'Promedio móvil 7 días',v:crc(m7),s:dif(m7,m7p)+' vs 7 días previos'},{c:'banco',l:'Promedio móvil 30 días',v:crc(m30),s:dif(m30,m30p)+' vs 30 días previos'},{c:'banco',l:'Promedio del periodo',v:crc(mean(ks.map(V))),s:ks.length+' días'},{c:'banco',l:'Variación diaria',v:p1(sd(ks.map(V))/mean(ks.map(V))),s:'coef. de variación de las ventas'}]);
   h+=`<div class="g" data-c="banco">${cols('Ventas brutas diarias · últimos 60 días',ks.slice(-60).map(V),dlabs(ks.slice(-60)),null,0,v=>'₡'+cc(v))}</div>`;
   // ---- ticket
   const n=mean(ks.map(k=>B[k].v)),t30=tk.slice(-30),n30=tn.slice(-30);
@@ -214,7 +215,7 @@ function pintarIng(){
       ['Últimos 30 días<small>desviación estándar</small>',crc(sd(t30)),crc(sd(n30))],
       ['Últimos 30 días<small>coef. de variación</small>',p1(sd(t30)/mean(t30)),p1(sd(n30)/mean(n30))],
       ['Desviación por voucher<small>estimada: s·√n, con n = '+fmt(n)+' vouchers al día</small>',crc(sd(tk)*Math.sqrt(n)),crc(sd(tn)*Math.sqrt(n))]])+
-    table('Comisión y retenciones por mes',['Mes','Comisión','Ret. IVA','Ret. renta'],ms.map(m=>{const d=ks.filter(k=>k.slice(0,7)===m),f=q=>d.reduce((s,k)=>s+B[k][q],0);return [MES[Number(m.slice(5))-1],crc(f('c')),crc(f('i')),crc(f('r'))];}).concat([['Acumulado del año',crc(ks.reduce((s,k)=>s+B[k].c,0)),crc(ks.reduce((s,k)=>s+B[k].i,0)),crc(ks.reduce((s,k)=>s+B[k].r,0))]]))+`</div>`;
+    table('Comisión y retenciones por mes',['Mes','Comisión','Ret. IVA','Ret. renta'],ms.map(m=>{const d=ks.filter(k=>k.slice(0,7)===m),f=q=>d.reduce((s,k)=>s+B[k][q],0);return [MES[Number(m.slice(5))-1],crc(f('c')),crc(f('i')),crc(f('r'))];}).concat([['Acumulado del periodo',crc(ks.reduce((s,k)=>s+B[k].c,0)),crc(ks.reduce((s,k)=>s+B[k].i,0)),crc(ks.reduce((s,k)=>s+B[k].r,0))]]))+`</div>`;
   const nrev=ks.filter(k=>B[k].rev).length;
   h+=cmpSeccion(sel,ms);
   h+=sinpeHtml();
