@@ -60,7 +60,7 @@ const dif=(a,b)=>b?((a/b-1)>=0?'▲ ':'▼ ')+Math.abs((a/b-1)*100).toFixed(0)+'
 let B={},mesSel=null;
 const KEY={tarjeta_bruto:'b',tarjeta_vouchers:'v',tarjeta_comision:'c',tarjeta_iva:'i',tarjeta_renta:'r',tarjeta_neto:'n'};
 let SP={},SPM={},SPR={};
-function armarB(a){B={};SP={};SPM={};SPR={};a.forEach(r=>{const SK={sinpe_monto:'m',sinpe_cantidad:'n',sinpe_especial_monto:'em',sinpe_especial_cantidad:'en'};if(SK[r.metrica]){const o=SP[r.fecha]||(SP[r.fecha]={m:0,n:0,em:0,en:0});o[SK[r.metrica]]+=Number(r.valor);return;}if(r.metrica==='sinpe_rango_n'||r.metrica==='sinpe_rango_monto'){const o=SPR[r.detalle]||(SPR[r.detalle]={});const m=r.fecha.slice(0,7),q=o[m]||(o[m]={n:0,m:0});q[r.metrica==='sinpe_rango_n'?'n':'m']+=Number(r.valor);return;}if(r.metrica==='sinpe_desv_pago'||r.metrica==='sinpe_mediana_pago'){const o=SPM[r.fecha.slice(0,7)]||(SPM[r.fecha.slice(0,7)]={});o[r.metrica==='sinpe_desv_pago'?'sd':'md']=Number(r.valor);return;}const k=KEY[r.metrica];if(!k)return;const o=B[r.fecha]||(B[r.fecha]={b:0,v:0,c:0,i:0,r:0,n:0,rev:false});o[k]+=Number(r.valor);if(k==='b')o.k=(o.k||0)+1;if(k==='b'&&/revisar/.test(r.detalle))o.rev=true;});}
+function armarB(a){B={};SP={};SPM={};SPR={};a.forEach(r=>{if(/^hist\|/.test(r.detalle||''))return;const SK={sinpe_monto:'m',sinpe_cantidad:'n',sinpe_especial_monto:'em',sinpe_especial_cantidad:'en'};if(SK[r.metrica]){const o=SP[r.fecha]||(SP[r.fecha]={m:0,n:0,em:0,en:0});o[SK[r.metrica]]+=Number(r.valor);return;}if(r.metrica==='sinpe_rango_n'||r.metrica==='sinpe_rango_monto'){const o=SPR[r.detalle]||(SPR[r.detalle]={});const m=r.fecha.slice(0,7),q=o[m]||(o[m]={n:0,m:0});q[r.metrica==='sinpe_rango_n'?'n':'m']+=Number(r.valor);return;}if(r.metrica==='sinpe_desv_pago'||r.metrica==='sinpe_mediana_pago'){const o=SPM[r.fecha.slice(0,7)]||(SPM[r.fecha.slice(0,7)]={});o[r.metrica==='sinpe_desv_pago'?'sd':'md']=Number(r.valor);return;}const k=KEY[r.metrica];if(!k)return;const o=B[r.fecha]||(B[r.fecha]={b:0,v:0,c:0,i:0,r:0,n:0,rev:false});o[k]+=Number(r.valor);if(k==='b')o.k=(o.k||0)+1;if(k==='b'&&/revisar/.test(r.detalle))o.rev=true;});}
 
 function sinpeHtml(){
   const sk=Object.keys(SP).sort();
@@ -99,6 +99,49 @@ function sinpeHtml(){
   return h;
 }
 function T0(sk){return sk[0].slice(0,4);}
+
+/* ---- Comparativo con años anteriores (mismo mes) ---- */
+let HC={};
+function cmpAgregar(rows,y,mm){
+  const o={};rows.filter(r=>r.fecha.slice(0,4)===String(y)).forEach(r=>{const d=o[r.fecha]||(o[r.fecha]={b:0,v:0,n:0});const k={tarjeta_bruto:'b',tarjeta_vouchers:'v',tarjeta_neto:'n'}[r.metrica];if(k)d[k]+=Number(r.valor);});
+  return o;
+}
+function cmpFila(etq,dias,mm,y,vivo){
+  const ks=Object.keys(dias).sort(),nd=new Date(y,Number(mm),0).getDate();
+  if(!ks.length)return null;
+  const at=ks.filter(k=>HIST_ATIPICOS.includes(k)),ok=ks.filter(k=>!HIST_ATIPICOS.includes(k)),vs=ok.map(k=>dias[k].b);
+  const tot=ks.reduce((t,k)=>t+dias[k].b,0),net=ks.reduce((t,k)=>t+dias[k].n,0);
+  return {etq,y,n:ks.length,nd,at,tot,net,prom:mean(vs),cv:mean(vs)?sd(vs)/mean(vs):0,vivo,ini:ks[0],fin:ks[ks.length-1]};
+}
+function cmpHtml(sel){
+  const mm=sel.slice(5),mn=MES[Number(mm)-1],hr=HC[mm];
+  const filas=[];
+  if(hr)HIST_ANOS.forEach(y=>{const f=cmpFila(mn.slice(0,3)+' '+String(y).slice(2),cmpAgregar(hr,y,mm),mm,y,false);if(f)filas.push(f);});
+  [...new Set(Object.keys(B).filter(k=>k.slice(5,7)===mm).map(k=>k.slice(0,4)))].sort().forEach(y=>{
+    const d={};Object.keys(B).filter(k=>k.slice(0,4)===y&&k.slice(5,7)===mm).forEach(k=>d[k]={b:B[k].b,v:B[k].v,n:B[k].n});
+    const f=cmpFila(mn.slice(0,3)+' '+y.slice(2),d,mm,Number(y),true);if(f)filas.push(f);});
+  filas.sort((a,b)=>a.y-b.y);
+  const cargando=hr===undefined&&!HC['err'+mm];
+  let h='';
+  if(!filas.length)return `<p class="note">${cargando?'Cargando la historia de '+mn+'…':'No hay ventas con tarjeta cargadas para '+mn+' en ningún año.'}</p>`;
+  const falt=HIST_FALTAN.filter(k=>k.slice(5,7)===mm).map(k=>dl(k)+' '+k.slice(0,4));
+  const nfa=f=>HIST_FALTAN.filter(k=>k.slice(0,4)===String(f.y)&&k.slice(5,7)===mm).length,parc=f=>f.n>=f.nd?'':f.n+nfa(f)>=f.nd?`<small>${f.n} de ${f.nd} días · sin comprobante: ${HIST_FALTAN.filter(k=>k.slice(0,4)===String(f.y)&&k.slice(5,7)===mm).map(k=>dl(k)).join(', ')}</small>`:` <span class="tag par">parcial</span><small>${f.n} de ${f.nd} días</small>`;
+  h+=barsAx(filas.map(f=>f.prom),filas.map(f=>f.etq),v=>'₡'+cc(v),1);
+  h+=`<p class="note">Eje vertical: colones de venta bruta promedio por día. Eje horizontal: ${mn} de cada año, del más antiguo (izquierda) al más reciente (derecha).</p>`;
+  h+=`<table class="tb" style="margin-top:14px"><thead><tr><th>${mn[0].toUpperCase()+mn.slice(1)}</th><th>Ventas brutas</th><th>Prom./día</th><th>CV</th><th>Neto</th></tr></thead><tbody>${filas.map(f=>`<tr><td>${f.etq}${f.vivo?'':'<small>historia del BCR</small>'}${parc(f)}${f.at.length?`<small>${f.at.length} ${f.at.length==1?'día atípico fuera':'días atípicos fuera'} del promedio: ${f.at.map(k=>dl(k)).join(', ')}</small>`:''}</td><td>${crc(f.tot)}</td><td>${crc(f.prom)}</td><td style="white-space:nowrap">${p1(f.cv)}</td><td>${crc(f.net)}<small>${p1(f.net/f.tot)} de la venta</small></td></tr>`).join('')}</tbody></table>`;
+  h+=`<p class="note">Cifras brutas: venta con tarjeta antes de comisión y retenciones; la columna Neto es lo depositado. Prom./día y coeficiente de variación (CV) excluyen los días atípicos marcados (8, 9 y 10 de octubre de 2022 y 8 de marzo de 2023). Ventas brutas suma todos los días con datos del mes.</p>`;
+  if(falt.length)h+=`<p class="note"><b>Falta el comprobante de:</b> ${falt.join(', ')}.</p>`;
+  h+=cargando?`<p class="note">Cargando la historia de ${mn}…</p>`:HC['err'+mm]?`<p class="note">No se pudo cargar la historia de ${mn}; se muestra solo el periodo vivo.</p>`:'';
+  return h;
+}
+function cmpSeccion(sel,ms){
+  return `<div class="g" data-c="banco"><div class="blk"><h2>Comparativo con años anteriores · ${MES[Number(sel.slice(5))-1]}</h2><div class="chips">${ms.map(m=>`<button data-mes="${m}" aria-pressed="${m===sel}">${MES[Number(m.slice(5))-1].slice(0,3)} ${m.slice(2,4)}</button>`).join('')}</div><div id="cmp-b" data-mm="${sel.slice(5)}" data-sel="1">${cmpHtml(sel)}</div><p class="note">Faltan los comprobantes del 7 de octubre de 2022, el 25 de diciembre de 2022 y el 5 de junio de 2023. La historia cargada va de julio de 2022 al 22 de julio de 2024; entre esa fecha y el 24 de agosto de 2025 el banco no tiene comprobantes cargados, por eso esos meses no aparecen.</p></div></div>`;
+}
+async function cmpCargar(sel){
+  const mm=sel.slice(5);if(HC[mm]!==undefined)return;
+  try{HC[mm]=await traerHist(mm);}catch(e){HC['err'+mm]=true;HC[mm]=[];}
+  const b=$('cmp-b');if(b&&b.dataset.mm===mm)b.innerHTML=cmpHtml(sel);
+}
 function pintarIng(){
   const el=$('tab-ingresos');const ks=Object.keys(B).sort();
   if(!ks.length){el.innerHTML='<div class="g" data-c="banco"><div class="blk"><h2>Sin datos todavía</h2><p class="note">Los comprobantes del BCR aún no se han cargado.</p></div></div>';return;}
@@ -173,10 +216,12 @@ function pintarIng(){
       ['Desviación por voucher<small>estimada: s·√n, con n = '+fmt(n)+' vouchers al día</small>',crc(sd(tk)*Math.sqrt(n)),crc(sd(tn)*Math.sqrt(n))]])+
     table('Comisión y retenciones por mes',['Mes','Comisión','Ret. IVA','Ret. renta'],ms.map(m=>{const d=ks.filter(k=>k.slice(0,7)===m),f=q=>d.reduce((s,k)=>s+B[k][q],0);return [MES[Number(m.slice(5))-1],crc(f('c')),crc(f('i')),crc(f('r'))];}).concat([['Acumulado del año',crc(ks.reduce((s,k)=>s+B[k].c,0)),crc(ks.reduce((s,k)=>s+B[k].i,0)),crc(ks.reduce((s,k)=>s+B[k].r,0))]]))+`</div>`;
   const nrev=ks.filter(k=>B[k].rev).length;
+  h+=cmpSeccion(sel,ms);
   h+=sinpeHtml();
   if(nrev)h+=`<p class="note">${nrev} días tienen el total impreso del comprobante inconsistente con la suma de sus lotes. Aquí se usa siempre la suma de los lotes.</p>`;
   el.innerHTML=h;
   el.querySelectorAll('[data-mes]').forEach(b=>b.onclick=()=>{mesSel=b.dataset.mes;pintarIng();});
+  cmpCargar(sel);
 }
 
 /* ---- Redes sociales (Meta, API oficial) ---- */
@@ -411,7 +456,7 @@ function pintarGastos(){
   if(!G){el.innerHTML=cargando(FIN_ERR?'No se pudieron cargar los gastos.':'');return;}
   const t=G.totales,m=G.mensual||[];
   let h=`<div class="lblx">${EMPN[EMP]} · colones</div><h1 class="h1">Gastos</h1>`;
-  h+=`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>`+kpis([{c:'gasto',l:'Compras recibidas hoy (bruto)',v:crc(G.hoy.bruto),s:'con IVA, '+fmt(G.hoy.docs)+(G.hoy.docs===1?' factura recibida':' facturas recibidas')},{c:'gasto',l:'Compras recibidas hoy (neto)',v:crc(G.hoy.neto!=null?G.hoy.neto:num(G.hoy.bruto)-num(G.hoy.iva)),s:'sin IVA'},{c:'gasto',l:'IVA soportado hoy',v:crc(G.hoy.iva),s:'en las facturas de hoy'},{c:'gasto',l:'Facturas recibidas hoy',v:fmt(G.hoy.docs),s:G.hoy.docs===1?'comprobante electrónico':'comprobantes electrónicos'}]);
+  h+=(typeof atender!=='undefined'?atender.nota('gastos'):'')+`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>`+kpis([{c:'gasto',l:'Compras recibidas hoy (bruto)',v:crc(G.hoy.bruto),s:'con IVA, '+fmt(G.hoy.docs)+(G.hoy.docs===1?' factura recibida':' facturas recibidas')},{c:'gasto',l:'Compras recibidas hoy (neto)',v:crc(G.hoy.neto!=null?G.hoy.neto:num(G.hoy.bruto)-num(G.hoy.iva)),s:'sin IVA'},{c:'gasto',l:'IVA soportado hoy',v:crc(G.hoy.iva),s:'en las facturas de hoy'},{c:'gasto',l:'Facturas recibidas hoy',v:fmt(G.hoy.docs),s:G.hoy.docs===1?'comprobante electrónico':'comprobantes electrónicos'}]);
   h+=`<div class="dayl">Acumulado desde el 1 de enero de 2025</div>`+kpis([{c:'gasto',l:'Compras (bruto)',v:crc(t.bruto),s:'con IVA, '+fmt(t.docs)+' comprobantes'},{c:'gasto',l:'Compras (neto)',v:crc(t.neto),s:'sin IVA'},{c:'gasto',l:'IVA soportado',v:crc(t.iva),s:'crédito potencial en Impuestos'},{c:'gasto',l:'Comprobantes',v:fmt(t.docs),s:'recibidos desde enero de 2025'}]);
   if(m.length)h+=`<div class="g" data-c="gasto">${cols('Compras por mes (bruto, con IVA)',m.map(x=>num(x.bruto)),m.map((x,i)=>i%3===0?mla(x.mes):''),'Cada barra es un mes, de enero de 2025 al actual, de izquierda a derecha; el eje marca uno de cada tres meses. El último puede estar en curso. Las notas de crédito restan.',null,cc,false)}</div>`;
   const c2=(G.categorias||[]).map(c=>[c.cat||'Sin categoría',num(c.bruto),'IVA '+crc(c.iva)]);
@@ -429,7 +474,7 @@ function pintarImpuestos(){
   const dudaIva=['otro_receptor','sin_cedula','tiquetes'].reduce((a,k)=>a+num(cl(k).iva),0);
   const GH=GG[EMP]&&GG[EMP].hoy,nrev=revisar(I).length;
   let h=`<div class="lblx">${EMPN[EMP]} · colones</div><h1 class="h1">Impuestos</h1>`;
-  h+=`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>`+kpis([{c:'imp',l:'IVA soportado hoy',v:GH?crc(GH.iva):'—',s:GH?'en '+fmt(GH.docs)+(GH.docs===1?' factura recibida hoy':' facturas recibidas hoy'):'sin datos'},{c:'imp',l:'Por revisar ahora',v:fmt(nrev),s:nrev?'cosas que piden atención, abajo':'nada pendiente'},{c:'imp',l:'Rechazadas por Hacienda',v:fmt(num((I.rechazadas||{}).docs)),s:'no cuentan en el crédito'}]);
+  h+=(typeof atender!=='undefined'?atender.nota('impuestos'):'')+`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>`+kpis([{c:'imp',l:'IVA soportado hoy',v:GH?crc(GH.iva):'—',s:GH?'en '+fmt(GH.docs)+(GH.docs===1?' factura recibida hoy':' facturas recibidas hoy'):'sin datos'},{c:'imp',l:'Por revisar ahora',v:fmt(nrev),s:nrev?'cosas que piden atención, abajo':'nada pendiente'},{c:'imp',l:'Rechazadas por Hacienda',v:fmt(num((I.rechazadas||{}).docs)),s:'no cuentan en el crédito'}]);
   h+=`<div class="dayl">Acumulado desde el 1 de enero</div>`+kpis([{c:'imp',l:'IVA soportado',v:crc(I.iva_total),s:'en compras válidas, sin los rechazados'},{c:'imp',l:'Crédito potencial Soda',v:crc(cl('credito_soda').iva),s:fmt(cl('credito_soda').docs)+' facturas a su nombre'},{c:'imp',l:'Crédito potencial Pollos',v:crc(cl('credito_pollos').iva),s:fmt(cl('credito_pollos').docs)+' facturas a su nombre'},{c:'imp',l:'IVA en duda',v:crc(dudaIva),s:'otra persona, sin cédula o tiquete'}]);
   const al=I.alertas||[];
   h+=`<div class="g" data-c="imp"><div class="blk"><h2>Facturas sin XML</h2>${al.length?al.map(a=>`<div class="rev bad"><b>${esc(a.emisor_nombre||'Proveedor sin nombre')}, ${crc(a.total_factura)}</b><span>Recibida el ${dl(D10(a.recibido))}. Tenemos el aviso de Hacienda, pero no el XML de la factura, que es el que sirve para el crédito. ${esc(a.asunto||'')}</span></div>`).join(''):'<p class="note">No hay facturas aceptadas por Hacienda sin su XML.</p>'}</div></div>`;
@@ -451,12 +496,12 @@ function pintarAviso(){
     const _av=(_u&&_u===hy)?'':hoyBloque('Aún sin reporte del BCR','El banco reporta con un día de atraso, así que el comprobante de hoy llega mañana.'+(_u?' Lo último cargado es del '+fl(_u)+'.':''));
     a.innerHTML=_av+(EMP==='grupo'?`<p class="note" style="margin:0 0 18px">Hoy solo están conectados los cobros digitales de la Soda. Las ventas de Pollos y Papea se sumarán cuando se defina la fuente.</p>`:'');$('tab-ingresos').hidden=false;}
 }
-function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();if(typeof precios!=='undefined')precios.ver();}
+function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();if(typeof precios!=='undefined')precios.ver();if(typeof atender!=='undefined')atender.contar();}
 function irSec(s){
   SEC=s;
   document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x.dataset.sec===s));
-  ['hoy','ingresos','gastos','precios','impuestos','presencia'].forEach(t=>$('sec-'+t).hidden=t!==s);
-  window.scrollTo(0,0);if(s==='precios'&&typeof precios!=='undefined')precios.ver();
+  ['hoy','atender','ingresos','gastos','precios','impuestos','presencia'].forEach(t=>$('sec-'+t).hidden=t!==s);
+  window.scrollTo(0,0);if(s==='precios'&&typeof precios!=='undefined')precios.ver();if(s==='atender'&&typeof atender!=='undefined')atender.ver();if(typeof atender!=='undefined')atender.notas();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>irSec(b.dataset.sec));
 document.querySelectorAll('.emp button').forEach(b=>b.onclick=()=>{EMP=b.dataset.emp;document.body.dataset.emp=EMP;document.querySelectorAll('.emp button').forEach(x=>x.setAttribute('aria-pressed',x===b));pintarFin();});
@@ -464,10 +509,27 @@ document.querySelectorAll('.subtabs button').forEach(b=>b.onclick=()=>{document.
 $('pill').onclick=e=>{e.preventDefault();irSec('hoy');setTimeout(()=>{const x=$('por-revisar');if(x){x.scrollIntoView({behavior:'smooth',block:'start'});x.style.outline='2px solid var(--bad)';setTimeout(()=>x.style.outline='',2200);}},60);};
 document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(a){e.preventDefault();irSec(a.dataset.go);}});
 
+/* ---- BCR: periodo vivo y historia ----
+   Periodo vivo = serie diaria de bcr-diario (desde el 24 ago 2025). La historia (marca «hist|» en detalle, jul 2022 a 22 jul 2024)
+   NO entra a las cifras del año ni a los selectores: solo alimenta el comparativo con años anteriores, y se baja por mes, bajo demanda. */
+const BCR_VIVO_DESDE='2025-08-24';
+const HIST_ANOS=[2022,2023,2024];
+const HIST_ATIPICOS=['2022-10-08','2022-10-09','2022-10-10','2023-03-08']; // fuera de los promedios (dia atipico marcado)
+const HIST_FALTAN=['2022-10-07','2022-12-25','2023-06-05'];                 // sin comprobante en el buzon
+async function traerHist(mm){
+  const out=[];
+  for(const y of HIST_ANOS){
+    const {data,error}=await sb.from('panel_metricas').select('fecha,metrica,valor').eq('fuente','bcr').like('detalle','hist|%')
+      .in('metrica',['tarjeta_bruto','tarjeta_vouchers','tarjeta_neto']).gte('fecha',y+'-'+mm+'-01').lte('fecha',y+'-'+mm+'-'+String(new Date(y,Number(mm),0).getDate()).padStart(2,'0')).order('fecha').range(0,999);
+    if(error) throw error;
+    data.forEach(r=>out.push(r));
+  }
+  return out;
+}
 async function traer(){
   let all=[],from=0;
   for(;;){
-    const {data,error}=await sb.from('panel_metricas').select('fecha,fuente,sitio,metrica,detalle,valor').order('fecha').range(from,from+999);
+    const {data,error}=await sb.from('panel_metricas').select('fecha,fuente,sitio,metrica,detalle,valor').gte('fecha',addd(HOYCR(),-14)).order('fecha').range(from,from+999);
     if(error) throw error;
     all=all.concat(data); if(data.length<1000) break; from+=1000;
   }
@@ -476,7 +538,7 @@ async function traer(){
 async function traerBcr(){
   let all=[],from=0;
   for(;;){
-    const {data,error}=await sb.from('panel_metricas').select('fecha,metrica,detalle,valor').eq('fuente','bcr').order('fecha').range(from,from+999);
+    const {data,error}=await sb.from('panel_metricas').select('fecha,metrica,detalle,valor').eq('fuente','bcr').gte('fecha',BCR_VIVO_DESDE).not('detalle','like','hist|%').order('fecha').range(from,from+999);
     if(error) throw error;
     all=all.concat(data); if(data.length<1000) break; from+=1000;
   }
@@ -512,7 +574,7 @@ function conCopia(nombre,fn){return async(...a)=>{const k=nombre+':'+JSON.string
   const dePrueba=async()=>{const c=await cGet(k);if(c){ultimaCopia=Math.min(ultimaCopia||c.t,c.t);avisoCon(ultimaCopia);return c.v;}throw new Error('sin copia');};
   if(!navigator.onLine)return dePrueba();
   try{const r=await fn(...a);cPut(k,r);return r;}catch(e){try{return await dePrueba();}catch(_){throw e;}}};}
-traerMeta=conCopia('meta',traerMeta);traerTabla=conCopia('tabla',traerTabla);traerFin=conCopia('fin',traerFin);traerInv=conCopia('inv',traerInv);traer=conCopia('traer',traer);traerBcr=conCopia('bcr',traerBcr);
+traerMeta=conCopia('meta',traerMeta);traerTabla=conCopia('tabla',traerTabla);traerFin=conCopia('fin',traerFin);traerInv=conCopia('inv',traerInv);traer=conCopia('traer',traer);traerBcr=conCopia('bcr',traerBcr);traerHist=conCopia('hist',traerHist);
 addEventListener('online',()=>{ultimaCopia=0;avisoCon(0);});
 addEventListener('offline',()=>{if(!$('app').hidden)avisoCon(ultimaCopia||Date.now());});
 async function validar(session){
