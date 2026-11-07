@@ -511,6 +511,7 @@ $('pill').onclick=e=>{e.preventDefault();irSec('hoy');setTimeout(()=>{const x=$(
 document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(a){e.preventDefault();irSec(a.dataset.go);}});
 
 /* ---- BCR: periodo vivo y historia ----
+   Toda lectura de panel_metricas pide duplicado=false: las copias reenviadas de un mismo correo del BCR (ene 2026) quedan marcadas en la base y no se cuentan.
    Periodo vivo = serie diaria de bcr-diario (desde el 24 ago 2025). La historia (marca «hist|» en detalle, jul 2022 a 22 jul 2024)
    NO entra a las cifras del año ni a los selectores: solo alimenta el comparativo con años anteriores, y se baja por mes, bajo demanda. */
 const BCR_VIVO_DESDE='2025-08-24';
@@ -520,7 +521,7 @@ const HIST_FALTAN=['2022-10-07','2022-12-25','2023-06-05'];                 // s
 async function traerHist(mm){
   const out=[];
   for(const y of HIST_ANOS){
-    const {data,error}=await sb.from('panel_metricas').select('fecha,metrica,valor').eq('fuente','bcr').like('detalle','hist|%')
+    const {data,error}=await sb.from('panel_metricas').select('fecha,metrica,valor').eq('fuente','bcr').eq('duplicado',false).like('detalle','hist|%')
       .in('metrica',['tarjeta_bruto','tarjeta_vouchers','tarjeta_neto']).gte('fecha',y+'-'+mm+'-01').lte('fecha',y+'-'+mm+'-'+String(new Date(y,Number(mm),0).getDate()).padStart(2,'0')).order('fecha').range(0,999);
     if(error) throw error;
     data.forEach(r=>out.push(r));
@@ -530,7 +531,7 @@ async function traerHist(mm){
 async function traer(){
   let all=[],from=0;
   for(;;){
-    const {data,error}=await sb.from('panel_metricas').select('fecha,fuente,sitio,metrica,detalle,valor').gte('fecha',addd(HOYCR(),-14)).order('fecha').range(from,from+999);
+    const {data,error}=await sb.from('panel_metricas').select('fecha,fuente,sitio,metrica,detalle,valor').gte('fecha',addd(HOYCR(),-14)).eq('duplicado',false).order('fecha').range(from,from+999);
     if(error) throw error;
     all=all.concat(data); if(data.length<1000) break; from+=1000;
   }
@@ -539,7 +540,7 @@ async function traer(){
 async function traerBcr(){
   let all=[],from=0;
   for(;;){
-    const {data,error}=await sb.from('panel_metricas').select('fecha,metrica,detalle,valor').eq('fuente','bcr').gte('fecha',BCR_VIVO_DESDE).not('detalle','like','hist|%').order('fecha').range(from,from+999);
+    const {data,error}=await sb.from('panel_metricas').select('fecha,metrica,detalle,valor').eq('fuente','bcr').eq('duplicado',false).gte('fecha',BCR_VIVO_DESDE).not('detalle','like','hist|%').order('fecha').range(from,from+999);
     if(error) throw error;
     all=all.concat(data); if(data.length<1000) break; from+=1000;
   }
