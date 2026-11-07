@@ -117,26 +117,30 @@ function cmpFila(etq,dias,mm,y,vivo){
 function cmpHtml(sel){
   const mm=sel.slice(5),mn=MES[Number(mm)-1],hr=HC[mm];
   const filas=[];
-  if(hr)HIST_ANOS.forEach(y=>{const f=cmpFila(mn.slice(0,3)+' '+String(y).slice(2),cmpAgregar(hr,y,mm),mm,y,false);if(f)filas.push(f);});
-  [...new Set(Object.keys(B).filter(k=>k.slice(5,7)===mm).map(k=>k.slice(0,4)))].sort().forEach(y=>{
-    const d={};Object.keys(B).filter(k=>k.slice(0,4)===y&&k.slice(5,7)===mm).forEach(k=>d[k]={b:B[k].b,v:B[k].v,n:B[k].n});
-    const f=cmpFila(mn.slice(0,3)+' '+y.slice(2),d,mm,Number(y),true);if(f)filas.push(f);});
+  const anios=[...new Set([...(hr?HIST_ANOS.map(String):[]),...Object.keys(B).filter(k=>k.slice(5,7)===mm).map(k=>k.slice(0,4))])].sort();
+  anios.forEach(y=>{
+    const d=hr?cmpAgregar(hr,y,mm):{},nh=Object.keys(d).length;
+    const viv=Object.keys(B).filter(k=>k.slice(0,4)===y&&k.slice(5,7)===mm);
+    viv.forEach(k=>{d[k]={b:B[k].b,v:B[k].v,n:B[k].n};});
+    const f=cmpFila(mn.slice(0,3)+' '+y.slice(2),d,mm,Number(y),viv.length>0);if(f){f.mixto=nh>0&&viv.length>0;filas.push(f);}});
   filas.sort((a,b)=>a.y-b.y);
   const cargando=hr===undefined&&!HC['err'+mm];
   let h='';
   if(!filas.length)return `<p class="note">${cargando?'Cargando la historia de '+mn+'…':'No hay ventas con tarjeta cargadas para '+mn+' en ningún año.'}</p>`;
   const falt=HIST_FALTAN.filter(k=>k.slice(5,7)===mm).map(k=>dl(k)+' '+k.slice(0,4));
-  const nfa=f=>HIST_FALTAN.filter(k=>k.slice(0,4)===String(f.y)&&k.slice(5,7)===mm).length,parc=f=>f.n>=f.nd?'':f.n+nfa(f)>=f.nd?`<small>${f.n} de ${f.nd} días · sin comprobante: ${HIST_FALTAN.filter(k=>k.slice(0,4)===String(f.y)&&k.slice(5,7)===mm).map(k=>dl(k)).join(', ')}</small>`:` <span class="tag par">parcial</span><small>${f.n} de ${f.nd} días</small>`;
+  const nfa=f=>HIST_FALTAN.filter(k=>k.slice(0,4)===String(f.y)&&k.slice(5,7)===mm).length,parc=f=>f.n>=f.nd?'':f.n+nfa(f)>=f.nd?`<small>${f.n} de ${f.nd} días · sin comprobante: ${HIST_FALTAN.filter(k=>k.slice(0,4)===String(f.y)&&k.slice(5,7)===mm).map(k=>dl(k)).join(', ')}</small>`:` <span class="tag par">parcial</span><small>${f.n} de ${f.nd} días · hay datos del ${dl(f.ini)} al ${dl(f.fin)}</small>`;
   h+=barsAx(filas.map(f=>f.prom),filas.map(f=>f.etq),v=>'₡'+cc(v),1);
   h+=`<p class="note">Eje vertical: colones de venta bruta promedio por día. Eje horizontal: ${mn} de cada año, del más antiguo (izquierda) al más reciente (derecha).</p>`;
-  h+=`<table class="tb" style="margin-top:14px"><thead><tr><th>${mn[0].toUpperCase()+mn.slice(1)}</th><th>Ventas brutas</th><th>Prom./día</th><th>CV</th><th>Neto</th></tr></thead><tbody>${filas.map(f=>`<tr><td>${f.etq}${f.vivo?'':'<small>historia del BCR</small>'}${parc(f)}${f.at.length?`<small>${f.at.length} ${f.at.length==1?'día atípico fuera':'días atípicos fuera'} del promedio: ${f.at.map(k=>dl(k)).join(', ')}</small>`:''}</td><td>${crc(f.tot)}</td><td>${crc(f.prom)}</td><td style="white-space:nowrap">${p1(f.cv)}</td><td>${crc(f.net)}<small>${p1(f.net/f.tot)} de la venta</small></td></tr>`).join('')}</tbody></table>`;
-  h+=`<p class="note">Cifras brutas: venta con tarjeta antes de comisión y retenciones; la columna Neto es lo depositado. Prom./día y coeficiente de variación (CV) excluyen los días atípicos marcados (8, 9 y 10 de octubre de 2022 y 8 de marzo de 2023). Ventas brutas suma todos los días con datos del mes.</p>`;
+  h+=`<table class="tb" style="margin-top:14px"><thead><tr><th>${mn[0].toUpperCase()+mn.slice(1)}</th><th>Ventas brutas</th><th>Prom./día</th><th>CV</th><th>Neto</th></tr></thead><tbody>${filas.map(f=>`<tr><td>${f.etq}${f.mixto?'<small>historia del BCR y periodo vivo</small>':f.vivo?'':'<small>historia del BCR</small>'}${parc(f)}${f.at.length?`<small>${f.at.length} ${f.at.length==1?'día fuera':'días fuera'} del promedio y del CV: ${f.at.map(k=>dl(k)+(HIST_PARCIAL[k]?' ('+HIST_PARCIAL[k]+')':'')).join(', ')}</small>`:''}</td><td>${crc(f.tot)}</td><td>${crc(f.prom)}</td><td style="white-space:nowrap">${p1(f.cv)}</td><td>${crc(f.net)}<small>${p1(f.net/f.tot)} de la venta</small></td></tr>`).join('')}</tbody></table>`;
+  h+=`<p class="note">Cifras brutas: venta con tarjeta antes de comisión y retenciones; la columna Neto es lo depositado. Prom./día y coeficiente de variación (CV) excluyen los días atípicos o parciales marcados en cada fila (8 al 10 de octubre de 2022, 8 de marzo de 2023, 10 de febrero, 15 de mayo y 5 de agosto de 2025). Ventas brutas suma solo los días con datos del mes: donde faltan comprobantes no se completa ni se estima nada; el promedio por día sí es comparable aunque el mes esté incompleto.</p>`;
   if(falt.length)h+=`<p class="note"><b>Falta el comprobante de:</b> ${falt.join(', ')}.</p>`;
+  const sinm=HIST_HUECOS.filter(g=>HIST_ANOS.some(y=>y+'-'+mm+'-01'>=g[0]&&y+'-'+mm+'-31'<=g[1]&&!filas.some(x=>x.y===y))).map(g=>g[2]);
+  if(sinm.length)h+=`<p class="note"><b>Sin comprobantes cargados</b> para este mes (hueco del ${sinm.join(' y del ')}): ese año no se muestra, no se estima.</p>`;
   h+=cargando?`<p class="note">Cargando la historia de ${mn}…</p>`:HC['err'+mm]?`<p class="note">No se pudo cargar la historia de ${mn}; se muestra solo el periodo vivo.</p>`:'';
   return h;
 }
 function cmpSeccion(sel,ms){
-  return `<div class="g" data-c="banco"><div class="blk"><h2>Comparativo con años anteriores · ${MES[Number(sel.slice(5))-1]}</h2><div class="chips">${ms.map(m=>`<button data-mes="${m}" aria-pressed="${m===sel}">${MES[Number(m.slice(5))-1].slice(0,3)} ${m.slice(2,4)}</button>`).join('')}</div><div id="cmp-b" data-mm="${sel.slice(5)}" data-sel="1">${cmpHtml(sel)}</div><p class="note">Faltan los comprobantes del 7 de octubre de 2022, el 25 de diciembre de 2022 y el 5 de junio de 2023. La historia cargada va de julio de 2022 al 22 de julio de 2024; entre esa fecha y el 24 de agosto de 2025 el banco no tiene comprobantes cargados, por eso esos meses no aparecen.</p></div></div>`;
+  return `<div class="g" data-c="banco"><div class="blk"><h2>Comparativo con años anteriores · ${MES[Number(sel.slice(5))-1]}</h2><div class="chips">${ms.map(m=>`<button data-mes="${m}" aria-pressed="${m===sel}">${MES[Number(m.slice(5))-1].slice(0,3)} ${m.slice(2,4)}</button>`).join('')}</div><div id="cmp-b" data-mm="${sel.slice(5)}" data-sel="1">${cmpHtml(sel)}</div><p class="note">Faltan algunos comprobantes sueltos (por ejemplo 7 oct y 25 dic de 2022, 5 jun de 2023 y 11 al 14 feb de 2025). La historia cargada va de febrero de 2021 al 23 de agosto de 2025, con dos huecos sin comprobantes en el buzón: del 23 de julio al 15 de diciembre de 2024 y del 16 de mayo al 14 de julio de 2025; esos meses salen parciales o no aparecen y no se rellenan. 2021 fue de arranque del negocio y restricciones: ventas con tarjeta mucho menores.</p></div></div>`;
 }
 async function cmpCargar(sel){
   const mm=sel.slice(5);if(HC[mm]!==undefined)return;
@@ -527,12 +531,14 @@ document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(a
 
 /* ---- BCR: periodo vivo y historia ----
    Toda lectura de panel_metricas pide duplicado=false: las copias reenviadas de un mismo correo del BCR (ene 2026) quedan marcadas en la base y no se cuentan.
-   Periodo vivo = serie diaria de bcr-diario (desde el 24 ago 2025). La historia (marca «hist|» en detalle, jul 2022 a 22 jul 2024)
+   Periodo vivo = serie diaria de bcr-diario (desde el 24 ago 2025). La historia (marca «hist|» en detalle, feb 2021 a 23 ago 2025, con huecos)
    NO entra a las cifras del año ni a los selectores: solo alimenta el comparativo con años anteriores, y se baja por mes, bajo demanda. */
 const BCR_VIVO_DESDE='2025-08-24';
-const HIST_ANOS=[2022,2023,2024];
-const HIST_ATIPICOS=['2022-10-08','2022-10-09','2022-10-10','2023-03-08']; // fuera de los promedios (dia atipico marcado)
-const HIST_FALTAN=['2022-10-07','2022-12-25','2023-06-05'];                 // sin comprobante en el buzon
+const HIST_ANOS=[2021,2022,2023,2024,2025];
+const HIST_ATIPICOS=['2022-10-08','2022-10-09','2022-10-10','2023-03-08','2025-02-10','2025-05-15','2025-08-05']; // fuera de los promedios (dia atipico marcado)
+const HIST_FALTAN=['2021-03-12','2021-06-02','2021-06-03','2021-06-23','2021-08-15','2022-01-01','2022-10-07','2022-12-25','2023-06-05','2025-02-11','2025-02-12','2025-02-13','2025-02-14','2025-08-04'];                 // sin comprobante en el buzon
+const HIST_HUECOS=[['2024-07-23','2024-12-15','23 jul a 15 dic de 2024'],['2025-05-16','2025-07-14','16 may a 14 jul de 2025']]; // rangos sin ningun comprobante en el buzon (no se rellenan)
+const HIST_PARCIAL={'2025-02-10':'parcial','2025-05-15':'parcial','2025-08-05':'suma el 4 y el 5'}; // rotulo de los dias fuera del promedio que no son atipicos de operacion
 async function traerHist(mm){
   const out=[];
   for(const y of HIST_ANOS){
