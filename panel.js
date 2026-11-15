@@ -25,7 +25,7 @@ const groups=o=>{const m={};rows(o).forEach(r=>m[r.detalle]=(m[r.detalle]||0)+Nu
 /* ---- piezas ---- */
 function path(v,w,h,p){const mn=Math.min(...v),mx=Math.max(...v),r=(mx-mn)||1;return v.map((x,i)=>[i*(w/(v.length-1)),h-p-((x-mn)/r)*(h-p*2)]);}
 function area(v){if(v.length<2)return'';const w=300,h=96,p=path(v,w,h,10);const d=p.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ');
-  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="#171212" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;}
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" fill="none" stroke="#B81622" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;}
 function delta(v){if(v.length<8)return'';const a=v.slice(-7).reduce((x,y)=>x+y,0),b=v.slice(0,-7).reduce((x,y)=>x+y,0);if(!b)return'';const d=(a-b)/b*100;return `<span class="delta">${d>=0?'▲':'▼'} ${Math.abs(d).toFixed(0)} % vs semana anterior</span>`;}
 const C=(c,x)=>`<div data-c="${c}">${x}</div>`;
 const stt=(v,t)=>`<span class="st ${v>=99.5?'ok':v>=99?'warn':'bad'}">${t}</span>`;
@@ -41,10 +41,11 @@ function xlab(labels,n,bars){return labels.map((l,i)=>{if(!l)return'';const k=la
 function axes(plot,t,lo,hi,f,labels,n){const R=(hi-lo)||1;return `<div class="ch"><div class="yl">${t.map(v=>`<span style="bottom:${((v-lo)/R*100).toFixed(2)}%">${f(v)}</span>`).join('')}</div><div class="pl">${t.map(v=>`<div class="gl" style="bottom:${((v-lo)/R*100).toFixed(2)}%"></div>`).join('')}${plot}</div></div><div class="xl">${xlab(labels,n)}</div>`;}
 function barsAx(vals,labels,f,vl,avg){const t=ticks(0,Math.max(...vals,1),vals.every(Number.isInteger)),hi=t[t.length-1];return axes(`<div class="bs${vals.length<=12?' g2':''}">${vals.map(v=>`<div style="height:${Math.max(0,v/hi*100)}%" title="${f(v)}">${vl?`<i>${f(v)}</i>`:''}</div>`).join('')}</div>${avg?`<div class="pm" style="bottom:${(avg/hi*100).toFixed(2)}%" title="promedio"></div>`:''}`,t,0,hi,f,labels,vals.length);}
 function lineAx(v,labels,f){if(v.length<2)return'';const t=ticks(Math.min(...v),Math.max(...v)),lo=t[0],hi=t[t.length-1],R=(hi-lo)||1,pts=v.map((x,i)=>[i/(v.length-1)*100,100-(x-lo)/R*100]),d=pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(2)+' '+q[1].toFixed(2)).join(' ');return axes(`<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="${d} L100 100 L0 100 Z" fill="var(--cat)" opacity=".10"/><path d="${d}" fill="none" stroke="var(--cat)" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`,t,lo,hi,f,labels,v.length);}
+const dly=f=>{const d=new Date(f+'T12:00:00');return d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]+' '+d.getFullYear();};
 const dl=f=>{const d=new Date(f+'T12:00:00');return d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];};
 const dlabs=ds=>[0,1,2,3,4].map(i=>dl(ds[Math.round(i*(ds.length-1)/4)]));
 function cols(titulo,vals,labels,sub,w,f,vl,avg){return `<div class="blk"><h2>${titulo}</h2>${barsAx(vals,labels,f||fmt,vl,avg)}${sub?`<p class="note">${sub}</p>`:''}</div>`;}
-function table(titulo,head,body){return `<div class="blk"><h2>${titulo}</h2><table class="tb"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
+function table(titulo,head,body,stk){return `<div class="blk"><h2>${titulo}</h2><table class="tb${stk?' stk':''}"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body.map(r=>`<tr>${r.map((c,j)=>`<td${stk?` data-l="${head[j]}"`:''}>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;}
 
 /* ---- Ingresos digitales (tarjetas del BCR) ---- */
 const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -60,7 +61,7 @@ const dif=(a,b)=>b?((a/b-1)>=0?'▲ ':'▼ ')+Math.abs((a/b-1)*100).toFixed(0)+'
 let B={},mesSel=null;
 const KEY={tarjeta_bruto:'b',tarjeta_vouchers:'v',tarjeta_comision:'c',tarjeta_iva:'i',tarjeta_renta:'r',tarjeta_neto:'n'};
 let SP={},SPM={},SPR={};
-function armarB(a){B={};SP={};SPM={};SPR={};a.forEach(r=>{const SK={sinpe_monto:'m',sinpe_cantidad:'n',sinpe_especial_monto:'em',sinpe_especial_cantidad:'en'};if(SK[r.metrica]){const o=SP[r.fecha]||(SP[r.fecha]={m:0,n:0,em:0,en:0});o[SK[r.metrica]]+=Number(r.valor);return;}if(r.metrica==='sinpe_rango_n'||r.metrica==='sinpe_rango_monto'){const o=SPR[r.detalle]||(SPR[r.detalle]={});const m=r.fecha.slice(0,7),q=o[m]||(o[m]={n:0,m:0});q[r.metrica==='sinpe_rango_n'?'n':'m']+=Number(r.valor);return;}if(r.metrica==='sinpe_desv_pago'||r.metrica==='sinpe_mediana_pago'){const o=SPM[r.fecha.slice(0,7)]||(SPM[r.fecha.slice(0,7)]={});o[r.metrica==='sinpe_desv_pago'?'sd':'md']=Number(r.valor);return;}const k=KEY[r.metrica];if(!k)return;const o=B[r.fecha]||(B[r.fecha]={b:0,v:0,c:0,i:0,r:0,n:0,rev:false});o[k]+=Number(r.valor);if(k==='b')o.k=(o.k||0)+1;if(k==='b'&&/revisar/.test(r.detalle))o.rev=true;});}
+function armarB(a){B={};SP={};SPM={};SPR={};a.forEach(r=>{if(/^hist\|/.test(r.detalle||''))return;const SK={sinpe_monto:'m',sinpe_cantidad:'n',sinpe_especial_monto:'em',sinpe_especial_cantidad:'en'};if(SK[r.metrica]){const o=SP[r.fecha]||(SP[r.fecha]={m:0,n:0,em:0,en:0});o[SK[r.metrica]]+=Number(r.valor);return;}if(r.metrica==='sinpe_rango_n'||r.metrica==='sinpe_rango_monto'){const o=SPR[r.detalle]||(SPR[r.detalle]={});const m=r.fecha.slice(0,7),q=o[m]||(o[m]={n:0,m:0});q[r.metrica==='sinpe_rango_n'?'n':'m']+=Number(r.valor);return;}if(r.metrica==='sinpe_desv_pago'||r.metrica==='sinpe_mediana_pago'){const o=SPM[r.fecha.slice(0,7)]||(SPM[r.fecha.slice(0,7)]={});o[r.metrica==='sinpe_desv_pago'?'sd':'md']=Number(r.valor);return;}const k=KEY[r.metrica];if(!k)return;const o=B[r.fecha]||(B[r.fecha]={b:0,v:0,c:0,i:0,r:0,n:0,rev:false});o[k]+=Number(r.valor);if(k==='b')o.k=(o.k||0)+1;if(k==='b'&&/revisar/.test(r.detalle))o.rev=true;});}
 
 function sinpeHtml(){
   const sk=Object.keys(SP).sort();
@@ -80,7 +81,7 @@ function sinpeHtml(){
   // rangos de pago
   const rl=Object.keys(SPR).sort(),rt=l=>Object.values(SPR[l]).reduce((a,q)=>({n:a.n+q.n,m:a.m+q.m}),{n:0,m:0}),RT=rl.map(rt),RN=RT.reduce((a,q)=>a+q.n,0),RM=RT.reduce((a,q)=>a+q.m,0);
   if(rl.length){const lim=l=>l.replace(/^\d+ · /,'');
-    h+=`<div class="g c2" data-c="banco">`+table('Pagos por rango de monto · año',['Rango','Pagos','% pagos','Monto','% monto','Prom.'],rl.map((l,i)=>[lim(l),fmt(RT[i].n),p1(RT[i].n/RN),crc(RT[i].m),p1(RT[i].m/RM),crc(RT[i].m/RT[i].n)]))+
+    h+=`<div class="g c2" data-c="banco">`+table('Pagos por rango de monto · '+dly(sk[0])+' al '+dly(sk[sk.length-1]),['Rango','Pagos','% pagos','Monto','% monto','Prom.'],rl.map((l,i)=>[lim(l),fmt(RT[i].n),p1(RT[i].n/RN),crc(RT[i].m),p1(RT[i].m/RM),crc(RT[i].m/RT[i].n)]),1)+
     heat('Peso de cada rango por mes · % del monto',rl.map(l=>ms.filter(m=>m>='2026-03').map(m=>{const q=SPR[l][m];const tot=rl.reduce((a,x)=>a+((SPR[x][m]||{}).m||0),0);return q&&tot?Math.round(q.m/tot*100):0;})),rl.map(lim),ms.filter(m=>m>='2026-03').map(m=>MES[Number(m.slice(5))-1].slice(0,3)),'Cada columna suma 100 %. Rangos fijados con cortes naturales de la distribución (método de Jenks sobre el logaritmo del monto), redondeados a precios del menú.')+`</div>`;
     h+=`<p class="note">Lectura de los rangos: menos de ₡1.500 es café, refresco o un extra; ₡1.500 a ₡2.999, un antojo o desayuno liviano; ₡3.000 a ₡4.999, un plato individual como el casado; ₡5.000 a ₡9.999, comida con bebida o para dos; ₡10.000 a ₡19.999, grupo o familia; ₡20.000 o más, pedido grande. Las ventas especiales van aparte.</p>`;}
   // ciclos y tendencia
@@ -99,6 +100,53 @@ function sinpeHtml(){
   return h;
 }
 function T0(sk){return sk[0].slice(0,4);}
+
+/* ---- Comparativo con años anteriores (mismo mes) ---- */
+let HC={};
+function cmpAgregar(rows,y,mm){
+  const o={};rows.filter(r=>r.fecha.slice(0,4)===String(y)).forEach(r=>{const d=o[r.fecha]||(o[r.fecha]={b:0,v:0,n:0});const k={tarjeta_bruto:'b',tarjeta_vouchers:'v',tarjeta_neto:'n'}[r.metrica];if(k)d[k]+=Number(r.valor);});
+  return o;
+}
+function cmpFila(etq,dias,mm,y,vivo){
+  const ks=Object.keys(dias).sort(),nd=new Date(y,Number(mm),0).getDate();
+  if(!ks.length)return null;
+  const at=ks.filter(k=>HIST_ATIPICOS.includes(k)),ok=ks.filter(k=>!HIST_ATIPICOS.includes(k)),vs=ok.map(k=>dias[k].b);
+  const tot=ks.reduce((t,k)=>t+dias[k].b,0),net=ks.reduce((t,k)=>t+dias[k].n,0);
+  return {etq,y,n:ks.length,nd,at,tot,net,prom:mean(vs),cv:mean(vs)?sd(vs)/mean(vs):0,vivo,ini:ks[0],fin:ks[ks.length-1]};
+}
+function cmpHtml(sel){
+  const mm=sel.slice(5),mn=MES[Number(mm)-1],hr=HC[mm];
+  const filas=[];
+  const anios=[...new Set([...(hr?HIST_ANOS.map(String):[]),...Object.keys(B).filter(k=>k.slice(5,7)===mm).map(k=>k.slice(0,4))])].sort();
+  anios.forEach(y=>{
+    const d=hr?cmpAgregar(hr,y,mm):{},nh=Object.keys(d).length;
+    const viv=Object.keys(B).filter(k=>k.slice(0,4)===y&&k.slice(5,7)===mm);
+    viv.forEach(k=>{d[k]={b:B[k].b,v:B[k].v,n:B[k].n};});
+    const f=cmpFila(mn.slice(0,3)+' '+y.slice(2),d,mm,Number(y),viv.length>0);if(f){f.mixto=nh>0&&viv.length>0;filas.push(f);}});
+  filas.sort((a,b)=>a.y-b.y);
+  const cargando=hr===undefined&&!HC['err'+mm];
+  let h='';
+  if(!filas.length)return `<p class="note">${cargando?'Cargando la historia de '+mn+'…':'No hay ventas con tarjeta cargadas para '+mn+' en ningún año.'}</p>`;
+  const falt=HIST_FALTAN.filter(k=>k.slice(5,7)===mm).map(k=>dl(k)+' '+k.slice(0,4));
+  const nfa=f=>HIST_FALTAN.filter(k=>k.slice(0,4)===String(f.y)&&k.slice(5,7)===mm).length,parc=f=>f.n>=f.nd?'':f.n+nfa(f)>=f.nd?`<small>${f.n} de ${f.nd} días · sin comprobante: ${HIST_FALTAN.filter(k=>k.slice(0,4)===String(f.y)&&k.slice(5,7)===mm).map(k=>dl(k)).join(', ')}</small>`:` <span class="tag par">parcial</span><small>${f.n} de ${f.nd} días · hay datos del ${dl(f.ini)} al ${dl(f.fin)}</small>`;
+  h+=barsAx(filas.map(f=>f.prom),filas.map(f=>f.etq),v=>'₡'+cc(v),1);
+  h+=`<p class="note">Eje vertical: colones de venta bruta promedio por día. Eje horizontal: ${mn} de cada año, del más antiguo (izquierda) al más reciente (derecha).</p>`;
+  h+=`<table class="tb" style="margin-top:14px"><thead><tr><th>${mn[0].toUpperCase()+mn.slice(1)}</th><th>Ventas brutas</th><th>Prom./día</th><th>CV</th><th>Neto</th></tr></thead><tbody>${filas.map(f=>`<tr><td>${f.etq}${f.mixto?'<small>historia del BCR y periodo vivo</small>':f.vivo?'':'<small>historia del BCR</small>'}${parc(f)}${f.at.length?`<small>${f.at.length} ${f.at.length==1?'día fuera':'días fuera'} del promedio y del CV: ${f.at.map(k=>dl(k)+(HIST_PARCIAL[k]?' ('+HIST_PARCIAL[k]+')':'')).join(', ')}</small>`:''}</td><td>${crc(f.tot)}</td><td>${crc(f.prom)}</td><td style="white-space:nowrap">${p1(f.cv)}</td><td>${crc(f.net)}<small>${p1(f.net/f.tot)} de la venta</small></td></tr>`).join('')}</tbody></table>`;
+  h+=`<p class="note">Cifras brutas: venta con tarjeta antes de comisión y retenciones; la columna Neto es lo depositado. Prom./día y coeficiente de variación (CV) excluyen los días atípicos o parciales marcados en cada fila (8 al 10 de octubre de 2022, 8 de marzo de 2023, 10 de febrero, 15 de mayo y 5 de agosto de 2025). Ventas brutas suma solo los días con datos del mes: donde faltan comprobantes no se completa ni se estima nada; el promedio por día sí es comparable aunque el mes esté incompleto.</p>`;
+  if(falt.length)h+=`<p class="note"><b>Falta el comprobante de:</b> ${falt.join(', ')}.</p>`;
+  const sinm=HIST_HUECOS.filter(g=>HIST_ANOS.some(y=>y+'-'+mm+'-01'>=g[0]&&y+'-'+mm+'-31'<=g[1]&&!filas.some(x=>x.y===y))).map(g=>g[2]);
+  if(sinm.length)h+=`<p class="note"><b>Sin comprobantes cargados</b> para este mes (hueco del ${sinm.join(' y del ')}): ese año no se muestra, no se estima.</p>`;
+  h+=cargando?`<p class="note">Cargando la historia de ${mn}…</p>`:HC['err'+mm]?`<p class="note">No se pudo cargar la historia de ${mn}; se muestra solo el periodo vivo.</p>`:'';
+  return h;
+}
+function cmpSeccion(sel,ms){
+  return `<div class="g" data-c="banco"><div class="blk"><h2>Comparativo con años anteriores · ${MES[Number(sel.slice(5))-1]}</h2><div class="chips">${ms.map(m=>`<button data-mes="${m}" aria-pressed="${m===sel}">${MES[Number(m.slice(5))-1].slice(0,3)} ${m.slice(2,4)}</button>`).join('')}</div><div id="cmp-b" data-mm="${sel.slice(5)}" data-sel="1">${cmpHtml(sel)}</div><p class="note">Faltan algunos comprobantes sueltos (por ejemplo 7 oct y 25 dic de 2022, 5 jun de 2023 y 11 al 14 feb de 2025). La historia cargada va de febrero de 2021 al 23 de agosto de 2025, con dos huecos sin comprobantes en el buzón: del 23 de julio al 15 de diciembre de 2024 y del 16 de mayo al 14 de julio de 2025; esos meses salen parciales o no aparecen y no se rellenan. 2021 fue de arranque del negocio y restricciones: ventas con tarjeta mucho menores.</p></div></div>`;
+}
+async function cmpCargar(sel){
+  const mm=sel.slice(5);if(HC[mm]!==undefined)return;
+  try{HC[mm]=await traerHist(mm);}catch(e){HC['err'+mm]=true;HC[mm]=[];}
+  const b=$('cmp-b');if(b&&b.dataset.mm===mm)b.innerHTML=cmpHtml(sel);
+}
 function pintarIng(){
   const el=$('tab-ingresos');const ks=Object.keys(B).sort();
   if(!ks.length){el.innerHTML='<div class="g" data-c="banco"><div class="blk"><h2>Sin datos todavía</h2><p class="note">Los comprobantes del BCR aún no se han cargado.</p></div></div>';return;}
@@ -135,9 +183,9 @@ function pintarIng(){
   h+=kpis([{c:'banco',l:'Ventas brutas acumuladas',v:crc(tot('b')),s:dp.length?dif(tot('b'),sm(dp))+' vs '+MES[Number(mp.slice(5))-1]+' (mismos días)':''},{c:'banco',l:'Promedio por día',v:crc(tot('b')/dm.length)},{c:'banco',l:'Neto acumulado',v:crc(tot('n')),s:p1(tot('n')/tot('b'))+' de la venta'},{c:'banco',l:'Comisión y retenciones acumuladas',v:crc(tot('c')+tot('i')+tot('r')),s:p1((tot('c')+tot('i')+tot('r'))/tot('b'))+' de la venta'}]);
   // ---- acumulado del año
   const ya=q=>ks.reduce((t,k)=>t+B[k][q],0),yb=ya('b'),yn=ya('n'),yc=ya('c'),yi=ya('i'),yr=ya('r'),yv=ya('v');
-  h+=`<div class="dayl" style="margin-top:34px">Acumulado del año</div><div class="mes">${T.slice(0,4)}<small>${dl(ks[0])} al ${dl(T)} · ${ks.length} días con datos</small></div>`;
+  h+=`<div class="dayl" style="margin-top:34px">Acumulado del periodo</div><div class="mes" style="text-transform:none">${dly(ks[0])} al ${dly(T)}<small>${ks.length} días con datos · cifras brutas salvo donde dice neto</small></div>`;
   h+=kpis([{c:'banco',l:'Ventas brutas acumuladas',v:crc(yb),s:crc(yb/ks.length)+' por día'},{c:'banco',l:'Neto acumulado',v:crc(yn),s:p1(yn/yb)+' de la venta'},{c:'banco',l:'Comisión y retenciones acumuladas',v:crc(yc+yi+yr),s:'comisión '+crc(yc)+' · IVA '+crc(yi)+' · renta '+crc(yr)},{c:'banco',l:'Vouchers acumulados',v:fmt(yv),s:'ticket '+crc(yb/yv)+' bruto · '+crc(yn/yv)+' neto'}]);
-  h+=`<div class="g" data-c="banco"><div class="blk"><h2>Ventas brutas por mes · ${T.slice(0,4)}</h2>${(()=>{const mm=[...new Set(ks.map(k=>k.slice(0,7)))],tv=mm.map(m=>ks.filter(k=>k.slice(0,7)===m).reduce((t,k)=>t+B[k].b,0)),pa=mm.map(m=>!(ks.filter(k=>k.slice(0,7)===m).length>=new Date(Number(m.slice(0,4)),Number(m.slice(5)),0).getDate())),t=ticks(0,Math.max(...tv)),hi=t[t.length-1];return axes(`<div class="bs g2">${tv.map((v,i)=>`<div class="${pa[i]?'pa':''}" style="height:${v/hi*100}%" title="${crc(v)}"><i>₡${cc(v)}</i></div>`).join('')}</div>`,t,0,hi,v=>'₡'+cc(v),mm.map(m=>MES[Number(m.slice(5))-1].slice(0,3)),mm.length)+`<p class="lg">${pa.some(x=>x)?'La barra clara es un mes parcial ('+ks.filter(k=>k.slice(0,7)===mm[mm.length-1]).length+' días con datos).':''}</p>`;})()}</div></div>`;
+  h+=`<div class="g" data-c="banco"><div class="blk"><h2>Ventas brutas por mes · ${dly(ks[0]).replace(/^\d+ /,'')} a ${dly(T).replace(/^\d+ /,'')}</h2>${(()=>{const mm=[...new Set(ks.map(k=>k.slice(0,7)))],tv=mm.map(m=>ks.filter(k=>k.slice(0,7)===m).reduce((t,k)=>t+B[k].b,0)),pa=mm.map(m=>!(ks.filter(k=>k.slice(0,7)===m).length>=new Date(Number(m.slice(0,4)),Number(m.slice(5)),0).getDate())),t=ticks(0,Math.max(...tv)),hi=t[t.length-1];return axes(`<div class="bs g2">${tv.map((v,i)=>`<div class="${pa[i]?'pa':''}" style="height:${v/hi*100}%" title="${crc(v)}"><i>₡${cc(v)}</i></div>`).join('')}</div>`,t,0,hi,v=>'₡'+cc(v),mm.map(m=>MES[Number(m.slice(5))-1].slice(0,3)),mm.length)+`<p class="lg">${pa.some(x=>x)?'La barra clara es un mes parcial ('+ks.filter(k=>k.slice(0,7)===mm[mm.length-1]).length+' días con datos).':''}</p>`;})()}</div></div>`;
   // ---- meses
   const ms=[...new Set(ks.map(k=>k.slice(0,7)))];
   const comp=ms.filter(m=>m!==mk||ks.filter(k=>k.slice(0,7)===m).length>=new Date(Number(m.slice(0,4)),Number(m.slice(5)),0).getDate());
@@ -156,7 +204,7 @@ function pintarIng(){
   // ---- tendencia
   const ma=(n,end)=>{const a=ks.slice(Math.max(0,end-n),end);return mean(a.map(V));};
   const L=ks.length,m7=ma(7,L),m7p=ma(7,L-7),m30=ma(30,L),m30p=ma(30,L-30);
-  h+=`<div class="dayl" style="margin-top:34px">Tendencia</div>`+kpis([{c:'banco',l:'Promedio móvil 7 días',v:crc(m7),s:dif(m7,m7p)+' vs 7 días previos'},{c:'banco',l:'Promedio móvil 30 días',v:crc(m30),s:dif(m30,m30p)+' vs 30 días previos'},{c:'banco',l:'Promedio del año',v:crc(mean(ks.map(V))),s:ks.length+' días'},{c:'banco',l:'Variación diaria',v:p1(sd(ks.map(V))/mean(ks.map(V))),s:'coef. de variación de las ventas'}]);
+  h+=`<div class="dayl" style="margin-top:34px">Tendencia</div>`+kpis([{c:'banco',l:'Promedio móvil 7 días',v:crc(m7),s:dif(m7,m7p)+' vs 7 días previos'},{c:'banco',l:'Promedio móvil 30 días',v:crc(m30),s:dif(m30,m30p)+' vs 30 días previos'},{c:'banco',l:'Promedio del periodo',v:crc(mean(ks.map(V))),s:ks.length+' días'},{c:'banco',l:'Variación diaria',v:p1(sd(ks.map(V))/mean(ks.map(V))),s:'coef. de variación de las ventas'}]);
   h+=`<div class="g" data-c="banco">${cols('Ventas brutas diarias · últimos 60 días',ks.slice(-60).map(V),dlabs(ks.slice(-60)),null,0,v=>'₡'+cc(v))}</div>`;
   // ---- ticket
   const n=mean(ks.map(k=>B[k].v)),t30=tk.slice(-30),n30=tn.slice(-30);
@@ -171,12 +219,14 @@ function pintarIng(){
       ['Últimos 30 días<small>desviación estándar</small>',crc(sd(t30)),crc(sd(n30))],
       ['Últimos 30 días<small>coef. de variación</small>',p1(sd(t30)/mean(t30)),p1(sd(n30)/mean(n30))],
       ['Desviación por voucher<small>estimada: s·√n, con n = '+fmt(n)+' vouchers al día</small>',crc(sd(tk)*Math.sqrt(n)),crc(sd(tn)*Math.sqrt(n))]])+
-    table('Comisión y retenciones por mes',['Mes','Comisión','Ret. IVA','Ret. renta'],ms.map(m=>{const d=ks.filter(k=>k.slice(0,7)===m),f=q=>d.reduce((s,k)=>s+B[k][q],0);return [MES[Number(m.slice(5))-1],crc(f('c')),crc(f('i')),crc(f('r'))];}).concat([['Acumulado del año',crc(ks.reduce((s,k)=>s+B[k].c,0)),crc(ks.reduce((s,k)=>s+B[k].i,0)),crc(ks.reduce((s,k)=>s+B[k].r,0))]]))+`</div>`;
+    table('Comisión y retenciones por mes',['Mes','Comisión','Ret. IVA','Ret. renta'],ms.map(m=>{const d=ks.filter(k=>k.slice(0,7)===m),f=q=>d.reduce((s,k)=>s+B[k][q],0);return [MES[Number(m.slice(5))-1],crc(f('c')),crc(f('i')),crc(f('r'))];}).concat([['Acumulado del periodo',crc(ks.reduce((s,k)=>s+B[k].c,0)),crc(ks.reduce((s,k)=>s+B[k].i,0)),crc(ks.reduce((s,k)=>s+B[k].r,0))]]))+`</div>`;
   const nrev=ks.filter(k=>B[k].rev).length;
+  h+=cmpSeccion(sel,ms);
   h+=sinpeHtml();
   if(nrev)h+=`<p class="note">${nrev} días tienen el total impreso del comprobante inconsistente con la suma de sus lotes. Aquí se usa siempre la suma de los lotes.</p>`;
   el.innerHTML=h;
   el.querySelectorAll('[data-mes]').forEach(b=>b.onclick=()=>{mesSel=b.dataset.mes;pintarIng();});
+  cmpCargar(sel);
 }
 
 /* ---- Redes sociales (Meta, API oficial) ---- */
@@ -325,7 +375,7 @@ function pintarPag(){
 
 
 /* ---- Gastos, Impuestos y Hoy ---- */
-let RAROS=[],EMP='grupo',SEC='hoy',GG={},II={},INV={},PED=[],FIN_ERR=false;
+let RAROS=[],EMP='grupo',SEC='hoy',GG={},II={},INV={},BZ={},PED=[],FIN_ERR=false;
 const EMPN={grupo:'Grupo DMA-La Bomba',soda:'Soda La Bomba',pollos:'Pollos La Bomba y Papea'};
 const MS3=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const ml=m=>MS3[+m.slice(5,7)-1];
@@ -354,6 +404,20 @@ async function traerInv(){
   const out={};
   for(const e of ['grupo','soda','pollos']){const r=await sb.rpc('inventario_valor_resumen',{p_emp:e});if(r.error)throw r.error;out[e]=r.data;}
   return out;
+}
+async function traerBz(){
+  const out={};
+  for(const e of ['grupo','soda','pollos']){const r=await sb.rpc('panel_control_buzones',{p_emp:e});if(r.error)throw r.error;out[e]=r.data;}
+  return out;
+}
+function bloqueBuzones(){
+  const v=BZ[EMP];if(!v)return '';
+  const f=(t,n,s)=>`<div class="br"><div class="t"><b>${t}</b><i>${fmt(n)}</i></div>${s?`<div class="s2">${s}</div>`:''}</div>`;
+  const falta=num(v.faltan),llegan=Math.max(0,num(v.recibidas)-num(v.registradas)-falta);
+  const frase=v.estado==='error'?'No se pudo revisar los buzones':v.estado==='falta'?(falta===1?'Falta 1 factura':'Faltan '+fmt(falta)+' facturas'):'Todo en orden';
+  const cuando=v.actualizado?new Date(v.actualizado).toLocaleString('es-CR',{timeZone:'America/Costa_Rica',weekday:'long',day:'numeric',month:'long',hour:'numeric',minute:'2-digit'}).replace(/\.$/,''):'';
+  const sub=(v.estado==='error'?'La última revisión no terminó y se repetirá sola. ':'')+(cuando?'Última revisión: '+cuando+(llegan?' · ':'.'):'')+(llegan?(llegan===1?'1 factura llegó hace poco y se registrará en la próxima lectura.':fmt(llegan)+' facturas llegaron hace poco y se registrarán en la próxima lectura.'):'');
+  return `<div class="g" data-c="sistema"><div class="blk"><h2>Control de buzones</h2><div class="rev ${v.estado==='ok'?'':'bad'}"><b>${frase}</b><span>${esc(sub.trim())}</span></div>${f('Facturas recibidas',v.recibidas,'en los buzones, últimos '+fmt(v.dias||7)+' días')}${f('Facturas registradas',v.registradas,'ya están en el panel y en Impuestos')}${f('Sin IVA registrado',v.sin_iva,num(v.sin_iva)?'el IVA no quedó anotado':'el IVA está anotado en todas')}${f('Líneas de inventario pendientes',v.inventario_lineas,num(v.inventario_facturas_mas3)?fmt(v.inventario_facturas_mas3)+(num(v.inventario_facturas_mas3)===1?' factura espera':' facturas esperan')+' hace más de 3 días':'por recibir en el inventario')}</div></div>`;
 }
 const GRUPO_INV={comida_preparada:'Comida preparada',unitario:'Unitarios (bebidas y empacados)',suministro:'Suministros'};
 function bloqueInv(){
@@ -400,6 +464,7 @@ function pintarHoy(){
     h+=`<div class="g" data-c="sistema"><div class="blk"><h2>Cada empresa</h2>${f('soda','Soda La Bomba')}${f('pollos','Pollos La Bomba y Papea')}<p class="note">Las compras sin cédula del receptor o a nombre de otra persona están en el total del Grupo, pero no en una empresa. Al elegir Soda o Pollos arriba se ve solo una.</p></div></div>`;
   }
   h+=bloqueInv();
+  h+=bloqueBuzones();
   const rv=revisar(I);
   h+=`<div class="g" data-c="imp" id="por-revisar"><div class="blk"><h2>Por revisar</h2>${rv.length?rv.map(x=>`<div class="rev ${x.bad?'bad':''}"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></div>`).join(''):'<p class="note">Nada por revisar.</p>'}<p class="note"><a href="#" data-go="impuestos">Ver todo en Impuestos</a></p></div></div>`;
   const rec=rc.slice(0,4).reverse();
@@ -451,12 +516,12 @@ function pintarAviso(){
     const _av=(_u&&_u===hy)?'':hoyBloque('Aún sin reporte del BCR','El banco reporta con un día de atraso, así que el comprobante de hoy llega mañana.'+(_u?' Lo último cargado es del '+fl(_u)+'.':''));
     a.innerHTML=_av+(EMP==='grupo'?`<p class="note" style="margin:0 0 18px">Hoy solo están conectados los cobros digitales de la Soda. Las ventas de Pollos y Papea se sumarán cuando se defina la fuente.</p>`:'');$('tab-ingresos').hidden=false;}
 }
-function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();if(typeof precios!=='undefined')precios.ver();if(typeof atender!=='undefined')atender.contar();}
+function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();if(typeof precios!=='undefined')precios.ver();if(SEC==='comercial'&&typeof comercial!=='undefined')comercial.ver();if(typeof atender!=='undefined')atender.contar();}
 function irSec(s){
   SEC=s;
   document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x.dataset.sec===s));
-  ['hoy','atender','ingresos','gastos','precios','impuestos','presencia'].forEach(t=>$('sec-'+t).hidden=t!==s);
-  window.scrollTo(0,0);if(s==='precios'&&typeof precios!=='undefined')precios.ver();if(s==='atender'&&typeof atender!=='undefined')atender.ver();if(typeof atender!=='undefined')atender.notas();
+  ['hoy','atender','ingresos','gastos','comercial','precios','impuestos','presencia'].forEach(t=>$('sec-'+t).hidden=t!==s);
+  window.scrollTo(0,0);if(s==='comercial'&&typeof comercial!=='undefined')comercial.ver();if(s==='precios'&&typeof precios!=='undefined')precios.ver();if(s==='atender'&&typeof atender!=='undefined')atender.ver();if(typeof atender!=='undefined')atender.notas();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>irSec(b.dataset.sec));
 document.querySelectorAll('.emp button').forEach(b=>b.onclick=()=>{EMP=b.dataset.emp;document.body.dataset.emp=EMP;document.querySelectorAll('.emp button').forEach(x=>x.setAttribute('aria-pressed',x===b));pintarFin();});
@@ -464,10 +529,30 @@ document.querySelectorAll('.subtabs button').forEach(b=>b.onclick=()=>{document.
 $('pill').onclick=e=>{e.preventDefault();irSec('hoy');setTimeout(()=>{const x=$('por-revisar');if(x){x.scrollIntoView({behavior:'smooth',block:'start'});x.style.outline='2px solid var(--bad)';setTimeout(()=>x.style.outline='',2200);}},60);};
 document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(a){e.preventDefault();irSec(a.dataset.go);}});
 
+/* ---- BCR: periodo vivo y historia ----
+   Toda lectura de panel_metricas pide duplicado=false: las copias reenviadas de un mismo correo del BCR (ene 2026) quedan marcadas en la base y no se cuentan.
+   Periodo vivo = serie diaria de bcr-diario (desde el 24 ago 2025). La historia (marca «hist|» en detalle, feb 2021 a 23 ago 2025, con huecos)
+   NO entra a las cifras del año ni a los selectores: solo alimenta el comparativo con años anteriores, y se baja por mes, bajo demanda. */
+const BCR_VIVO_DESDE='2025-08-24';
+const HIST_ANOS=[2021,2022,2023,2024,2025];
+const HIST_ATIPICOS=['2022-10-08','2022-10-09','2022-10-10','2023-03-08','2025-02-10','2025-05-15','2025-08-05']; // fuera de los promedios (dia atipico marcado)
+const HIST_FALTAN=['2021-03-12','2021-06-02','2021-06-03','2021-06-23','2021-08-15','2022-01-01','2022-10-07','2022-12-25','2023-06-05','2025-02-11','2025-02-12','2025-02-13','2025-02-14','2025-08-04'];                 // sin comprobante en el buzon
+const HIST_HUECOS=[['2024-07-23','2024-12-15','23 jul a 15 dic de 2024'],['2025-05-16','2025-07-14','16 may a 14 jul de 2025']]; // rangos sin ningun comprobante en el buzon (no se rellenan)
+const HIST_PARCIAL={'2025-02-10':'parcial','2025-05-15':'parcial','2025-08-05':'suma el 4 y el 5'}; // rotulo de los dias fuera del promedio que no son atipicos de operacion
+async function traerHist(mm){
+  const out=[];
+  for(const y of HIST_ANOS){
+    const {data,error}=await sb.from('panel_metricas').select('fecha,metrica,valor').eq('fuente','bcr').eq('duplicado',false).like('detalle','hist|%')
+      .in('metrica',['tarjeta_bruto','tarjeta_vouchers','tarjeta_neto']).gte('fecha',y+'-'+mm+'-01').lte('fecha',y+'-'+mm+'-'+String(new Date(y,Number(mm),0).getDate()).padStart(2,'0')).order('fecha').range(0,999);
+    if(error) throw error;
+    data.forEach(r=>out.push(r));
+  }
+  return out;
+}
 async function traer(){
   let all=[],from=0;
   for(;;){
-    const {data,error}=await sb.from('panel_metricas').select('fecha,fuente,sitio,metrica,detalle,valor').order('fecha').range(from,from+999);
+    const {data,error}=await sb.from('panel_metricas').select('fecha,fuente,sitio,metrica,detalle,valor').gte('fecha',addd(HOYCR(),-14)).eq('duplicado',false).order('fecha').range(from,from+999);
     if(error) throw error;
     all=all.concat(data); if(data.length<1000) break; from+=1000;
   }
@@ -476,7 +561,7 @@ async function traer(){
 async function traerBcr(){
   let all=[],from=0;
   for(;;){
-    const {data,error}=await sb.from('panel_metricas').select('fecha,metrica,detalle,valor').eq('fuente','bcr').order('fecha').range(from,from+999);
+    const {data,error}=await sb.from('panel_metricas').select('fecha,metrica,detalle,valor').eq('fuente','bcr').eq('duplicado',false).gte('fecha',BCR_VIVO_DESDE).not('detalle','like','hist|%').order('fecha').range(from,from+999);
     if(error) throw error;
     all=all.concat(data); if(data.length<1000) break; from+=1000;
   }
@@ -490,6 +575,7 @@ async function cargar2(){
   try{MALL=await traerMeta();M=MALL.filter(r=>r.fecha>=addd(HOYCR(),-60));}catch(e){MALL=[];M=[];}
   pintarRedes();
   traerInv().then(v=>{INV=v;pintarHoy();}).catch(()=>{});
+  traerBz().then(v=>{BZ=v;pintarHoy();}).catch(()=>{});
   traerFin().then(pintarFin).catch(()=>{FIN_ERR=true;pintarFin();});
   try{armarB(await traerBcr());pintarIng();}
   catch(e){$('tab-ingresos').innerHTML='<div class="blk"><h2>No se pudieron cargar los ingresos</h2></div>';}
@@ -512,13 +598,13 @@ function conCopia(nombre,fn){return async(...a)=>{const k=nombre+':'+JSON.string
   const dePrueba=async()=>{const c=await cGet(k);if(c){ultimaCopia=Math.min(ultimaCopia||c.t,c.t);avisoCon(ultimaCopia);return c.v;}throw new Error('sin copia');};
   if(!navigator.onLine)return dePrueba();
   try{const r=await fn(...a);cPut(k,r);return r;}catch(e){try{return await dePrueba();}catch(_){throw e;}}};}
-traerMeta=conCopia('meta',traerMeta);traerTabla=conCopia('tabla',traerTabla);traerFin=conCopia('fin',traerFin);traerInv=conCopia('inv',traerInv);traer=conCopia('traer',traer);traerBcr=conCopia('bcr',traerBcr);
+traerMeta=conCopia('meta',traerMeta);traerTabla=conCopia('tabla',traerTabla);traerFin=conCopia('fin',traerFin);traerInv=conCopia('inv',traerInv);traerBz=conCopia('bz',traerBz);traer=conCopia('traer',traer);traerBcr=conCopia('bcr',traerBcr);traerHist=conCopia('hist',traerHist);
 addEventListener('online',()=>{ultimaCopia=0;avisoCon(0);});
 addEventListener('offline',()=>{if(!$('app').hidden)avisoCon(ultimaCopia||Date.now());});
 async function validar(session){
   $('espera').hidden=true;
   const yaEntro=localStorage.getItem('panel.entro')==='1';
-  if(!navigator.onLine&&yaEntro){$('login').hidden=true;$('app').hidden=false;$('quien').textContent='';$('ini').textContent='B';avisoCon(ultimaCopia||Date.now());cargar();return;}
+  if(!navigator.onLine&&yaEntro){$('login').hidden=true;$('app').hidden=false;$('quien').textContent='';$('ini').textContent='DMA';avisoCon(ultimaCopia||Date.now());cargar();return;}
   if(!session){$('app').hidden=true;$('login').hidden=false;return;}
   $('espera').hidden=false;
   let ok,error;for(let i=0;i<4;i++){try{({data:ok,error}=await sb.rpc('es_panel'));}catch(e){error=e;}if(!error)break;await new Promise(r=>setTimeout(r,1500*(i+1)));}
@@ -527,7 +613,7 @@ async function validar(session){
   if(error||ok!==true){await sb.auth.signOut();$('app').hidden=true;$('login').hidden=false;$('err').textContent='Esta sesión no tiene acceso al panel.';return;}
   try{localStorage.setItem('panel.entro','1');}catch(e){}
   $('login').hidden=true;$('app').hidden=false;
-  const em=session.user.email||'';$('quien').textContent=em;$('ini').textContent=(em[0]||'B').toUpperCase();
+  const em=session.user.email||'';$('quien').textContent=em;$('ini').textContent='DMA';
   cargar();if(window.panelAvisos)panelAvisos();
   if(!window._rt){let t=null;const rec=()=>{clearTimeout(t);t=setTimeout(()=>cargar().then(()=>{const e=$('envivo');if(e)e.textContent='Actualizado en vivo '+new Date().toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});}),20000);};
     window._rt=sb.channel('panel-en-vivo');

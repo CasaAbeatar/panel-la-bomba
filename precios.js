@@ -1,6 +1,6 @@
 /* ---- Precios: análisis permanente de precios de compra (costo por unidad, sin IVA = neto) ---- */
 const precios=(()=>{
-const PAL=['#171212','#2D5FA0','#7A3F78','#1B6B7A','#B8740A','#51657A','#8A6D3B','#3F5E3A'];
+const PAL=['#B81622','#2D5FA0','#7A3F78','#3F7FA8','#B8740A','#51657A','#8A6D3B','#7A5A3A'];
 const PERS={todo:'Todo el historial',12:'Últimos 12 meses',6:'Últimos 6 meses',3:'Últimos 3 meses'};
 const TEND={alza_sostenida:'alza sostenida',baja_sostenida:'baja sostenida',estable:'precio estable',salto_alza:'salto puntual hacia arriba',salto_baja:'salto puntual hacia abajo',variable:'sube y baja sin rumbo',pocos_datos:'pocas compras, aún sin tendencia'};
 const TEXPL={alza_sostenida:'sube compra tras compra',baja_sostenida:'baja compra tras compra',estable:'casi no se mueve',salto_alza:'subió una sola vez y el resto igual',salto_baja:'bajó una sola vez y el resto igual',variable:'sube y baja sin una dirección clara',pocos_datos:'menos de 3 compras: todavía no se puede hablar de tendencia'};
@@ -50,11 +50,11 @@ function lineas(series,o){
   const X=x=>(x-x0)/(x1-x0)*100,Y=y=>100-(y-lo)/R*100;
   const paths=series.map((s,i)=>{const c=s.color;const d=s.pts.map((p,j)=>(j?'L':'M')+X(p[0]).toFixed(2)+' '+Y(p[1]).toFixed(2)).join(' ');
     return s.pts.length>1?`<path d="${d}" fill="none" stroke="${c}" stroke-width="1.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`:'';}).join('');
-  const base=o.base?`<path d="M0 ${Y(100).toFixed(2)} L100 ${Y(100).toFixed(2)}" stroke="#171212" stroke-width="1" stroke-dasharray="4 3" opacity=".55" vector-effect="non-scaling-stroke"/>`:'';
+  const base=o.base?`<path d="M0 ${Y(100).toFixed(2)} L100 ${Y(100).toFixed(2)}" stroke="#B81622" stroke-width="1" stroke-dasharray="4 3" opacity=".55" vector-effect="non-scaling-stroke"/>`:'';
   const dots=series.map(s=>s.pts.map(p=>`<i class="pr-dot" style="--c:${s.color};left:${X(p[0]).toFixed(2)}%;bottom:${(100-Y(p[1])).toFixed(2)}%"></i>`).join('')).join('');
   const k=5,labs=[];for(let i=0;i<k;i++){const x=x0+(x1-x0)*i/(k-1);labs.push(o.xl(x));}
   const html=axes(`<div class="pr-g" style="position:absolute;inset:0"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${paths}${base}</svg>${dots}</div>`,t,lo,hi,o.yf||c2,labs,0);
-  const ley=series.length>1||o.leyenda?`<div class="pr-leyenda">${series.map(s=>`<span style="--c:${s.color}"><i></i>${esc(s.name)}</span>`).join('')}${o.base?'<span style="--c:#171212"><i style="border-top-style:dashed;border-top-width:1px"></i>Base 100</span>':''}</div>`:'';
+  const ley=series.length>1||o.leyenda?`<div class="pr-leyenda">${series.map(s=>`<span style="--c:${s.color}"><i></i>${esc(s.name)}</span>`).join('')}${o.base?'<span style="--c:#B81622"><i style="border-top-style:dashed;border-top-width:1px"></i>Base 100</span>':''}</div>`:'';
   return `<p class="pr-eje">${o.eje||''}</p>${html}${ley}`;
 }
 const dayN=f=>Math.round(new Date(String(f).slice(0,10)+'T12:00:00').getTime()/864e5);
@@ -103,7 +103,7 @@ function selHtml(){
 }
 const AYUDA=`<details class="pr-ayuda"><summary>¿Cómo leer esta pantalla?</summary><div>
 <p><b>Costo por unidad.</b> Es lo que cuesta una sola unidad (una botella, un kilo, una pieza) sin IVA, ya dividido si la factura trae cajas o paquetes. Así se pueden comparar compras de distinto tamaño. Cuando la factura trae PDF, se usa para confirmar cuántas unidades vienen en cada caja; si no, se usa el XML y se marca «según XML».</p>
-<p><b>Rojo y verde.</b> Rojo es que usted paga más; verde es que paga menos. Todas las cifras son netas, sin IVA, en colones.</p>
+<p><b>Rojo y ámbar.</b> Rojo (▲) es que usted paga más; ámbar (▼) es que paga menos. Todas las cifras son netas, sin IVA, en colones.</p>
 <p><b>Tendencia.</b> «Alza sostenida» o «baja sostenida» es cuando el precio se mueve en la misma dirección compra tras compra (cambio total de 5 % o más y al menos 6 de cada 10 movimientos en esa dirección). «Salto puntual» es un solo precio raro con el resto igual. «Estable» es menos de 5 % de diferencia entre el más barato y el más caro. Con menos de 3 compras no se habla de tendencia.</p>
 <p><b>Índice.</b> Empieza en 100 en el primer mes con compras. Cada mes se compara solo lo que se compró en ese mes y en el anterior (la misma canasta), pesando cada producto por lo que se gastó en él; luego se encadena. Si el índice marca 108, esa canasta cuesta 8 % más que al inicio.</p>
 </div></details>`;
@@ -154,7 +154,7 @@ function idxTabla(meses){
 }
 function idxChart(meses,nombre){
   const pts=meses.map(m=>[mesN(m.m),m.i]);
-  return lineas([{name:nombre,color:'#171212',pts}],{base:true,xl:xlMes,yf:v=>n2.format(v).replace(/,00$/,''),eje:'Índice de precios (base 100 = primer mes) · cada punto es un mes · de izquierda (más antiguo) a derecha (más reciente)'});
+  return lineas([{name:nombre,color:'#B81622',pts}],{base:true,xl:xlMes,yf:v=>n2.format(v).replace(/,00$/,''),eje:'Índice de precios (base 100 = primer mes) · cada punto es un mes · de izquierda (más antiguo) a derecha (más reciente)'});
 }
 function catHtml(D){
   if(!D)return errores.cat?`<p class="nodata">${esc(errores.cat)}</p>`:cargando();
@@ -193,7 +193,7 @@ function provHtml(D){
   const et=num(D.efecto_total);
   let h=`<div class="g" data-c="precio"><div class="blk"><h2>Cuánto más (o menos) se pagó por cambios de precio · por mes</h2>
    <p style="margin:12px 0 4px;font-size:16px;line-height:1.4">${et>=0?'En total se pagó':'En total se pagó'} <b class="${et>0?'pr-up':et<0?'pr-dn':''}">${c0(Math.abs(et))} ${et>=0?'de más':'de menos'}</b> por los cambios de precio, frente al primer precio de cada producto.</p>
-   ${barrasEfecto(D.efecto_mes,'Diferencia de precio × cantidad comprada en cada mes, en colones sin IVA (neto) · rojo: se pagó más · verde: se pagó menos')}
+   ${barrasEfecto(D.efecto_mes,'Diferencia de precio × cantidad comprada en cada mes, en colones sin IVA (neto) · rojo: se pagó más · ámbar: se pagó menos')}
    <p class="note">Para cada producto de cada proveedor: (precio del mes − precio de su primera compra) × unidades compradas ese mes. Es el costo real del alza sobre lo que realmente se compró.</p></div></div>`;
   h+=`<div class="pr-sub">Ranking de proveedores · de mayor a menor aumento acumulado</div><div class="g" data-c="precio"><div class="blk" style="padding-top:6px">`;
   h+=ps.map((p,i)=>{const ms=p.meses||[],a=ms.length>1?ms[ms.length-1].i/100-1:null;
@@ -208,12 +208,12 @@ function provDetHtml(p,L){
   <p style="margin:12px 0 4px;font-size:16px;line-height:1.4">${a==null?'Todavía hay pocos meses de compras para medir.':Math.abs(a)<.0005?'Sus precios no han cambiado.':`Sus precios ${a>0?'subieron':'bajaron'} <b class="${cl(a)}">${pc(Math.abs(a))}</b> desde ${fmL(p.base)}, sobre la misma canasta de productos.`} Costó ${c0(Math.abs(num(p.efecto)))} ${num(p.efecto)>=0?'más':'menos'} de lo que se habría pagado a los primeros precios.</p>
   ${ms.length>1?idxChart(ms,p.prov):''}
   <dl class="pr-stat"><div><dt>Cambio a 30 días</dt><dd class="${cl(p.v30)}">${p.v30==null?'sin compras':fa(p.v30)+pc(Math.abs(p.v30))}</dd></div><div><dt>Cambio a 90 días</dt><dd class="${cl(p.v90)}">${p.v90==null?'sin compras':fa(p.v90)+pc(Math.abs(p.v90))}</dd></div><div><dt>Cambio a 365 días</dt><dd class="${cl(p.v365)}">${p.v365==null?'sin compras':fa(p.v365)+pc(Math.abs(p.v365))}</dd></div><div><dt>Productos</dt><dd><span class="pr-up">${p.suben}↑</span> <span class="pr-dn">${p.bajan}↓</span> ${p.igual}=</dd></div></dl>
-  <div class="pr-sub">Cuánto más (o menos) se pagó, por mes</div>${barrasEfecto(p.efecto_mes,'En colones sin IVA (neto) · rojo: se pagó más · verde: se pagó menos')}</div></div>`;
+  <div class="pr-sub">Cuánto más (o menos) se pagó, por mes</div>${barrasEfecto(p.efecto_mes,'En colones sin IVA (neto) · rojo: se pagó más · ámbar: se pagó menos')}</div></div>`;
   h+=`<div class="g" data-c="precio"><div class="blk"><h2>Productos que más empujaron el alza</h2>${(p.empujan||[]).map(x=>`<button type="button" class="pr-fila" data-pa="prod" data-k="${esc(x.key)}"><div class="tx"><b>${esc(x.producto)}</b></div><div class="vl"><i class="pr-up">+${c0(x.imp).replace('−','')} de más</i><span class="pr-ver">Ver detalle</span></div></button>`).join('')||'<p class="pr-vacio">Ningún producto subió de forma medible.</p>'}
    ${(p.aflojan||[]).length?`<div class="pr-sub">Productos que bajaron</div>`+p.aflojan.map(x=>`<button type="button" class="pr-fila" data-pa="prod" data-k="${esc(x.key)}"><div class="tx"><b>${esc(x.producto)}</b></div><div class="vl"><i class="pr-dn">${c0(Math.abs(x.imp))} de menos</i><span class="pr-ver">Ver detalle</span></div></button>`).join(''):''}</div></div>`;
   h+=`<div class="g" data-c="precio"><div class="blk"><h2>Sus productos y la serie de precios</h2>${L?(L.productos||[]).map(x=>{const ab=!!P.abiertos['p'+x.key];
     return `<div><button type="button" class="pr-fila" data-pa="abrir" data-k="p${esc(x.key)}" aria-expanded="${ab}"><div class="tx"><b>${esc(x.producto)}</b><span class="vd">${esc(veredicto({...x,unidad:x.unidad}))}</span><span>${notas(x)}${x.otro_barato&&x.otro_dif>0.005?`<span class="pr-up">${esc(x.otro_barato)} lo vende ${pc(x.otro_dif)} más barato</span>`:''}</span></div><div class="vl"><b>${c2(x.p)}</b><i class="${cl(x.vt)}">${x.vt==null?'':fa(x.vt)+pc(Math.abs(x.vt))}</i><span class="pr-ver">${ab?'Ocultar serie':'Ver serie'}</span></div></button>
-    ${ab?`<div style="padding:0 0 16px">${(x.meses||[]).length>1?lineas([{name:p.prov,color:'#171212',pts:x.meses.map(m=>[mesN(m.m),+m.p])}],{xl:xlMes,eje:'Costo por unidad, sin IVA (neto), promedio de cada mes · de izquierda (más antiguo) a derecha (más reciente)'}):'<p class="pr-vacio">Un solo mes de compras: todavía no hay serie.</p>'}<button type="button" class="pr-btn" data-pa="prod" data-k="${esc(x.key)}">Ver detalle y comparar con otros proveedores</button></div>`:''}</div>`;}).join(''):cargando()}</div></div>`;
+    ${ab?`<div style="padding:0 0 16px">${(x.meses||[]).length>1?lineas([{name:p.prov,color:'#B81622',pts:x.meses.map(m=>[mesN(m.m),+m.p])}],{xl:xlMes,eje:'Costo por unidad, sin IVA (neto), promedio de cada mes · de izquierda (más antiguo) a derecha (más reciente)'}):'<p class="pr-vacio">Un solo mes de compras: todavía no hay serie.</p>'}<button type="button" class="pr-btn" data-pa="prod" data-k="${esc(x.key)}">Ver detalle y comparar con otros proveedores</button></div>`:''}</div>`;}).join(''):cargando()}</div></div>`;
   return h;
 }
 /* ---------- orquestación ---------- */
