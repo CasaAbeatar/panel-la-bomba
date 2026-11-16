@@ -147,6 +147,17 @@ body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 [data-c=banco]{--cat:#2D5FA0}
 .dayl{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute);margin:0 0 12px}
 .dayl b{font-weight:600;color:var(--ink)}
+.e-ok{background:#2F6B3B}.e-aviso{background:#F3A62C}.e-caido{background:#B81622}.e-sin_datos{background:#DDD1BA}
+.sb{display:flex;align-items:center;gap:12px;padding:18px 20px;border:1px solid var(--hair);border-radius:14px;background:var(--surface);margin:0 0 26px;flex-wrap:wrap}
+.sb i,.sf .sft i{width:12px;height:12px;border-radius:50%;flex:none;display:inline-block}
+.sb b{font-weight:500;font-size:18px}.sb span{color:var(--mute);font-size:13px;margin-left:auto}
+.sf{padding:16px 0;border-bottom:1px solid var(--line)}.sf:last-child{border-bottom:0}
+.sf .sft{display:flex;align-items:center;gap:10px}.sf .sft b{font-weight:500}.sf .sft em{font-style:normal;margin-left:auto;font-size:12px;color:var(--mute)}
+.sf .de{font-size:12px;color:var(--mute);margin:2px 0 8px 22px}
+.dd{display:flex;gap:2px;height:22px;margin-left:22px}.dd s{flex:1;border-radius:2px;min-width:0;text-decoration:none}
+.sf .sft b{flex:1;min-width:0}.sf .sft em{margin-left:0}
+@media(max-width:560px){.sf .sft{flex-wrap:wrap}.sf .sft b{flex:1 1 calc(100% - 24px)}.sf .sft em{margin-left:22px;flex:0 0 100%}}
+.ddl{display:flex;justify-content:space-between;font-size:11px;color:var(--mute);margin:4px 0 0 22px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
 .chips button{border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:12px;letter-spacing:.04em;color:var(--mute)}
 .chips button[aria-pressed=true]{border-color:#B8740A;background:#F3A62C;color:#3B2A20;font-weight:600}
@@ -400,6 +411,7 @@ body{background:radial-gradient(600px 460px at 20% 15%,rgba(255,252,244,.95),tra
     <button role="tab" aria-selected="false" data-sec="precios">Precios</button>
     <button role="tab" aria-selected="false" data-sec="impuestos">Impuestos</button>
     <button role="tab" aria-selected="false" data-sec="presencia">Presencia</button>
+    <button role="tab" aria-selected="false" data-sec="salud">Salud</button>
   </div>
 
       <div class="who"><div class="av" id="ini" style="width:auto;min-width:34px;border-radius:999px;padding:0 10px;font-size:12px">DMA</div><span id="quien"></span></div>
@@ -427,6 +439,7 @@ body{background:radial-gradient(600px 460px at 20% 15%,rgba(255,252,244,.95),tra
     <section id="tab-paginas" hidden></section>
     <section id="tab-redes" hidden></section>
   </section>
+  <section id="sec-salud" hidden></section>
 
     </main>
     <aside class="der" aria-label="Requiere atención">
