@@ -600,10 +600,19 @@ const SALUD_EV={caida_internet:'Se cayó el internet',caja_cerrada:'Se cerró la
 let SALUD_ERR=false;
 const sHora=t=>t?new Date(t).toLocaleString('es-CR',{timeZone:'America/Costa_Rica',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):'—';
 const sHace=t=>{if(!t)return '—';const m=Math.max(0,Math.round((Date.now()-new Date(t))/60000));return m<2?'hace un momento':m<60?'hace '+m+' min':m<1440?'hace '+Math.round(m/60)+' h':'hace '+Math.round(m/1440)+' días';};
+let SALUD_SEQ=0,SALUD_ULT=null;
 async function pintarSalud(){
   const box=$('sec-salud');if(!box)return;
+  const my=++SALUD_SEQ;
   let d;try{const {data,error}=await sb.rpc('panel_salud');if(error)throw error;d=data;SALUD_ERR=false;}
-  catch(e){SALUD_ERR=true;box.innerHTML='<div class="blk" data-c="sistema"><h2>No se pudo cargar la salud de los sistemas</h2><p class="note">Se reintenta sola. Si sigue así, la base de datos puede estar sin responder.</p></div>';return;}
+  catch(e){
+    if(my!==SALUD_SEQ)return;
+    SALUD_ERR=true;
+    const msg=/no autorizado/i.test(String(e&&e.message))?'Tu sesión venció. Vuelve a entrar al panel para ver la salud de los sistemas.':'No se pudo actualizar ahora. Se reintenta sola cada minuto.';
+    if(SALUD_ULT){box.innerHTML='<p class="note" role="status" style="color:var(--rojo,#B81622)">'+esc(msg)+' Lo que se ve abajo es de '+esc(sHace(SALUD_ULT.t))+'.</p>'+SALUD_ULT.h;}
+    else box.innerHTML='<div class="blk" data-c="sistema"><h2>No se pudo cargar la salud de los sistemas</h2><p class="note">'+esc(msg)+'</p></div>';
+    return;}
+  if(my!==SALUD_SEQ)return;
   const eqs=(d.equipos||[]).filter(e=>EMP==='grupo'||e.empresa===EMP);
   const NM={};Object.keys(SALUD_N).forEach(k=>NM[k]=SALUD_N[k]);(d.equipos||[]).forEach(e=>NM['equipo:'+e.estacion]=e.nombre);
   const AH={};(d.ahora||[]).forEach(x=>AH[x.componente]=x);
@@ -611,28 +620,31 @@ async function pintarSalud(){
   const visibles=k=>!k.startsWith('equipo:')||eqs.some(e=>'equipo:'+e.estacion===k);
   const todos=Object.keys(AH).filter(visibles);
   const nc=todos.filter(k=>AH[k].estado==='caido').length,na=todos.filter(k=>AH[k].estado==='aviso').length,ns=todos.filter(k=>AH[k].estado==='sin_datos').length;
-  const est=nc?'caido':na?'aviso':'ok';
+  const est=(nc||d.vigilancia_detenida)?'caido':na?'aviso':'ok';
   const tit=nc?(nc===1?'Hay 1 componente sin respuesta':'Hay '+nc+' componentes sin respuesta'):na?(na===1?'Todo funciona, con 1 aviso':'Todo funciona, con '+na+' avisos'):'Todo funcionando';
-  let h=`<div class="dayl">Estado de hoy · <b>${esc(sHora(d.hora))}</b></div><div class="sb"><i class="e-${est}"></i><b>${tit}</b><span>${ns?ns+(ns===1?' componente todavía sin datos':' componentes todavía sin datos')+' · ':''}Se revisa cada 5 minutos</span></div>`;
+  let h=`<div class="dayl">Estado de hoy · <b>${esc(sHora(d.hora))}</b></div><div class="sb"><i class="e-${est}"></i><b>${tit}</b><span>${ns?ns+(ns===1?' componente todavía sin datos':' componentes todavía sin datos')+' · ':''}Última revisión ${esc(sHace(d.ultima_revision))}</span></div>`;
+  if(d.vigilancia_detenida)h=`<div class="sb" role="alert"><i class="e-caido"></i><b>La vigilancia no se ha ejecutado ${esc(sHace(d.ultima_revision))}</b><span>Lo que se muestra puede estar desactualizado. Se avisará por los canales de alerta.</span></div>`+h;
   const hoy=HOYCR(),dias=[...Array(30)].map((_,i)=>addd(hoy,i-29));
-  SALUD_G.forEach(([gt,ks])=>{
+  const CONOCIDOS=new Set(SALUD_G.flatMap(g=>g[1]));const otros=Object.keys(AH).filter(k=>!CONOCIDOS.has(k)&&!k.startsWith('equipo:'));
+  (otros.length?SALUD_G.concat([['Otros',otros]]):SALUD_G).forEach(([gt,ks])=>{
     const f=ks.filter(k=>AH[k]&&visibles(k));if(!f.length)return;
     h+=`<div class="g" data-c="sistema"><div class="blk"><h2>${esc(gt)}</h2><div class="sc">`+f.map(k=>{
       const a=AH[k],ms=a.ms!=null&&!k.startsWith('equipo:')?a.ms+' ms':a.ms!=null?'latencia '+a.ms+' ms':'';
       const barra=dias.map(x=>{const e=(DI[k]||{})[x]||'sin_datos';return `<s class="e-${e}" title="${esc(dl(x))}: ${esc(SALUD_E[e])}"></s>`;}).join('');
-      return `<div class="sf"><div class="sft"><i class="e-${a.estado}"></i><b>${esc(NM[k]||k)}</b><em>${esc(SALUD_E[a.estado])}${ms?' · '+esc(ms):''}</em></div><div class="de">${esc(a.detalle||'')}</div><div class="dd" role="img" aria-label="Últimos 30 días de ${esc(NM[k]||k)}">${barra}</div><div class="ddl"><span>${esc(dl(dias[0]))}</span><span>Hoy</span></div></div>`;
+      return `<div class="sf"><div class="sft"><i class="e-${a.estado}"></i><b>${esc(NM[k]||k)}</b><em>${esc(SALUD_E[a.estado])}${ms?' · '+esc(ms):''}</em></div><div class="de">${esc(a.detalle||'')}</div><div class="dd" role="img" aria-label="Últimos 30 días de ${esc(NM[k]||k)}: ${dias.filter(x=>((DI[k]||{})[x])==='caido').length} días sin respuesta, ${dias.filter(x=>((DI[k]||{})[x])==='aviso').length} con avisos">${barra}</div><div class="ddl"><span>${esc(dl(dias[0]))}</span><span>Hoy</span></div></div>`;
     }).join('')+`</div></div></div>`;
   });
   h+=`<p class="note" style="margin:-8px 0 26px">Cada rayita es un día, de izquierda (más antiguo) a derecha (hoy). Verde: sin problemas. Ámbar: hubo avisos. Rojo: estuvo sin respuesta. Gris: sin datos.</p>`;
   // equipos
-  if(eqs.length)h+=`<div class="g" data-c="sistema">${table('Computadoras de caja',['Equipo','Última señal','Pantallas','Ventanas','Latencia','Kit','Facturador'],eqs.map(e=>[esc(e.nombre),e.creado_en?esc(sHace(e.creado_en)):'Sin señal todavía',e.pantallas!=null?String(e.pantallas):'—',e.ventanas!=null?String(e.ventanas):'—',e.latencia_ms!=null?e.latencia_ms+' ms':'—',esc(e.version_kit||'—'),esc(e.version_facturador||'—')]),1)}</div>`;
+  if(eqs.length)h+=`<div class="g" data-c="sistema">${table('Computadoras de caja',['Equipo','Última vez que respondió','Pantallas conectadas','Cajas abiertas','Tiempo de respuesta','Versión del kit','Horario'],eqs.map(e=>[esc(e.nombre),e.creado_en?esc(sHace(e.creado_en)):'Sin señal todavía',e.pantallas!=null?String(e.pantallas):'—',e.ventanas!=null?String(e.ventanas):'—',e.latencia_ms!=null?e.latencia_ms+' ms':'—',esc(e.version_kit||'—'),e.horario_abre?esc(String(e.horario_abre).slice(0,5)+' a '+String(e.horario_cierra).slice(0,5)):'24 horas']),1)}</div>`;
   // incidentes
   const inc=d.incidentes||[];
-  h+=`<div class="g" data-c="sistema">`+(inc.length?table('Incidentes de los últimos 30 días',['Componente','Detectado','En atención','Resuelto','Quién'],inc.map(i=>[esc(NM[i.componente]||i.componente),esc(sHora(i.detectado_en)),i.atencion_en?esc(sHora(i.atencion_en)):'—',i.resuelto_en?esc(sHora(i.resuelto_en)):'Abierto',i.resuelto_en?(i.resuelto_por==='Claude'?'Resuelto por Claude':i.resuelto_por==='Emil'?'Resuelto por Emil':'Se resolvió solo'):'Pendiente']),1):'<div class="blk"><h2>Incidentes de los últimos 30 días</h2><p class="note">Ninguno. Cuando un componente falle tres revisiones seguidas, aquí queda la hora en que se detectó, cuándo se atendió, cuándo se resolvió y quién lo resolvió.</p></div>')+`</div>`;
+  h+=`<div class="g" data-c="sistema">`+(inc.length?table('Incidentes de los últimos 30 días',['Componente','Detectado','En atención','Resuelto','Quién'],inc.map(i=>[esc(NM[i.componente]||i.componente),esc(sHora(i.detectado_en)),i.atencion_en?esc(sHora(i.atencion_en)):'—',i.resuelto_en?esc(sHora(i.resuelto_en)):'Abierto',i.resuelto_en?(i.resuelto_por==='Claude'?'Resuelto por Claude':i.resuelto_por==='Emil'?'Resuelto por Emil':'Se resolvió solo'):'Esperando atención']),1):'<div class="blk"><h2>Incidentes de los últimos 30 días</h2><p class="note">Ninguno. Cuando un componente falle tres revisiones seguidas, aquí queda la hora en que se detectó, cuándo se atendió, cuándo se resolvió y quién lo resolvió.</p></div>')+`</div>`;
   const ev=d.eventos||[];
-  if(ev.length)h+=`<div class="g" data-c="sistema">${table('Eventos de las computadoras de caja (7 días)',['Cuándo','Equipo','Qué pasó','Detalle'],ev.slice(0,15).map(v=>[esc(sHora(v.creado_en)),esc(NM['equipo:'+v.estacion]||v.estacion),esc(SALUD_EV[v.tipo]||v.tipo),esc(v.detalle||'')]),1)}</div>`;
-  h+=`<p class="note">Los avisos llegan a admin@dmalabomba.com, al teléfono y a la bandeja del facturador, solo a administradores. Las computadoras de caja muestran «Sin datos» hasta que se instale el kit con latido.</p>`;
-  box.innerHTML=h;
+  if(!ev.length)h+=`<div class="g" data-c="sistema"><div class="blk"><h2>Eventos de las computadoras de caja (7 días)</h2><p class="note">Sin eventos en los últimos 7 días.</p></div></div>`;
+  if(ev.length)h+=`<div class="g" data-c="sistema">${table('Eventos de las computadoras de caja (7 días)',['Cuándo','Equipo','Qué pasó','Detalle'],ev.slice(0,30).map(v=>[esc(sHora(v.creado_en)),esc(NM['equipo:'+v.estacion]||v.estacion),esc(SALUD_EV[v.tipo]||v.tipo),esc(v.detalle||'')]),1)}</div>`;
+  h+=`<p class="note">Los avisos se enviarán a admin@dmalabomba.com, al teléfono y a la bandeja del facturador, solo a administradores. Las computadoras de caja muestran «Sin datos» hasta que se instale el kit con latido.</p>`;
+  box.innerHTML=h;SALUD_ULT={t:d.hora,h:h};
 }
 setInterval(()=>{if(SEC==='salud'&&!document.hidden)pintarSalud();},60000);
 
