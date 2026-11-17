@@ -613,6 +613,8 @@ async function pintarSalud(){
     else box.innerHTML='<div class="blk" data-c="sistema"><h2>No se pudo cargar la salud de los sistemas</h2><p class="note">'+esc(msg)+'</p></div>';
     return;}
   if(my!==SALUD_SEQ)return;
+  let pc=null;try{const r=await sb.rpc('panel_punto_de_caida');if(!r.error)pc=r.data;}catch(e){}
+  if(my!==SALUD_SEQ)return;
   const eqs=(d.equipos||[]).filter(e=>EMP==='grupo'||e.empresa===EMP);
   const NM={};Object.keys(SALUD_N).forEach(k=>NM[k]=SALUD_N[k]);(d.equipos||[]).forEach(e=>NM['equipo:'+e.estacion]=e.nombre);
   const AH={};(d.ahora||[]).forEach(x=>AH[x.componente]=x);
@@ -637,6 +639,12 @@ async function pintarSalud(){
   h+=`<p class="note" style="margin:-8px 0 26px">Cada rayita es un día, de izquierda (más antiguo) a derecha (hoy). Verde: sin problemas. Ámbar: hubo avisos. Rojo: estuvo sin respuesta. Gris: sin datos.</p>`;
   // equipos
   if(eqs.length)h+=`<div class="g" data-c="sistema">${table('Computadoras de caja',['Equipo','Última vez que respondió','Pantallas conectadas','Cajas abiertas','Tiempo de respuesta','Versión del kit','Horario'],eqs.map(e=>[esc(e.nombre),e.creado_en?esc(sHace(e.creado_en)):'Sin señal todavía',e.pantallas!=null?String(e.pantallas):'—',e.ventanas!=null?String(e.ventanas):'—',e.latencia_ms!=null?e.latencia_ms+' ms':'—',esc(e.version_kit||'—'),e.horario_abre?esc(String(e.horario_abre).slice(0,5)+' a '+String(e.horario_cierra).slice(0,5)):'24 horas']),1)}</div>`;
+  // punto de caída: último consecutivo emitido por empresa y documento (17 nov 2026)
+  if(pc&&(pc.consecutivos||[]).length){
+    const TD={'01':'Factura electrónica','02':'Nota de débito','03':'Nota de crédito','04':'Tiquete electrónico','08':'Factura de compra','09':'Factura de exportación'};
+    const emp=s=>/CORPORACION DMA/i.test(s)?'Soda La Bomba':/3-102-111943/.test(s)?'Pollos La Bomba y Papea':s;
+    h+=`<div class="g" data-c="sistema">${table('Último consecutivo emitido (si el sistema se cae, retoma desde aquí)',['Empresa','Documento','Terminal','Último número','Cuándo se emitió','Números salteados'],pc.consecutivos.map(c=>[esc(emp(c.sociedad)),esc(TD[c.tipo_doc]||('Tipo '+c.tipo_doc)),esc(String(parseInt(String(c.serie||'').slice(3,8),10)||'—')),esc(String(c.ultimo_numero_emitido)),esc(sHora(c.ultima_emision)),(c.faltantes||[]).length?esc(c.faltantes.join(', ')):'Ninguno']),1)}<p class="note">Para saber cuándo y por qué se cayó algo, mira «Incidentes» más abajo y compara su hora con la columna «Cuándo se emitió». Los correos enviados a Microsoft 365 sirven para cotejar estos números.</p></div>`;
+  }
   // incidentes
   const inc=d.incidentes||[];
   h+=`<div class="g" data-c="sistema">`+(inc.length?table('Incidentes de los últimos 30 días',['Componente','Detectado','En atención','Resuelto','Quién'],inc.map(i=>[esc(NM[i.componente]||i.componente),esc(sHora(i.detectado_en)),i.atencion_en?esc(sHora(i.atencion_en)):'—',i.resuelto_en?esc(sHora(i.resuelto_en)):'Abierto',i.resuelto_en?(i.resuelto_por==='Claude'?'Resuelto por Claude':i.resuelto_por==='Emil'?'Resuelto por Emil':'Se resolvió solo'):'Esperando atención']),1):'<div class="blk"><h2>Incidentes de los últimos 30 días</h2><p class="note">Ninguno. Cuando un componente falle tres revisiones seguidas, aquí queda la hora en que se detectó, cuándo se atendió, cuándo se resolvió y quién lo resolvió.</p></div>')+`</div>`;
