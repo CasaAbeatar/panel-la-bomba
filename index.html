@@ -376,6 +376,33 @@ body{background:radial-gradient(600px 460px at 20% 15%,rgba(255,252,244,.95),tra
 .marca b{font-size:13px;line-height:1.2}
 
 @media(max-width:1279px){.izq .who{display:none}.der-acc #btnAct,.der-acc #irFact{grid-column:auto}.der-acc{margin:0 0 6px}}
+
+/* ---- SINPE Móvil recibidos (solo consulta, dentro de Ingresos, 17 nov 2026): nueve pestañas simétricas (una fila de nueve, o tres filas de tres en pantallas angostas); lista en filas con todo a la vista, sin tiras laterales ---- */
+[data-c=sinpe]{--cat:#B81622}
+@media(min-width:860px) and (max-width:1279px){.tabs{grid-template-columns:repeat(9,minmax(0,1fr));gap:0 4px}.tabs button{letter-spacing:.04em;font-size:11.5px;padding-left:0;padding-right:0}}
+@media(max-width:859px){.tabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.sp-sec{margin:30px 0 6px;padding-top:4px}
+.sp-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+.sp-bar .out{min-height:44px;min-width:132px;display:inline-flex;align-items:center;justify-content:center}
+.sp-t{margin-top:6px}
+.sp-f{display:grid;grid-template-columns:52px minmax(0,1.5fr) 104px minmax(0,1.1fr) 196px;gap:6px 14px;align-items:baseline;padding:13px 0;border-bottom:1px solid rgba(94,84,72,.18);font-size:14px}
+.sp-f.sp-cab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);padding:12px 0 8px}
+.sp-f .sp-m{text-align:right;font-variant-numeric:tabular-nums}
+.sp-f .sp-q b{font-weight:600}.sp-f .sp-q .tag{margin-left:6px}
+.sp-f .sp-h{font-variant-numeric:tabular-nums;color:var(--ink)}
+.sp-f .sp-d{color:var(--mute);overflow-wrap:anywhere}
+.sp-f .sp-c{font-size:12px;color:var(--mute);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;letter-spacing:0}
+@media(min-width:640px){.sp-f .sp-c{white-space:nowrap}}
+.sp-f:not(.sp-cab) .sp-m{font-size:16px;font-weight:600}
+.sp-dh{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:22px 0 2px;font-size:13px;color:var(--mute);border-bottom:1px solid var(--hair);padding-bottom:6px}
+.sp-dh b{color:var(--ink);font-weight:600;text-transform:capitalize}
+.bs div.sp-hoy{background:#F3A62C}
+@media(max-width:639px){
+  .sp-f{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"q m" "h d" "c c";gap:4px 12px;padding:14px 0}
+  .sp-f.sp-cab{display:none}
+  .sp-q{grid-area:q}.sp-m{grid-area:m}.sp-h{grid-area:h}.sp-d{grid-area:d;text-align:right}.sp-c{grid-area:c}
+  .sp-f .sp-h::after{content:' h';color:var(--mute)}
+}
 </style>
 </head>
 <body data-emp="grupo">
@@ -422,7 +449,7 @@ body{background:radial-gradient(600px 460px at 20% 15%,rgba(255,252,244,.95),tra
       <section id="sec-hoy"></section>
   <section id="sec-atender" hidden></section>
   <div class="atnota" data-tema="ingresos" hidden></div>
-  <section id="sec-ingresos" hidden><div id="ing-aviso"></div><section id="tab-ingresos"></section></section>
+  <section id="sec-ingresos" hidden><div id="ing-aviso"></div><section id="ing-sinpe-hoy"></section><section id="tab-ingresos"></section><section id="ing-sinpe-agg"></section></section>
   <section id="sec-gastos" hidden></section>
   <div class="atnota" data-tema="precios" hidden></div>
   <section id="sec-comercial" hidden></section>
@@ -461,5 +488,6 @@ body{background:radial-gradient(600px 460px at 20% 15%,rgba(255,252,244,.95),tra
 <script src="precios.js"></script>
 <script src="atender.js"></script>
 <script src="comercial.js"></script>
+<script src="sinpe.js"></script>
 </body>
 </html>
