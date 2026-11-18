@@ -521,12 +521,12 @@ function pintarAviso(){
     const _av=(_u&&_u===hy)?'':hoyBloque('Aún sin reporte del BCR','El banco reporta con un día de atraso, así que el comprobante de hoy llega mañana.'+(_u?' Lo último cargado es del '+fl(_u)+'.':''));
     a.innerHTML=_av+(EMP==='grupo'?`<p class="note" style="margin:0 0 18px">Hoy solo están conectados los cobros digitales de la Soda. Las ventas de Pollos y Papea se sumarán cuando se defina la fuente.</p>`:'');$('tab-ingresos').hidden=false;}
 }
-function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();if(typeof precios!=='undefined')precios.ver();if(SEC==='comercial'&&typeof comercial!=='undefined')comercial.ver();if(SEC==='sinpe'&&typeof sinpe!=='undefined')sinpe.ver();if(typeof atender!=='undefined')atender.contar();}
+function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();if(typeof precios!=='undefined')precios.ver();if(SEC==='comercial'&&typeof comercial!=='undefined')comercial.ver();if(SEC==='ingresos'&&typeof sinpe!=='undefined')sinpe.ver();if(typeof atender!=='undefined')atender.contar();}
 function irSec(s){
   SEC=s;
   document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x.dataset.sec===s));
-  ['hoy','atender','ingresos','sinpe','gastos','comercial','precios','impuestos','presencia','salud'].forEach(t=>$('sec-'+t).hidden=t!==s);
-  window.scrollTo(0,0);if(s==='comercial'&&typeof comercial!=='undefined')comercial.ver();if(s==='sinpe'&&typeof sinpe!=='undefined')sinpe.ver();if(s==='precios'&&typeof precios!=='undefined')precios.ver();if(s==='atender'&&typeof atender!=='undefined')atender.ver();if(s==='salud')pintarSalud();if(typeof atender!=='undefined')atender.notas();
+  ['hoy','atender','ingresos','gastos','comercial','precios','impuestos','presencia','salud'].forEach(t=>$('sec-'+t).hidden=t!==s);
+  window.scrollTo(0,0);if(s==='comercial'&&typeof comercial!=='undefined')comercial.ver();if(s==='ingresos'&&typeof sinpe!=='undefined')sinpe.ver();if(s==='precios'&&typeof precios!=='undefined')precios.ver();if(s==='atender'&&typeof atender!=='undefined')atender.ver();if(s==='salud')pintarSalud();if(typeof atender!=='undefined')atender.notas();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>irSec(b.dataset.sec));
 document.querySelectorAll('.emp button').forEach(b=>b.onclick=()=>{EMP=b.dataset.emp;document.body.dataset.emp=EMP;document.querySelectorAll('.emp button').forEach(x=>x.setAttribute('aria-pressed',x===b));pintarFin();});

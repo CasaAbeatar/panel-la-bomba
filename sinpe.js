@@ -1,4 +1,4 @@
-/* ---- SINPE Móvil: SOLO CONSULTA (avisos del banco que llegan por mensaje de texto al teléfono del local) ----
+/* ---- SINPE Móvil recibidos, dentro de la pestaña Ingresos: SOLO CONSULTA (avisos del banco que llegan por mensaje de texto al teléfono del local) ----
    Nada de esto condiciona el cobro, el pedido ni el cierre. Cifras BRUTAS (monto recibido, sin descontar nada). Hora de Costa Rica.
    Datos: public.panel_sinpe_consulta (lee fact.sinpe_pagos y fact.sinpe_avisos, sin pruebas). */
 const sinpe=(()=>{
@@ -67,7 +67,7 @@ function agregados(){
   const mv=pm.map(x=>Number(x.total)),ml=pm.map(x=>MCORTO[Number(x.mes.slice(5,7))-1]);
   const mes=`<div class="blk"><h2>SINPE por mes (brutos) · ${hoy.slice(0,4)}</h2>${barras(mv,ml,v=>'₡'+cc(v),pm.length-1,pm.map(x=>x.mes))}<p class="note">Eje vertical: colones brutos recibidos en el mes. Eje horizontal: mes, de enero (izquierda) al mes actual (derecha, en ámbar porque el mes no ha terminado).</p></div>`;
   const tm=table('Detalle por mes · enero primero',['Mes','Pagos','Monto bruto','Pago promedio'],pm.map(x=>[MCORTO[Number(x.mes.slice(5,7))-1]+' '+x.mes.slice(0,4),fmt(x.n),R(x.total),x.n?R(x.total/x.n):'—']),true);
-  return `<h3 class="cm-h">Agregados, del más antiguo al más reciente</h3><div class="g c2" data-c="sinpe">${dia}${mes}</div><div class="g c2" data-c="sinpe">${estadBloque()}${tm}</div>`;
+  return `<h3 class="cm-h">SINPE Móvil recibidos · agregados, del más antiguo al más reciente</h3><div class="g c2" data-c="sinpe">${dia}${mes}</div><div class="g c2" data-c="sinpe">${estadBloque()}${tm}</div>`;
 }
 function anteriores(){
   const r=S.recientes||[];if(!r.length)return `<div class="g" data-c="sinpe"><div class="blk"><h2>SINPE de días anteriores</h2><p class="note" style="margin-top:12px">Todavía no hay SINPE de días anteriores en estos ${S.dias} días.</p></div></div>`;
@@ -75,14 +75,16 @@ function anteriores(){
   return `<div class="g" data-c="sinpe"><div class="blk"><h2>SINPE de días anteriores · los últimos ${r.length}</h2><p class="note" style="margin:10px 0 0">Del día más antiguo al más reciente.</p>`+g.map((x,i)=>`<div class="sp-dh"><b>${fl(x.d)}</b><span>${x.l.length} ${x.l.length===1?'pago':'pagos'} · ${R(x.l.reduce((a,p)=>a+Number(p.monto),0))} brutos</span></div>${filas(x.l,i>0)}`).join('')+`</div></div>`;
 }
 function pintar(){
-  const el=$('sec-sinpe');if(!el)return;
-  if(!S){el.innerHTML=err?`<p class="note">${esc(err)}</p><div class="sp-bar"><button type="button" class="out" id="sp-ref">Actualizar</button></div>`:cargando('Cargando los SINPE…');const r=$('sp-ref');if(r)r.onclick=()=>traer(true);return;}
+  const eh=$('ing-sinpe-hoy'),ea=$('ing-sinpe-agg');if(!eh||!ea)return;
+  if(!S){eh.innerHTML=err?`<p class="note">${esc(err)}</p><div class="sp-bar"><button type="button" class="out" id="sp-ref">Actualizar SINPE</button></div>`:cargando('Cargando los SINPE…');ea.innerHTML='';const r=$('sp-ref');if(r)r.onclick=()=>traer(true);return;}
   const lectura=leido?leido.toLocaleTimeString('es-CR',{timeZone:'America/Costa_Rica',hour:'2-digit',minute:'2-digit',hour12:false}):'';
-  el.innerHTML=`<div class="sp-bar"><div class="dayl" style="margin:0">Hoy · <b>${fl(S.hoy)}</b></div><button type="button" class="out" id="sp-ref">${ocup?'Actualizando…':'Actualizar'}</button></div>
-  ${err?`<p class="note">${esc(err)}</p>`:''}`+hoyBloque()+agregados()+anteriores()+
-  `<p class="cm-av"><b>Solo consulta.</b> Esta pantalla no cambia nada: no condiciona el cobro, el pedido Express ni el cierre. Son los avisos del banco que llegan por mensaje de texto al teléfono del local (última lectura de esta pantalla: ${lectura||'—'}). Las cifras son brutas, en colones. El comprobante diario de tarjetas y SINPE del BCR sigue en «Ingresos».</p>`;
+  eh.innerHTML=`<div class="sp-sec"><div class="sp-bar"><div class="dayl" style="margin:0">SINPE Móvil recibidos · hoy <b>${fl(S.hoy)}</b></div><button type="button" class="out" id="sp-ref">${ocup?'Actualizando…':'Actualizar SINPE'}</button></div>
+  <p class="note" style="margin:0 0 12px">Son los avisos del banco que llegan por mensaje de texto al teléfono del local, al momento. Aparte, más abajo, está el comprobante diario del BCR (con atraso de un día).</p>
+  ${err?`<p class="note">${esc(err)}</p>`:''}</div>`+hoyBloque();
+  ea.innerHTML=agregados()+anteriores()+
+  `<p class="cm-av"><b>Solo consulta.</b> Estas secciones de SINPE no cambian nada: no condicionan el cobro, el pedido Express ni el cierre. Las cifras son brutas, en colones, con hora de Costa Rica (última lectura: ${lectura||'—'}). El comprobante diario de tarjetas y SINPE del BCR es el de arriba y no se mezcla con estos avisos.</p>`;
   $('sp-ref').onclick=()=>traer(true);
 }
-function ver(){if(!$('sec-sinpe'))return;if(S)pintar();traer(false);}
+function ver(){if(!$('ing-sinpe-hoy'))return;if(S)pintar();traer(false);}
 return {ver};
 })();

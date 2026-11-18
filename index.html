@@ -377,10 +377,11 @@ body{background:radial-gradient(600px 460px at 20% 15%,rgba(255,252,244,.95),tra
 
 @media(max-width:1279px){.izq .who{display:none}.der-acc #btnAct,.der-acc #irFact{grid-column:auto}.der-acc{margin:0 0 6px}}
 
-/* ---- SINPE Móvil (solo consulta, 17 nov 2026): diez pestañas en dos filas iguales de cinco; lista en filas con todo a la vista, sin tiras laterales ---- */
+/* ---- SINPE Móvil recibidos (solo consulta, dentro de Ingresos, 17 nov 2026): nueve pestañas simétricas (una fila de nueve, o tres filas de tres en pantallas angostas); lista en filas con todo a la vista, sin tiras laterales ---- */
 [data-c=sinpe]{--cat:#B81622}
-@media(max-width:1279px){.tabs{grid-template-columns:repeat(5,minmax(0,1fr))}}
-@media(max-width:559px){.tabs{gap:0 4px}.tabs button{font-size:10px;letter-spacing:.02em;padding-left:0;padding-right:0}}
+@media(min-width:860px) and (max-width:1279px){.tabs{grid-template-columns:repeat(9,minmax(0,1fr));gap:0 4px}.tabs button{letter-spacing:.04em;font-size:11.5px;padding-left:0;padding-right:0}}
+@media(max-width:859px){.tabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.sp-sec{margin:30px 0 6px;padding-top:4px}
 .sp-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
 .sp-bar .out{min-height:44px;min-width:132px;display:inline-flex;align-items:center;justify-content:center}
 .sp-t{margin-top:6px}
@@ -432,7 +433,6 @@ body{background:radial-gradient(600px 460px at 20% 15%,rgba(255,252,244,.95),tra
     <button role="tab" aria-selected="true" data-sec="hoy">Hoy</button>
     <button role="tab" aria-selected="false" data-sec="atender">Asistente<span id="at-n" class="atn" hidden></span></button>
     <button role="tab" aria-selected="false" data-sec="ingresos">Ingresos</button>
-    <button role="tab" aria-selected="false" data-sec="sinpe">SINPE</button>
     <button role="tab" aria-selected="false" data-sec="gastos">Gastos</button>
     <button role="tab" aria-selected="false" data-sec="comercial">Comercial</button>
     <button role="tab" aria-selected="false" data-sec="precios">Precios</button>
@@ -449,8 +449,7 @@ body{background:radial-gradient(600px 460px at 20% 15%,rgba(255,252,244,.95),tra
       <section id="sec-hoy"></section>
   <section id="sec-atender" hidden></section>
   <div class="atnota" data-tema="ingresos" hidden></div>
-  <section id="sec-ingresos" hidden><div id="ing-aviso"></div><section id="tab-ingresos"></section></section>
-  <section id="sec-sinpe" hidden></section>
+  <section id="sec-ingresos" hidden><div id="ing-aviso"></div><section id="ing-sinpe-hoy"></section><section id="tab-ingresos"></section><section id="ing-sinpe-agg"></section></section>
   <section id="sec-gastos" hidden></section>
   <div class="atnota" data-tema="precios" hidden></div>
   <section id="sec-comercial" hidden></section>
