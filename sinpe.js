@@ -24,7 +24,7 @@ function chipNeg(e){return EMP==='grupo'&&NEGN[e]?`<span class="tag par">${NEGN[
 function filas(lista,sinCab){
   if(!lista.length)return '';
   return `<div class="sp-t" role="table" aria-label="SINPE recibidos">${sinCab?'':'<div class="sp-f sp-cab" role="row"><span role="columnheader">Hora</span><span role="columnheader">Quién pagó (como viene en el mensaje)</span><span role="columnheader" class="sp-m">Monto bruto</span><span role="columnheader">Detalle</span><span role="columnheader">Comprobante</span></div>'}`+
-  lista.map(p=>`<div class="sp-f" role="row"><span class="sp-h" role="cell">${horaCR(p.hora)}</span><span class="sp-q" role="cell"><b>${esc(p.pagador||'Sin nombre')}</b>${chipNeg(p.empresa)}</span><span class="sp-m" role="cell">${R(p.monto)}</span><span class="sp-d" role="cell">${esc(p.detalle||'Sin detalle')}</span><span class="sp-c" role="cell">${esc(p.comprobante||'Sin comprobante')}</span></div>`).join('')+`</div>`;
+  lista.map(p=>`<div class="sp-f" role="row"><span class="sp-h" role="cell">${horaCR(p.hora)}</span><span class="sp-q" role="cell"><b>${esc(p.pagador||'Sin nombre')}</b>${chipNeg(p.empresa)}</span><span class="sp-m" role="cell"><span class="mon"><span class="crc">₡</span><span class="cif">${fmt(p.monto)}</span></span></span><span class="sp-d" role="cell">${esc(p.detalle||'Sin detalle')}</span><span class="sp-c" role="cell">${esc(p.comprobante||'Sin comprobante')}</span></div>`).join('')+`</div>`;
 }
 function barras(vals,labels,fv,marcar,sub){
   const mx=Math.max(...vals,0)||10000,t=ticks(0,mx,vals.every(Number.isInteger)),hi=t[t.length-1];
@@ -38,9 +38,9 @@ function hoyBloque(){
   let grafico='';
   if(a>=0){let i0=a,i1=b;while(i1-i0<5){if(i0>0)i0--;if(i1-i0>=5)break;if(i1<23)i1++;}const s=ph.slice(i0,i1+1);
     grafico=`<div class="blk"><h2>SINPE de hoy por hora (brutos)</h2>${barras(s.map(x=>Number(x.total)),s.map(x=>x.h+' h'),v=>'₡'+cc(v),-1,s.map(x=>x.h+':00 a '+x.h+':59'))}<p class="note">Eje vertical: colones brutos recibidos en esa hora. Eje horizontal: hora del día (reloj de 24 horas, hora de Costa Rica); el 12 es de 12:00 a 12:59.</p></div>`;}
-  const lista=n?filas(p):`<p class="note" style="margin-top:12px">Todavía no ha entrado ningún SINPE hoy.</p>`;
+  const lista=n?filas([...p].sort((x,y)=>String(y.hora).localeCompare(String(x.hora)))):`<p class="note" style="margin-top:12px">Todavía no ha entrado ningún SINPE hoy.</p>`;
   return kpis([{c:'sinpe',l:'SINPE recibidos hoy',v:fmt(n),s:n===1?'1 pago':n+' pagos'},{c:'sinpe',l:'Monto bruto hoy',v:R(tot),s:'Brutos, sin descontar nada'},{c:'sinpe',l:'Pago promedio hoy',v:n?R(tot/n):'—',s:n?'Monto bruto entre pagos':'Sin pagos todavía'},{c:'sinpe',l:'Último aviso recibido',v:avisoTxt(S.ultimo_aviso,h),s:'Dato informativo del teléfono'}])
-    +`<div class="g" data-c="sinpe"><div class="blk"><h2>SINPE que han entrado hoy</h2><p class="note" style="margin:10px 0 0">De la primera a la más reciente. Hora del teléfono al recibir el aviso del banco.</p>${lista}</div></div>`
+    +`<div class="g" data-c="sinpe"><div class="blk"><h2>SINPE que han entrado hoy</h2><p class="note" style="margin:10px 0 0">De la más reciente a la más antigua. Hora del teléfono al recibir el aviso del banco.</p>${lista}</div></div>`
     +(grafico?`<div class="g" data-c="sinpe">${grafico}</div>`:'');
 }
 function estadBloque(){
