@@ -660,7 +660,7 @@ const sHora=t=>t?new Date(t).toLocaleString('es-CR',{timeZone:'America/Costa_Ric
 const sHace=t=>{if(!t)return '—';const m=Math.max(0,Math.round((Date.now()-new Date(t))/60000));return m<2?'hace un momento':m<60?'hace '+m+' min':m<1440?'hace '+Math.round(m/60)+' h':'hace '+Math.round(m/1440)+' días';};
 let SALUD_SEQ=0,SALUD_ULT=null;
 async function pintarSalud(){
-  const box=$('sec-salud');if(!box)return;
+  const box=$('sal-base')||$('sec-salud');if(!box)return;
   const my=++SALUD_SEQ;
   let d;try{const {data,error}=await sb.rpc('panel_salud');if(error)throw error;d=data;SALUD_ERR=false;}
   catch(e){
@@ -711,6 +711,7 @@ async function pintarSalud(){
   if(ev.length)h+=`<div class="g" data-c="sistema">${table('Eventos de las computadoras de caja (7 días)',['Cuándo','Equipo','Qué pasó','Detalle'],ev.slice(0,30).map(v=>[esc(sHora(v.creado_en)),esc(NM['equipo:'+v.estacion]||v.estacion),esc(SALUD_EV[v.tipo]||v.tipo),esc(v.detalle||'')]),1)}</div>`;
   h+=`<p class="note">Los avisos se enviarán a admin@dmalabomba.com, al teléfono y a la bandeja del facturador, solo a administradores. Las computadoras de caja muestran «Sin datos» hasta que se instale el kit con latido.</p>`;
   box.innerHTML=h;SALUD_ULT={t:d.hora,h:h};
+  if(typeof equiposVista!=='undefined')equiposVista.ver(eqs,true);
 }
 setInterval(()=>{if(SEC==='salud'&&!document.hidden)pintarSalud();},60000);
 

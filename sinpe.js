@@ -71,8 +71,8 @@ function agregados(){
 }
 function anteriores(){
   const r=S.recientes||[];if(!r.length)return `<div class="g" data-c="sinpe"><div class="blk"><h2>SINPE de días anteriores</h2><p class="note" style="margin-top:12px">Todavía no hay SINPE de días anteriores en estos ${S.dias} días.</p></div></div>`;
-  const g=[];r.forEach(p=>{const d=diaCR(p.hora);let x=g[g.length-1];if(!x||x.d!==d){x={d,l:[]};g.push(x);}x.l.push(p);});
-  return `<div class="g" data-c="sinpe"><div class="blk"><h2>SINPE de días anteriores · los últimos ${r.length}</h2><p class="note" style="margin:10px 0 0">Del día más antiguo al más reciente.</p>`+g.map((x,i)=>`<div class="sp-dh"><b>${fl(x.d)}</b><span>${x.l.length} ${x.l.length===1?'pago':'pagos'} · ${R(x.l.reduce((a,p)=>a+Number(p.monto),0))} brutos</span></div>${filas(x.l,i>0)}`).join('')+`</div></div>`;
+  const g=[];[...r].reverse().forEach(p=>{const d=diaCR(p.hora);let x=g[g.length-1];if(!x||x.d!==d){x={d,l:[]};g.push(x);}x.l.push(p);});
+  return `<div class="g" data-c="sinpe"><div class="blk"><h2>SINPE de días anteriores · los últimos ${r.length}</h2><p class="note" style="margin:10px 0 0">Del día más reciente al más antiguo; dentro de cada día, el pago más reciente arriba.</p>`+g.map((x,i)=>`<div class="sp-dh"><b>${fl(x.d)}</b><span>${x.l.length} ${x.l.length===1?'pago':'pagos'} · ${R(x.l.reduce((a,p)=>a+Number(p.monto),0))} brutos</span></div>${filas(x.l,i>0)}`).join('')+`</div></div>`;
 }
 function pintar(){
   const eh=$('ing-sinpe-hoy'),ea=$('ing-sinpe-agg');if(!eh||!ea)return;

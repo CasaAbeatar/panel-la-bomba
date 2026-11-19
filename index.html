@@ -437,6 +437,32 @@ td>.mon,.sp-m>.mon,.pr-t td>.mon,.pr-stat dd>.mon{display:flex;justify-content:s
 
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#2E241C;--surface:#3A2E24;--ink:#F2EADB;--mute:#CDBFA7;--line:#5A4A3B;--hair:#6E5C49;--field:#A59377;--acc-t:#FF9AA0;--bad:#FF9AA0;--up:#FF9AA0;--down:#FF9AA0;--warn:#E8A184;--good:#7FCB8C;--good-fill:#4FA262;--amber-t:#F3B65C;--amber-edge:#F3C063;--emp-grupo:#CDBFA7;--on-emp-grupo:#2E241C;--pane:#33281F;--card:#3A2E24;--alert-ink:#E8DCC8;--heat-ink:#F2EADB;--heat-hi:#F2EADB;--bg-soda:#3A2326;--line-soda:#6A4146;--bg-pollos:#3A2F18;--line-pollos:#665226;--nodata:#6F5D4A;--st-caido:#E5454F;--st-ok:#4FA262;--k-ventas:#E5555F;--k-visitas:#6BAAD4;--k-redes:#C98AC6;--k-sistema:#8FA3B8;--k-ped:#E0A040;--k-banco:#7AA6DC;--k-gasto:#E08A67;--k-imp:#8FA3B8;--k-precio:#7AA6DC;--k-sinpe:#E5555F;--p1:#FF8F94;--p2:#7AA6DC;--p3:#C98AC6;--p4:#6BAAD4;--p5:#E0A040;--p6:#8FA3B8;--p7:#C2A06A;--p8:#B58E6B;--w40:rgba(255,255,255,.06);--w50:rgba(255,255,255,.07);--w55:rgba(255,255,255,.07);--w60:rgba(255,255,255,.09);--w70:rgba(255,255,255,.06);--w22:rgba(255,255,255,.04);--w80:rgba(255,255,255,.16);--w85:rgba(255,255,255,.16);--w90:rgba(255,255,255,.16);--w95:rgba(255,255,255,.16);--w100:rgba(255,255,255,.08);--c50:rgba(255,246,230,.10);--c18:rgba(255,246,230,.04);--c45:rgba(255,246,230,.07);--d28:rgba(255,246,230,.06);--d78:rgba(58,46,36,.94);--gl1:rgba(92,70,52,.55);--gl2:rgba(30,22,16,.70);--gl3:rgba(76,57,42,.50);--gl4:rgba(26,19,14,.60);--rule:rgba(255,255,255,.12);}}
 :root[data-theme="dark"]{color-scheme:dark;--bg:#2E241C;--surface:#3A2E24;--ink:#F2EADB;--mute:#CDBFA7;--line:#5A4A3B;--hair:#6E5C49;--field:#A59377;--acc-t:#FF9AA0;--bad:#FF9AA0;--up:#FF9AA0;--down:#FF9AA0;--warn:#E8A184;--good:#7FCB8C;--good-fill:#4FA262;--amber-t:#F3B65C;--amber-edge:#F3C063;--emp-grupo:#CDBFA7;--on-emp-grupo:#2E241C;--pane:#33281F;--card:#3A2E24;--alert-ink:#E8DCC8;--heat-ink:#F2EADB;--heat-hi:#F2EADB;--bg-soda:#3A2326;--line-soda:#6A4146;--bg-pollos:#3A2F18;--line-pollos:#665226;--nodata:#6F5D4A;--st-caido:#E5454F;--st-ok:#4FA262;--k-ventas:#E5555F;--k-visitas:#6BAAD4;--k-redes:#C98AC6;--k-sistema:#8FA3B8;--k-ped:#E0A040;--k-banco:#7AA6DC;--k-gasto:#E08A67;--k-imp:#8FA3B8;--k-precio:#7AA6DC;--k-sinpe:#E5555F;--p1:#FF8F94;--p2:#7AA6DC;--p3:#C98AC6;--p4:#6BAAD4;--p5:#E0A040;--p6:#8FA3B8;--p7:#C2A06A;--p8:#B58E6B;--w40:rgba(255,255,255,.06);--w50:rgba(255,255,255,.07);--w55:rgba(255,255,255,.07);--w60:rgba(255,255,255,.09);--w70:rgba(255,255,255,.06);--w22:rgba(255,255,255,.04);--w80:rgba(255,255,255,.16);--w85:rgba(255,255,255,.16);--w90:rgba(255,255,255,.16);--w95:rgba(255,255,255,.16);--w100:rgba(255,255,255,.08);--c50:rgba(255,246,230,.10);--c18:rgba(255,246,230,.04);--c45:rgba(255,246,230,.07);--d28:rgba(255,246,230,.06);--d78:rgba(58,46,36,.94);--gl1:rgba(92,70,52,.55);--gl2:rgba(30,22,16,.70);--gl3:rgba(76,57,42,.50);--gl4:rgba(26,19,14,.60);--rule:rgba(255,255,255,.12);}
+
+/* Salud > Computadoras: sitios visitados y ficha (v24) */
+.eq-ctl{display:flex;flex-wrap:wrap;gap:12px 16px;margin:12px 0 14px;align-items:flex-end}
+.eq-ctl label{display:flex;flex-direction:column;gap:4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);min-width:0}
+.eq-ctl select,.eq-ctl input[type=search]{font:inherit;font-size:14px;letter-spacing:0;text-transform:none;color:var(--ink);background:var(--surface);border:1px solid var(--field);border-radius:8px;padding:9px 10px;min-height:40px;max-width:100%}
+.eq-ctl input[type=search]{min-width:min(260px,100%)}
+.eq-ctl .eq-ck{flex-direction:row;align-items:center;gap:8px;font-size:13px;letter-spacing:0;text-transform:none;color:var(--ink);min-height:40px}
+.eq-ctl .eq-ck input{width:18px;height:18px;accent-color:var(--acc)}
+.eq-res{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px;color:var(--mute);margin:4px 0 12px}.eq-res b{font-weight:500;color:var(--ink);font-size:18px;margin-right:4px}.eq-res .eq-mal,.eq-res .eq-mal b{color:var(--bad)}
+.eq-tb{margin-bottom:18px}.eq-tb td,.eq-tb th{text-align:left}
+.eq-dia{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);font-weight:500;margin:18px 0 4px;padding-bottom:6px;border-bottom:1px solid var(--rule)}.eq-dia span{color:var(--mute);font-weight:400;margin-left:8px;letter-spacing:.04em}
+.eq-f{display:grid;grid-template-columns:48px 130px 138px minmax(0,1fr);gap:4px 12px;align-items:baseline;padding:11px 0 11px 8px;border-bottom:1px solid var(--rule);font-size:14px;border-left:3px solid transparent}
+.eq-f.eq-fuera{border-left-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,transparent)}
+.eq-f .eq-h{font-variant-numeric:tabular-nums}.eq-f .eq-t .tag{margin-left:0}
+.eq-u{display:flex;flex-direction:column;gap:2px;min-width:0}.eq-u b{font-weight:500}
+.eq-u .eq-b{font-weight:500;color:var(--ink)}.eq-u .eq-ti{color:var(--mute);font-size:13px;overflow-wrap:anywhere}
+.eq-u code{font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;color:var(--mute);overflow-wrap:anywhere;word-break:break-all}
+.eq-mas{margin:14px 0 0;font:inherit;font-size:14px;padding:10px 16px;min-height:44px;border:1px solid var(--field);border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer}
+.eq-card{padding:16px 0;border-bottom:1px solid var(--rule)}.eq-card:last-of-type{border-bottom:0}
+.eq-ct{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}.eq-ct b{font-weight:500;font-size:16px}.eq-ct .tag{margin-left:0}
+.eq-dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 18px;margin:0}
+.eq-dl>div{min-width:0}.eq-dl dt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}.eq-dl dd{margin:2px 0 0;font-size:14px;overflow-wrap:anywhere}
+.eq-full{grid-template-columns:1fr}.eq-full .eq-l{display:grid;grid-template-columns:minmax(120px,200px) minmax(0,1fr);gap:4px 14px;padding:6px 0;border-bottom:1px solid var(--rule)}.eq-sub{border-top:1px dashed var(--rule);padding-top:6px}
+.eq-card details{margin-top:10px}.eq-card summary{cursor:pointer;font-size:13px;color:var(--ink);font-weight:500;min-height:32px;display:flex;align-items:center}
+.eq-card h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:400;margin:16px 0 4px}
+@media(max-width:700px){.eq-f{grid-template-columns:44px minmax(0,1fr);}.eq-f .eq-e{grid-column:2}.eq-f .eq-t{grid-column:2}.eq-f .eq-u{grid-column:1/-1}.eq-full .eq-l{grid-template-columns:1fr}.eq-ctl label,.eq-ctl select,.eq-ctl input[type=search]{width:100%}}
 </style>
 </head>
 <body data-emp="grupo">
@@ -500,7 +526,7 @@ td>.mon,.sp-m>.mon,.pr-t td>.mon,.pr-stat dd>.mon{display:flex;justify-content:s
     <section id="tab-paginas" hidden></section>
     <section id="tab-redes" hidden></section>
   </section>
-  <section id="sec-salud" hidden></section>
+  <section id="sec-salud" hidden><div id="sal-base"></div><div id="sal-equipos"></div></section>
 
     </main>
     <aside class="der" aria-label="Requiere atención">
@@ -523,5 +549,6 @@ td>.mon,.sp-m>.mon,.pr-t td>.mon,.pr-stat dd>.mon{display:flex;justify-content:s
 <script src="atender.js"></script>
 <script src="comercial.js"></script>
 <script src="sinpe.js"></script>
+<script src="equipos.js"></script>
 </body>
 </html>
