@@ -2,16 +2,16 @@
 const comercial=(()=>{
 const DOW=['','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'],DS=['','Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];   // dow ISO: 1 lunes … 7 domingo
 const LOC={soda:'Soda La Bomba',pollos:'Pollos La Bomba'};
-const R=n=>'₡'+fmt(n),P=n=>Math.round(num(n)*100)+' %',D1=n=>num(n).toFixed(2).replace('.',',');
-let S={dias:30,pruebas:false},D=null,PA=null,CL=null,ocup=false,err=null,llave='';
+const R=n=>crc(n),P=n=>fin(n)?Math.round(num(n)*100)+' %':'—',D1=n=>fmtD(n,2);
+let S={dias:30,pruebas:false},D=null,PA=null,CL=null,ocup=false,err=null,llave='',leido=0;
 function desde(){const d=new Date(hoyCR()+'T12:00:00');d.setDate(d.getDate()-S.dias);return d.toLocaleDateString('en-CA');}
 async function traer(){
-  const k=EMP+'|'+S.dias+'|'+S.pruebas;if(ocup||k===llave)return;ocup=true;
+  const k=EMP+'|'+S.dias+'|'+S.pruebas;if(ocup||(k===llave&&leido&&Date.now()-leido<60000))return;ocup=true;   // se vuelve a leer si pasó más de un minuto (el día cambia y las ventas de hoy también)
   const a={p_emp:EMP,p_desde:desde(),p_hasta:hoyCR(),p_pruebas:S.pruebas};
   try{
     const [r,p,c]=await Promise.all([sb.rpc('panel_comercial_resumen',a),sb.rpc('panel_comercial_pares',{...a,p_min:3}),sb.rpc('panel_comercial_clientes',a)]);
     if(r.error||p.error||c.error)throw (r.error||p.error||c.error);
-    D=r.data;PA=p.data;CL=c.data;err=null;llave=k;
+    D=r.data;PA=p.data;CL=c.data;err=null;llave=k;leido=Date.now();
   }catch(e){err='No se pudieron cargar los datos comerciales. Toque «Actualizar» para intentarlo otra vez.';}
   ocup=false;pintar();
 }
@@ -92,6 +92,6 @@ function pintar(){
   const pr=$('cm-pr');if(pr)pr.onchange=()=>{S.pruebas=pr.checked;ver();};
   const rf=$('cm-ref');if(rf)rf.onclick=()=>{llave='';ver();};
 }
-function ver(){if(!$('sec-comercial'))return;if(D)pintar();traer();}
+function ver(f){if(!$('sec-comercial'))return;if(f)llave='';if(D)pintar();traer();}
 return {ver};
 })();

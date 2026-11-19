@@ -9,9 +9,9 @@ try{const s=JSON.parse(sessionStorage.getItem('panel.precios')||'null');if(s)P={
 const guardar=()=>{try{const {det,...r}=P;sessionStorage.setItem('panel.precios',JSON.stringify(r));}catch(e){}};
 const M={};let F={},cargandoEmp=null,errores={},scrollY=0,tq=null;
 const n2=new Intl.NumberFormat('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
-const c2=n=>n==null?'—':'₡'+n2.format(n);
-const c0=n=>n==null?'—':(n<0?'−':'')+'₡'+fmt(Math.abs(n));
-const pc=(v,s)=>v==null?'—':(s?(v>0.00049?'+':v<-0.00049?'−':''):(v<0?'−':''))+(Math.abs(v)*100).toFixed(1).replace('.',',')+' %';
+const c2=n=>n==null?'—':crcD(n,2);
+const c0=n=>n==null?'—':crc(n);
+const pc=(v,s)=>!fin(v)?'—':(s?(v>0.00049?'+':v<-0.00049?'−':''):(v<0?'−':''))+(Math.abs(v)*100).toFixed(1).replace('.',',')+' %';
 const cl=v=>v==null?'pr-eq':v>0.005?'pr-up':v<-0.005?'pr-dn':'pr-eq';
 const fa=v=>v==null?'':(v>0.005?'▲ ':v<-0.005?'▼ ':'= ');
 const MSL=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -103,7 +103,7 @@ function selHtml(){
 }
 const AYUDA=`<details class="pr-ayuda"><summary>¿Cómo leer esta pantalla?</summary><div>
 <p><b>Costo por unidad.</b> Es lo que cuesta una sola unidad (una botella, un kilo, una pieza) sin IVA, ya dividido si la factura trae cajas o paquetes. Así se pueden comparar compras de distinto tamaño. Cuando la factura trae PDF, se usa para confirmar cuántas unidades vienen en cada caja; si no, se usa el XML y se marca «según XML».</p>
-<p><b>Rojo y ámbar.</b> Rojo (▲) es que usted paga más; ámbar (▼) es que paga menos. Todas las cifras son netas, sin IVA, en colones.</p>
+<p><b>Rojo y verde.</b> Rojo (▲) es que usted paga más; verde (▼) es que paga menos. Todas las cifras son netas, sin IVA, en colones.</p>
 <p><b>Tendencia.</b> «Alza sostenida» o «baja sostenida» es cuando el precio se mueve en la misma dirección compra tras compra (cambio total de 5 % o más y al menos 6 de cada 10 movimientos en esa dirección). «Salto puntual» es un solo precio raro con el resto igual. «Estable» es menos de 5 % de diferencia entre el más barato y el más caro. Con menos de 3 compras no se habla de tendencia.</p>
 <p><b>Índice.</b> Empieza en 100 en el primer mes con compras. Cada mes se compara solo lo que se compró en ese mes y en el anterior (la misma canasta), pesando cada producto por lo que se gastó en él; luego se encadena. Si el índice marca 108, esa canasta cuesta 8 % más que al inicio.</p>
 </div></details>`;
@@ -192,8 +192,8 @@ function provHtml(D){
   let ps=D.proveedores||[];if(P.prov)ps=ps.filter(p=>p.ced===P.prov);
   const et=num(D.efecto_total);
   let h=`<div class="g" data-c="precio"><div class="blk"><h2>Cuánto más (o menos) se pagó por cambios de precio · por mes</h2>
-   <p style="margin:12px 0 4px;font-size:16px;line-height:1.4">${et>=0?'En total se pagó':'En total se pagó'} <b class="${et>0?'pr-up':et<0?'pr-dn':''}">${c0(Math.abs(et))} ${et>=0?'de más':'de menos'}</b> por los cambios de precio, frente al primer precio de cada producto.</p>
-   ${barrasEfecto(D.efecto_mes,'Diferencia de precio × cantidad comprada en cada mes, en colones sin IVA (neto) · rojo: se pagó más · ámbar: se pagó menos')}
+   <p style="margin:12px 0 4px;font-size:16px;line-height:1.4">En total se pagó <b class="${et>0?'pr-up':et<0?'pr-dn':''}">${c0(Math.abs(et))} ${et>=0?'de más':'de menos'}</b> por los cambios de precio, frente al primer precio de cada producto.</p>
+   ${barrasEfecto(D.efecto_mes,'Diferencia de precio × cantidad comprada en cada mes, en colones sin IVA (neto) · rojo: se pagó más · verde: se pagó menos')}
    <p class="note">Para cada producto de cada proveedor: (precio del mes − precio de su primera compra) × unidades compradas ese mes. Es el costo real del alza sobre lo que realmente se compró.</p></div></div>`;
   h+=`<div class="pr-sub">Ranking de proveedores · de mayor a menor aumento acumulado</div><div class="g" data-c="precio"><div class="blk" style="padding-top:6px">`;
   h+=ps.map((p,i)=>{const ms=p.meses||[],a=ms.length>1?ms[ms.length-1].i/100-1:null;
@@ -208,7 +208,7 @@ function provDetHtml(p,L){
   <p style="margin:12px 0 4px;font-size:16px;line-height:1.4">${a==null?'Todavía hay pocos meses de compras para medir.':Math.abs(a)<.0005?'Sus precios no han cambiado.':`Sus precios ${a>0?'subieron':'bajaron'} <b class="${cl(a)}">${pc(Math.abs(a))}</b> desde ${fmL(p.base)}, sobre la misma canasta de productos.`} Costó ${c0(Math.abs(num(p.efecto)))} ${num(p.efecto)>=0?'más':'menos'} de lo que se habría pagado a los primeros precios.</p>
   ${ms.length>1?idxChart(ms,p.prov):''}
   <dl class="pr-stat"><div><dt>Cambio a 30 días</dt><dd class="${cl(p.v30)}">${p.v30==null?'sin compras':fa(p.v30)+pc(Math.abs(p.v30))}</dd></div><div><dt>Cambio a 90 días</dt><dd class="${cl(p.v90)}">${p.v90==null?'sin compras':fa(p.v90)+pc(Math.abs(p.v90))}</dd></div><div><dt>Cambio a 365 días</dt><dd class="${cl(p.v365)}">${p.v365==null?'sin compras':fa(p.v365)+pc(Math.abs(p.v365))}</dd></div><div><dt>Productos</dt><dd><span class="pr-up">${p.suben}↑</span> <span class="pr-dn">${p.bajan}↓</span> ${p.igual}=</dd></div></dl>
-  <div class="pr-sub">Cuánto más (o menos) se pagó, por mes</div>${barrasEfecto(p.efecto_mes,'En colones sin IVA (neto) · rojo: se pagó más · ámbar: se pagó menos')}</div></div>`;
+  <div class="pr-sub">Cuánto más (o menos) se pagó, por mes</div>${barrasEfecto(p.efecto_mes,'En colones sin IVA (neto) · rojo: se pagó más · verde: se pagó menos')}</div></div>`;
   h+=`<div class="g" data-c="precio"><div class="blk"><h2>Productos que más empujaron el alza</h2>${(p.empujan||[]).map(x=>`<button type="button" class="pr-fila" data-pa="prod" data-k="${esc(x.key)}"><div class="tx"><b>${esc(x.producto)}</b></div><div class="vl"><i class="pr-up">+${c0(x.imp).replace('−','')} de más</i><span class="pr-ver">Ver detalle</span></div></button>`).join('')||'<p class="pr-vacio">Ningún producto subió de forma medible.</p>'}
    ${(p.aflojan||[]).length?`<div class="pr-sub">Productos que bajaron</div>`+p.aflojan.map(x=>`<button type="button" class="pr-fila" data-pa="prod" data-k="${esc(x.key)}"><div class="tx"><b>${esc(x.producto)}</b></div><div class="vl"><i class="pr-dn">${c0(Math.abs(x.imp))} de menos</i><span class="pr-ver">Ver detalle</span></div></button>`).join(''):''}</div></div>`;
   h+=`<div class="g" data-c="precio"><div class="blk"><h2>Sus productos y la serie de precios</h2>${L?(L.productos||[]).map(x=>{const ab=!!P.abiertos['p'+x.key];

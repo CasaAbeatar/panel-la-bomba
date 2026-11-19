@@ -2,7 +2,8 @@
 const atender=(()=>{
 const CAT={hacienda:'Hacienda',municipalidad:'Municipalidad',pagos:'Pagos',banco:'Banco',proveedores:'Proveedores',empleados:'Empleados',salud:'Salud',seguros:'Seguros',sistema:'Sistema',seguridad:'Seguridad',otro:'Otro'};
 const EMPN={soda:'Soda',pollos:'Pollos',grupo:'Grupo'};
-const fmtN=n=>new Intl.NumberFormat('es-CR').format(n);
+const fmtN=n=>fmt(n);   // mismo separador de miles que todo el panel
+const urlOk=u=>/^(https:\/\/|tel:|mailto:|#|\.\/)/i.test(String(u||''));   // el enlace del asistente solo puede abrir https, teléfono o correo
 const GR={1:'Atender primero',2:'Atender pronto',3:'Revisar cuando pueda'};
 let D=null,cargando=false,err=null;
 async function traer(){
@@ -17,14 +18,14 @@ function card(x){
   return `<div class="at-card" data-i="${x.importancia}" data-id="${x.id}">
     <div class="at-top"><span class="at-chip">${esc(CAT[x.categoria]||'Otro')}</span><span class="at-chip">${esc(EMPN[x.empresa]||'')}</span>${desp?'<span class="at-chip">Lo dejó para después</span>':''}</div>
     <h3>${esc(x.titulo)}</h3>${x.detalle?`<p>${esc(x.detalle)}</p>`:''}
-    <div class="at-btns"><button type="button" class="main" data-ac="resuelto">Ya lo resolví</button>${desp?'<button type="button" data-ac="abierto">Volver a ponerlo arriba</button>':'<button type="button" data-ac="despues">Dejarlo para después</button>'}${x.enlace?`<a href="${esc(x.enlace)}" target="_blank" rel="noopener">Abrir</a>`:''}</div></div>`;
+    <div class="at-btns"><button type="button" class="main" data-ac="resuelto">Ya lo resolví</button>${desp?'<button type="button" data-ac="abierto">Volver a ponerlo arriba</button>':'<button type="button" data-ac="despues">Dejarlo para después</button>'}${urlOk(x.enlace)?`<a href="${esc(x.enlace)}" target="_blank" rel="noopener">Abrir</a>`:''}</div></div>`;
 }
 function pintar(){
   const el=$('sec-atender');if(!el)return;pintarN();
   if(!D){el.innerHTML=err?`<p class="note">${esc(err)}</p>`:'<p class="note">Cargando…</p>';return;}
   const it=visibles(),ab=it.filter(x=>x.estado==='abierto'),de=it.filter(x=>x.estado==='despues');
   const vv=(D.vivos||[]).filter(x=>EMP==='grupo'||x.empresa===EMP||x.empresa==='grupo');
-  const viv=vv.map(x=>`<div class="at-vivo" data-i="${x.importancia}"><span>${esc(x.etiqueta)}${EMP==='grupo'&&x.empresa!=='grupo'?` <span class="at-chip">${esc(EMPN[x.empresa]||'')}</span>`:''}</span><span style="display:flex;gap:14px;align-items:center"><b>${fmtN(x.n)}</b>${x.enlace?`<a class="at-ir" href="${esc(x.enlace)}" target="_blank" rel="noopener">Ver</a>`:''}</span></div>`);
+  const viv=vv.map(x=>`<div class="at-vivo" data-i="${x.importancia}"><span>${esc(x.etiqueta)}${EMP==='grupo'&&x.empresa!=='grupo'?` <span class="at-chip">${esc(EMPN[x.empresa]||'')}</span>`:''}</span><span style="display:flex;gap:14px;align-items:center"><b>${fmtN(x.n)}</b>${urlOk(x.enlace)?`<a class="at-ir" href="${esc(x.enlace)}" target="_blank" rel="noopener">Ver</a>`:''}</span></div>`);
   let h=`<div class="dayl">Hoy · <b>${fl(hoyCR())}</b></div>
   <div class="g"><div class="blk"><h2>Para atender</h2><p style="margin:12px 0 4px;font-size:16px;line-height:1.4">${ab.length?`Hay <b>${ab.length}</b> asunto${ab.length>1?'s':''} del correo y de la operación por atender${ab.some(x=>x.importancia===1)?`, <b>${ab.filter(x=>x.importancia===1).length}</b> para atender primero`:''}.`:'No hay asuntos del correo por atender en este momento.'}</p>
   <p class="note">Aquí se juntan las solicitudes de pago, estados de cuenta y avisos de Hacienda, la Municipalidad, bancos y proveedores que llegan al correo. Cuando algo ya está resuelto, tóquelo y sale de la lista.</p></div></div>`;
