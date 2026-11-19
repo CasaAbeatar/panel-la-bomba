@@ -549,7 +549,7 @@ function irSec(s){
   SEC=s;
   document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x.dataset.sec===s));
   ['hoy','atender','ingresos','gastos','comercial','precios','impuestos','presencia','salud'].forEach(t=>$('sec-'+t).hidden=t!==s);
-  window.scrollTo(0,0);if(s==='comercial'&&typeof comercial!=='undefined')comercial.ver();if(s==='ingresos'&&typeof sinpe!=='undefined')sinpe.ver();if(s==='precios'&&typeof precios!=='undefined')precios.ver();if(s==='atender'&&typeof atender!=='undefined')atender.ver();if(s==='salud')pintarSalud();if(typeof atender!=='undefined')atender.notas();
+  window.scrollTo(0,0);if(s==='comercial'&&typeof comercial!=='undefined')comercial.ver();if(s==='ingresos'&&typeof sinpe!=='undefined')sinpe.ver();if(s==='precios'&&typeof precios!=='undefined')precios.ver();if(s==='atender'&&typeof atender!=='undefined')atender.ver();if(s==='salud'){saludVista.entrar();pintarSalud();}if(typeof atender!=='undefined')atender.notas();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>irSec(b.dataset.sec));
 document.querySelectorAll('.emp button').forEach(b=>b.onclick=()=>{EMP=b.dataset.emp;document.body.dataset.emp=EMP;document.querySelectorAll('.emp button').forEach(x=>x.setAttribute('aria-pressed',x===b));pintarFin();});
@@ -660,18 +660,18 @@ const sHora=t=>t?new Date(t).toLocaleString('es-CR',{timeZone:'America/Costa_Ric
 const sHace=t=>{if(!t)return '—';const m=Math.max(0,Math.round((Date.now()-new Date(t))/60000));return m<2?'hace un momento':m<60?'hace '+m+' min':m<1440?'hace '+Math.round(m/60)+' h':'hace '+Math.round(m/1440)+' días';};
 let SALUD_SEQ=0,SALUD_ULT=null;
 async function pintarSalud(){
-  const box=$('sal-base')||$('sec-salud');if(!box)return;
+  const box=$('sal-base');if(!box)return;
   const my=++SALUD_SEQ;
   let d;try{const {data,error}=await sb.rpc('panel_salud');if(error)throw error;d=data;SALUD_ERR=false;}
   catch(e){
     if(my!==SALUD_SEQ)return;
     SALUD_ERR=true;
     const msg=/no autorizado/i.test(String(e&&e.message))?'Tu sesión venció. Vuelve a entrar al panel para ver la salud de los sistemas.':'No se pudo actualizar ahora. Se reintenta sola cada minuto.';
-    if(SALUD_ULT){box.innerHTML='<p class="note" role="status" style="color:var(--rojo,#B81622)">'+esc(msg)+' Lo que se ve abajo es de '+esc(sHace(SALUD_ULT.t))+'.</p>'+SALUD_ULT.h;}
-    else box.innerHTML='<div class="blk" data-c="sistema"><h2>No se pudo cargar la salud de los sistemas</h2><p class="note">'+esc(msg)+'</p></div>';
+    saludVista.error(msg,SALUD_ULT&&SALUD_ULT.t);
     return;}
   if(my!==SALUD_SEQ)return;
-  let pc=null;try{const r=await sb.rpc('panel_punto_de_caida');if(!r.error)pc=r.data;}catch(e){}
+  let pc=null,av=null;
+  await Promise.all([sb.rpc('panel_punto_de_caida').then(r=>{if(!r.error)pc=r.data;},()=>{}),sb.rpc('panel_atender_lista').then(r=>{if(!r.error)av=r.data;},()=>{})]);
   if(my!==SALUD_SEQ)return;
   const eqs=(d.equipos||[]).filter(e=>EMP==='grupo'||e.empresa===EMP);
   const NM={};Object.keys(SALUD_N).forEach(k=>NM[k]=SALUD_N[k]);(d.equipos||[]).forEach(e=>NM['equipo:'+e.estacion]=e.nombre);
@@ -682,36 +682,45 @@ async function pintarSalud(){
   const nc=todos.filter(k=>AH[k].estado==='caido').length,na=todos.filter(k=>AH[k].estado==='aviso').length,ns=todos.filter(k=>AH[k].estado==='sin_datos').length;
   const est=(nc||d.vigilancia_detenida)?'caido':na?'aviso':'ok';
   const tit=nc?(nc===1?'Hay 1 componente sin respuesta':'Hay '+nc+' componentes sin respuesta'):na?(na===1?'Todo funciona, con 1 aviso':'Todo funciona, con '+na+' avisos'):'Todo funcionando';
-  let h=`<div class="dayl">Estado de hoy · <b>${esc(sHora(d.hora))}</b></div><div class="sb"><i class="e-${est}"></i><b>${tit}</b><span>${ns?ns+(ns===1?' componente todavía sin datos':' componentes todavía sin datos')+' · ':''}Última revisión ${esc(sHace(d.ultima_revision))}</span></div>`;
-  if(d.vigilancia_detenida)h=`<div class="sb" role="alert"><i class="e-caido"></i><b>La vigilancia no se ha ejecutado ${esc(sHace(d.ultima_revision))}</b><span>Lo que se muestra puede estar desactualizado. Se avisará por los canales de alerta.</span></div>`+h;
+  let hb=`<div class="dayl">Estado de hoy · <b>${esc(sHora(d.hora))}</b></div><div class="sb"><i class="e-${est}"></i><b>${tit}</b><span>${ns?ns+(ns===1?' componente todavía sin datos':' componentes todavía sin datos')+' · ':''}Última revisión ${esc(sHace(d.ultima_revision))}</span></div>`;
+  if(d.vigilancia_detenida)hb=`<div class="sb" role="alert"><i class="e-caido"></i><b>La vigilancia no se ha ejecutado ${esc(sHace(d.ultima_revision))}</b><span>Lo que se muestra puede estar desactualizado. Se avisará por los canales de alerta.</span></div>`+hb;
   const hoy=HOYCR(),dias=[...Array(30)].map((_,i)=>addd(hoy,i-29));
   const CONOCIDOS=new Set(SALUD_G.flatMap(g=>g[1]));const otros=Object.keys(AH).filter(k=>!CONOCIDOS.has(k)&&!k.startsWith('equipo:'));
+  let hSisG='',hEqG='';
   (otros.length?SALUD_G.concat([['Otros',otros]]):SALUD_G).forEach(([gt,ks])=>{
     const f=ks.filter(k=>AH[k]&&visibles(k));if(!f.length)return;
+    let h='';
     h+=`<div class="g" data-c="sistema"><div class="blk"><h2>${esc(gt)}</h2><div class="sc">`+f.map(k=>{
       const a=AH[k],ms=a.ms!=null&&!k.startsWith('equipo:')?a.ms+' ms':a.ms!=null?'latencia '+a.ms+' ms':'';
       const barra=dias.map(x=>{const e=(DI[k]||{})[x]||'sin_datos';return `<s class="e-${e}" title="${esc(dl(x))}: ${esc(SALUD_E[e])}"></s>`;}).join('');
       return `<div class="sf"><div class="sft"><i class="e-${a.estado}"></i><b>${esc(NM[k]||k)}</b><em>${esc(SALUD_E[a.estado])}${ms?' · '+esc(ms):''}</em></div><div class="de">${esc(a.detalle||'')}</div><div class="dd" role="img" aria-label="Últimos 30 días de ${esc(NM[k]||k)}: ${dias.filter(x=>((DI[k]||{})[x])==='caido').length} días sin respuesta, ${dias.filter(x=>((DI[k]||{})[x])==='aviso').length} con avisos">${barra}</div><div class="ddl"><span>${esc(dl(dias[0]))}</span><span>Hoy</span></div></div>`;
     }).join('')+`</div></div></div>`;
+
+    if(gt==='Computadoras de caja')hEqG+=h;else hSisG+=h;
   });
-  h+=`<p class="note" style="margin:-8px 0 26px">Cada rayita es un día, de izquierda (más antiguo) a derecha (hoy). Verde: sin problemas. Ámbar: hubo avisos. Rojo: estuvo sin respuesta. Gris: sin datos.</p>`;
-  // equipos
-  if(eqs.length)h+=`<div class="g" data-c="sistema">${table('Computadoras de caja',['Equipo','Última vez que respondió','Pantallas conectadas','Cajas abiertas','Tiempo de respuesta','Versión del kit','Horario'],eqs.map(e=>[esc(e.nombre),e.creado_en?esc(sHace(e.creado_en)):'Sin señal todavía',e.pantallas!=null?String(e.pantallas):'—',e.ventanas!=null?String(e.ventanas):'—',e.latencia_ms!=null?e.latencia_ms+' ms':'—',esc(e.version_kit||'—'),e.horario_abre?esc(String(e.horario_abre).slice(0,5)+' a '+String(e.horario_cierra).slice(0,5)):'24 horas']),1)}</div>`;
-  // punto de caída: último consecutivo emitido por empresa y documento (17 nov 2026)
+  const leyenda=`<p class="note" style="margin:-8px 0 26px">Cada rayita es un día, de izquierda (más antiguo) a derecha (hoy). Verde: sin problemas. Ámbar: hubo avisos. Rojo: estuvo sin respuesta. Gris: sin datos.</p>`;
+  // Computadoras: tabla de latidos y eventos de las cajas
+  let hEq=hEqG+(hEqG?leyenda:'');
+  if(eqs.length)hEq+=`<div class="g" data-c="sistema">${table('Computadoras de caja',['Equipo','Última vez que respondió','Pantallas conectadas','Cajas abiertas','Tiempo de respuesta','Versión del kit','Horario'],eqs.map(e=>[esc(e.nombre),e.creado_en?esc(sHace(e.creado_en)):'Sin señal todavía',e.pantallas!=null?String(e.pantallas):'—',e.ventanas!=null?String(e.ventanas):'—',e.latencia_ms!=null?e.latencia_ms+' ms':'—',esc(e.version_kit||'—'),e.horario_abre?esc(String(e.horario_abre).slice(0,5)+' a '+String(e.horario_cierra).slice(0,5)):'24 horas']),1)}</div>`;
+  const ev=d.eventos||[];
+  if(!ev.length)hEq+=`<div class="g" data-c="sistema"><div class="blk"><h2>Eventos de las computadoras de caja (7 días)</h2><p class="note">Sin eventos en los últimos 7 días.</p></div></div>`;
+  if(ev.length)hEq+=`<div class="g" data-c="sistema">${table('Eventos de las computadoras de caja (7 días)',['Cuándo','Equipo','Qué pasó','Detalle'],ev.slice(0,30).map(v=>[esc(sHora(v.creado_en)),esc(NM['equipo:'+v.estacion]||v.estacion),esc(SALUD_EV[v.tipo]||v.tipo),esc(v.detalle||'')]),1)}</div>`;
+  // Facturación: último consecutivo emitido por empresa y documento (17 nov 2026)
+  let hFac='';
   if(pc&&(pc.consecutivos||[]).length){
     const TD={'01':'Factura electrónica','02':'Nota de débito','03':'Nota de crédito','04':'Tiquete electrónico','08':'Factura de compra','09':'Factura de exportación'};
     const emp=s=>/CORPORACION DMA/i.test(s)?'Soda La Bomba':/3-102-111943/.test(s)?'Pollos La Bomba y Papea':s;
-    h+=`<div class="g" data-c="sistema">${table('Último consecutivo emitido (si el sistema se cae, retoma desde aquí)',['Empresa','Documento','Terminal','Último número','Cuándo se emitió','Números salteados'],pc.consecutivos.map(c=>[esc(emp(c.sociedad)),esc(TD[c.tipo_doc]||('Tipo '+c.tipo_doc)),esc(String(parseInt(String(c.serie||'').slice(3,8),10)||'—')),esc(String(c.ultimo_numero_emitido)),esc(sHora(c.ultima_emision)),(c.faltantes||[]).length?esc(c.faltantes.join(', ')):'Ninguno']),1)}<p class="note">Para saber cuándo y por qué se cayó algo, mira «Incidentes» más abajo y compara su hora con la columna «Cuándo se emitió». Los correos enviados a Microsoft 365 sirven para cotejar estos números.</p></div>`;
+    hFac=`<div class="g" data-c="sistema">${table('Último consecutivo emitido (si el sistema se cae, retoma desde aquí)',['Empresa','Documento','Terminal','Último número','Cuándo se emitió','Números salteados'],pc.consecutivos.map(c=>[esc(emp(c.sociedad)),esc(TD[c.tipo_doc]||('Tipo '+c.tipo_doc)),esc(String(parseInt(String(c.serie||'').slice(3,8),10)||'—')),esc(String(c.ultimo_numero_emitido)),esc(sHora(c.ultima_emision)),(c.faltantes||[]).length?esc(c.faltantes.join(', ')):'Ninguno']),1)}<p class="note">Para saber cuándo y por qué se cayó algo, mira «Incidentes» en Sistemas y compara su hora con la columna «Cuándo se emitió». Los correos enviados a Microsoft 365 sirven para cotejar estos números.</p></div>`;
   }
-  // incidentes
+  // Sistemas: grupos, buzones, incidentes
+  let hSis=hb+hSisG+(hSisG?leyenda:'');
+  if(typeof bloqueBuzones==='function'){try{hSis+=bloqueBuzones();}catch(e){}}
   const inc=d.incidentes||[];
-  h+=`<div class="g" data-c="sistema">`+(inc.length?table('Incidentes de los últimos 30 días',['Componente','Detectado','En atención','Resuelto','Quién'],inc.map(i=>[esc(NM[i.componente]||i.componente),esc(sHora(i.detectado_en)),i.atencion_en?esc(sHora(i.atencion_en)):'—',i.resuelto_en?esc(sHora(i.resuelto_en)):'Abierto',i.resuelto_en?(i.resuelto_por==='Claude'?'Resuelto por Claude':i.resuelto_por==='Emil'?'Resuelto por Emil':'Se resolvió solo'):'Esperando atención']),1):'<div class="blk"><h2>Incidentes de los últimos 30 días</h2><p class="note">Ninguno. Cuando un componente falle tres revisiones seguidas, aquí queda la hora en que se detectó, cuándo se atendió, cuándo se resolvió y quién lo resolvió.</p></div>')+`</div>`;
-  const ev=d.eventos||[];
-  if(!ev.length)h+=`<div class="g" data-c="sistema"><div class="blk"><h2>Eventos de las computadoras de caja (7 días)</h2><p class="note">Sin eventos en los últimos 7 días.</p></div></div>`;
-  if(ev.length)h+=`<div class="g" data-c="sistema">${table('Eventos de las computadoras de caja (7 días)',['Cuándo','Equipo','Qué pasó','Detalle'],ev.slice(0,30).map(v=>[esc(sHora(v.creado_en)),esc(NM['equipo:'+v.estacion]||v.estacion),esc(SALUD_EV[v.tipo]||v.tipo),esc(v.detalle||'')]),1)}</div>`;
-  h+=`<p class="note">Los avisos se enviarán a admin@dmalabomba.com, al teléfono y a la bandeja del facturador, solo a administradores. Las computadoras de caja muestran «Sin datos» hasta que se instale el kit con latido.</p>`;
-  box.innerHTML=h;SALUD_ULT={t:d.hora,h:h};
-  if(typeof equiposVista!=='undefined')equiposVista.ver(eqs,true);
+  hSis+=`<div class="g" data-c="sistema">`+(inc.length?table('Incidentes de los últimos 30 días',['Componente','Detectado','En atención','Resuelto','Quién'],inc.map(i=>[esc(NM[i.componente]||i.componente),esc(sHora(i.detectado_en)),i.atencion_en?esc(sHora(i.atencion_en)):'—',i.resuelto_en?esc(sHora(i.resuelto_en)):'Abierto',i.resuelto_en?(i.resuelto_por==='Claude'?'Resuelto por Claude':i.resuelto_por==='Emil'?'Resuelto por Emil':'Se resolvió solo'):'Esperando atención']),1):'<div class="blk"><h2>Incidentes de los últimos 30 días</h2><p class="note">Ninguno. Cuando un componente falle tres revisiones seguidas, aquí queda la hora en que se detectó, cuándo se atendió, cuándo se resolvió y quién lo resolvió.</p></div>')+`</div>`;
+  hSis+=`<p class="note">Los avisos se envían a admin@dmalabomba.com, al teléfono y a la bandeja del facturador, solo a administradores.</p>`;
+  const viv=((av&&av.vivos)||[]).filter(v=>EMP==='grupo'||v.empresa===EMP||v.empresa==='grupo');
+  SALUD_ULT={t:d.hora};
+  await saludVista.ver({d,pc,av,viv,eqs,NM,AH,visibles,hSis,hEq,hFac});
 }
 setInterval(()=>{if(SEC==='salud'&&!document.hidden)pintarSalud();},60000);
 
