@@ -4,15 +4,15 @@
 const sinpe=(()=>{
 const NEGN={soda:'Soda',pollos:'Pollos'};
 const MCORTO=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-const R=n=>'₡'+fmt(n);
-const D1=n=>n==null?'—':Number(n).toFixed(2).replace('.',',');
-const PCT=n=>n==null?'—':(Number(n)*100).toFixed(1).replace('.',',')+' %';
+const R=n=>crc(n),RM=n=>mo(crc(n));
+const D1=n=>fmtD(n,2);
+const PCT=n=>p1(n==null?NaN:Number(n));
 let S=null,ocup=false,err=null,llave='',leido=null;
 const horaCR=t=>new Date(t).toLocaleTimeString('es-CR',{timeZone:'America/Costa_Rica',hour:'2-digit',minute:'2-digit',hour12:false});
 const diaCR=t=>new Date(t).toLocaleDateString('en-CA',{timeZone:'America/Costa_Rica'});
 function avisoTxt(t,hoy){if(!t)return 'Todavía no hay';const d=diaCR(t);return d===hoy?horaCR(t):dl(d)+', '+horaCR(t);}
 async function traer(forzar){
-  const k=EMP;if(ocup||(!forzar&&k===llave))return;ocup=true;
+  const k=EMP;if(ocup||(!forzar&&k===llave&&leido&&Date.now()-leido<60000))return;ocup=true;   // se vuelve a leer si pasó más de un minuto: antes «hoy» quedaba congelado
   try{
     const {data,error}=await sb.rpc('panel_sinpe_consulta',{p_emp:EMP,p_dias:30});
     if(error)throw error;
@@ -48,14 +48,14 @@ function estadBloque(){
   const nd=Number(e.n_dias||0);
   return `<div class="blk"><h2>Estadística de los ${nd} días completos</h2>
     <table class="tb stk"><thead><tr><th>Por día (suma de pagos)</th><th>Cifra</th></tr></thead><tbody>
-      <tr><td data-l="Medida">Promedio diario (bruto)</td><td data-l="Cifra">${e.prom==null?'—':R(e.prom)}</td></tr>
-      <tr><td data-l="Medida">Desviación estándar</td><td data-l="Cifra">${e.sd==null?'—':R(e.sd)}</td></tr>
+      <tr><td data-l="Medida">Promedio diario (bruto)</td><td data-l="Cifra">${e.prom==null?'—':RM(e.prom)}</td></tr>
+      <tr><td data-l="Medida">Desviación estándar</td><td data-l="Cifra">${e.sd==null?'—':RM(e.sd)}</td></tr>
       <tr><td data-l="Medida">Coeficiente de variación</td><td data-l="Cifra">${PCT(e.cv)}</td></tr></tbody></table>
     <table class="tb stk" style="margin-top:14px"><thead><tr><th>Por pago</th><th>Cifra</th></tr></thead><tbody>
       <tr><td data-l="Medida">Pagos contados</td><td data-l="Cifra">${fmt(q.n||0)}</td></tr>
-      <tr><td data-l="Medida">Promedio por pago (bruto)</td><td data-l="Cifra">${q.prom==null?'—':R(q.prom)}</td></tr>
-      <tr><td data-l="Medida">Mediana</td><td data-l="Cifra">${q.mediana==null?'—':R(q.mediana)}</td></tr>
-      <tr><td data-l="Medida">Desviación estándar</td><td data-l="Cifra">${q.sd==null?'—':R(q.sd)}</td></tr>
+      <tr><td data-l="Medida">Promedio por pago (bruto)</td><td data-l="Cifra">${q.prom==null?'—':RM(q.prom)}</td></tr>
+      <tr><td data-l="Medida">Mediana</td><td data-l="Cifra">${q.mediana==null?'—':RM(q.mediana)}</td></tr>
+      <tr><td data-l="Medida">Desviación estándar</td><td data-l="Cifra">${q.sd==null?'—':RM(q.sd)}</td></tr>
       <tr><td data-l="Medida">Coeficiente de variación</td><td data-l="Cifra">${PCT(q.cv)}</td></tr>
       <tr><td data-l="Medida">Pago menor y mayor</td><td data-l="Cifra">${q.min==null?'—':R(q.min)+' y '+R(q.max)}</td></tr></tbody></table>
     <p class="note">Cifras brutas. Se cuentan los ${nd} días anteriores a hoy (hoy se deja fuera por estar incompleto) desde el ${dly(S.desde)}; los días sin SINPE cuentan como ₡0. El coeficiente de variación es la desviación estándar entre el promedio: cerca de 0 los días se parecen, sobre 100 % cambian muchísimo.</p></div>`;
@@ -71,8 +71,8 @@ function agregados(){
 }
 function anteriores(){
   const r=S.recientes||[];if(!r.length)return `<div class="g" data-c="sinpe"><div class="blk"><h2>SINPE de días anteriores</h2><p class="note" style="margin-top:12px">Todavía no hay SINPE de días anteriores en estos ${S.dias} días.</p></div></div>`;
-  const g=[];r.forEach(p=>{const d=diaCR(p.hora);let x=g[g.length-1];if(!x||x.d!==d){x={d,l:[]};g.push(x);}x.l.push(p);});
-  return `<div class="g" data-c="sinpe"><div class="blk"><h2>SINPE de días anteriores · los últimos ${r.length}</h2><p class="note" style="margin:10px 0 0">Del día más antiguo al más reciente.</p>`+g.map((x,i)=>`<div class="sp-dh"><b>${fl(x.d)}</b><span>${x.l.length} ${x.l.length===1?'pago':'pagos'} · ${R(x.l.reduce((a,p)=>a+Number(p.monto),0))} brutos</span></div>${filas(x.l,i>0)}`).join('')+`</div></div>`;
+  const g=[];[...r].reverse().forEach(p=>{const d=diaCR(p.hora);let x=g[g.length-1];if(!x||x.d!==d){x={d,l:[]};g.push(x);}x.l.push(p);});
+  return `<div class="g" data-c="sinpe"><div class="blk"><h2>SINPE de días anteriores · los últimos ${r.length}</h2><p class="note" style="margin:10px 0 0">Del día más reciente al más antiguo; dentro de cada día, el pago más reciente arriba.</p>`+g.map((x,i)=>`<div class="sp-dh"><b>${fl(x.d)}</b><span>${x.l.length} ${x.l.length===1?'pago':'pagos'} · ${R(x.l.reduce((a,p)=>a+Number(p.monto),0))} brutos</span></div>${filas(x.l,i>0)}`).join('')+`</div></div>`;
 }
 function pintar(){
   const eh=$('ing-sinpe-hoy'),ea=$('ing-sinpe-agg');if(!eh||!ea)return;
@@ -85,6 +85,6 @@ function pintar(){
   `<p class="cm-av"><b>Solo consulta.</b> Estas secciones de SINPE no cambian nada: no condicionan el cobro, el pedido Express ni el cierre. Las cifras son brutas, en colones, con hora de Costa Rica (última lectura: ${lectura||'—'}). El comprobante diario de tarjetas y SINPE del BCR es el de arriba y no se mezcla con estos avisos.</p>`;
   $('sp-ref').onclick=()=>traer(true);
 }
-function ver(){if(!$('ing-sinpe-hoy'))return;if(S)pintar();traer(false);}
+function ver(f){if(!$('ing-sinpe-hoy'))return;if(S)pintar();traer(!!f);}
 return {ver};
 })();
