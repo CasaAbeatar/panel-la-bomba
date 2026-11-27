@@ -45,8 +45,8 @@ const fila=it=>`<div class="ss-i"><i class="e-${it.nivel==='urgente'?'caido':'av
 /* ---- hechos de hoy (incidentes y eventos; con el historial, todas las alertas) ---- */
 function hechos(c){
   const out=[];
-  (c.d.incidentes||[]).forEach(i=>out.push({ts:i.detectado_en,t:'Se detectó un problema en '+(c.NM[i.componente]||i.componente),tipoK:'servicio',tipoN:'Servicios y sistemas',estado:i.resuelto_en?'atendida':'abierta',urg:true,canal:null}));
-  (c.d.eventos||[]).forEach(v=>out.push({ts:v.creado_en,t:(SALUD_EV[v.tipo]||v.tipo)+' · '+(c.NM['equipo:'+v.estacion]||v.estacion)+(v.detalle?' · '+v.detalle:''),tipoK:'equipo',tipoN:'Computadoras de caja',estado:'aviso',urg:false,canal:null}));
+  (c.d.incidentes||[]).filter(i=>c.visibles(i.componente)).forEach(i=>out.push({ts:i.detectado_en,t:'Se detectó un problema en '+(c.NM[i.componente]||i.componente),tipoK:'servicio',tipoN:'Servicios y sistemas',estado:i.resuelto_en?'atendida':'abierta',urg:true,canal:null}));
+  (c.d.eventos||[]).filter(v=>c.visibles('equipo:'+v.estacion)).forEach(v=>out.push({ts:v.creado_en,t:(SALUD_EV[v.tipo]||v.tipo)+' · '+(c.NM['equipo:'+v.estacion]||v.estacion)+(v.detalle?' · '+v.detalle:''),tipoK:'equipo',tipoN:'Computadoras de caja',estado:'aviso',urg:false,canal:null}));
   return out;
 }
 function filasHist(c){

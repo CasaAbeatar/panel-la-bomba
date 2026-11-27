@@ -544,7 +544,7 @@ function pintarAviso(){
     const _av=(_u&&_u===hy)?'':hoyBloque('Aún sin reporte del BCR','El banco reporta con un día de atraso, así que el comprobante de hoy llega mañana.'+(_u?' Lo último cargado es del '+fl(_u)+'.':''));
     a.innerHTML=_av+(EMP==='grupo'?`<p class="note" style="margin:0 0 18px">Hoy solo están conectados los cobros digitales de la Soda. Las ventas de Pollos y Papea se sumarán cuando se defina la fuente.</p>`:'');$('tab-ingresos').hidden=false;}
 }
-function pintarFin(){pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();if(typeof precios!=='undefined')precios.ver();if(SEC==='comercial'&&typeof comercial!=='undefined')comercial.ver();if(SEC==='ingresos'&&typeof sinpe!=='undefined')sinpe.ver();if(typeof atender!=='undefined')atender.contar();}
+function pintarFin(){if(SEC==='salud'){try{pintarSalud();}catch(e){}}pintarPill();pintarAviso();pintarHoy();pintarGastos();pintarImpuestos();if(typeof precios!=='undefined')precios.ver();if(SEC==='comercial'&&typeof comercial!=='undefined')comercial.ver();if(SEC==='ingresos'&&typeof sinpe!=='undefined')sinpe.ver();if(typeof atender!=='undefined')atender.contar();}
 function irSec(s){
   SEC=s;
   document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x.dataset.sec===s));
@@ -651,14 +651,81 @@ function alinearMon(root){
 {let q=0;new MutationObserver(()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;alinearMon();});}).observe(document.body,{childList:true,subtree:true});}
 
 /* ---- Salud de los sistemas: estilo página de estado (banner, componentes, 30 días, incidentes) ---- */
-const SALUD_N={'sitio-soda':'Página de la Soda','sitio-pollos':'Página de Pollos y Papea','facturador':'Facturador y menú web','panel':'Panel La Bomba','hacienda':'Hacienda (acceso al sistema)','cloudflare':'Cloudflare (aloja las páginas)','microsoft':'Microsoft 365 (correo)','meta':'Meta (WhatsApp, Facebook, Instagram)','base':'Base de datos','tareas':'Tareas automáticas','respaldos':'Respaldos de datos','neon':'Copia de seguridad en Neon','dixiapp':'Dixiapp','sinpe-recibir':'SINPE Móvil: teléfono que recibe los avisos'};
-const SALUD_G=[['Computadoras de caja',['equipo:caja-soda','equipo:caja-pollos']],['Sistema La Bomba',['facturador','base','tareas','respaldos','neon','panel','dixiapp','sinpe-recibir']],['Páginas',['sitio-soda','sitio-pollos']],['Servicios externos',['hacienda','cloudflare','microsoft','meta']]];
+const SALUD_N={'sitio-soda':'Página de la Soda','sitio-pollos':'Página de Pollos y Papea','facturador':'Facturador y menú web','panel':'Panel La Bomba','hacienda':'Hacienda (acceso al sistema)','cloudflare':'Cloudflare (aloja las páginas)','microsoft':'Microsoft 365 (correo)','meta':'Meta (WhatsApp, Facebook, Instagram)','base':'Base de datos','tareas':'Tareas automáticas','respaldos':'Respaldos de datos','neon':'Copia de seguridad en Neon','dixiapp':'Dixiapp','sinpe-recibir':'SINPE Móvil: servidor que recibe los avisos','sinpe:soda':'Teléfono de la Soda (SINPE Móvil)','sinpe:pollos':'Teléfono de Pollos (SINPE Móvil)'};
+const SALUD_G=[['Computadoras de caja',['equipo:caja-soda','equipo:caja-pollos']],['SINPE Móvil',['sinpe:soda','sinpe:pollos','sinpe-recibir']],['Sistema La Bomba',['facturador','base','tareas','respaldos','neon','panel','dixiapp']],['Páginas',['sitio-soda','sitio-pollos']],['Servicios externos',['hacienda','cloudflare','microsoft','meta']]];
 const SALUD_E={ok:'Funcionando',aviso:'Con avisos',caido:'Sin respuesta',sin_datos:'Sin datos todavía'};
 const SALUD_EV={caida_internet:'Se cayó el internet',caja_cerrada:'Se cerró la caja',pantalla_perdida:'Se perdió una pantalla',reparacion:'Reparación',error_facturador:'Error del facturador',otro:'Otro evento'};
 let SALUD_ERR=false;
 const sHora=t=>t?new Date(t).toLocaleString('es-CR',{timeZone:'America/Costa_Rica',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):'—';
 const sHace=t=>{if(!t)return '—';const m=Math.max(0,Math.round((Date.now()-new Date(t))/60000));return m<2?'hace un momento':m<60?'hace '+m+' min':m<1440?'hace '+Math.round(m/60)+' h':'hace '+Math.round(m/1440)+' días';};
 let SALUD_SEQ=0,SALUD_ULT=null;
+
+/* ---- Salud en niveles (27 nov 2026): grupo, luego cada teléfono o computadora, luego SU información. Cada dato es de ese aparato. ---- */
+const sMin=t=>t?Math.max(0,Math.round((Date.now()-new Date(t))/60000)):null;
+const sFila=(k,v,c)=>v==null||v===''?'':`<div${c?` class="${c}"`:''}><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
+const sMs=t=>Number(t)>0?sHora(Number(t)):null;
+function htmlTelefono(t){
+  const de=t.detalle||{},ok=t.detalle_disponible===true,min=sMin(t.ultimo_latido);
+  const ya=(min!=null&&min>=30);
+  const bat=t.bateria!=null?esc(t.bateria+' %')+(de.cargando===true?' · cargando'+(de.enchufe?' ('+esc(de.enchufe)+')':''):de.cargando===false?' · sin cargar':''):null;
+  let red=null;
+  if(ok&&de.tipo_red){red=de.tipo_red==='wifi'?'Wi-Fi'+(de.wifi_nombre?' «'+esc(de.wifi_nombre)+'»':''):de.tipo_red==='datos'?'Datos móviles':de.tipo_red==='ninguna'?'Sin red':esc(de.tipo_red);
+    if(de.operador)red+=' · '+esc(de.operador);if(de.red_validada===false)red+=' · sin internet validado';}
+  let reen=null;
+  if(ok&&(de.sms_sin_reenviar!=null||de.fallidos_pendientes!=null||de.permiso_sms===false)){
+    const sr=Number(de.sms_sin_reenviar||0),fp=Number(de.fallidos_pendientes||0),m=[];
+    if(de.permiso_sms===false)m.push('sin permiso para leer SMS');
+    if(sr>0)m.push(sr+' SMS sin reenviar');
+    if(fp>0)m.push(fp+(fp===1?' reenvío fallido pendiente':' reenvíos fallidos pendientes'));
+    reen=m.length?`<span class="sf-mal">${esc(m.join(' · '))}</span>`:'Al día: no hay SMS pendientes de reenviar';
+  }
+  const rs=(Array.isArray(t.riesgos)?t.riesgos:[]).filter(x=>x&&x.nivel!=='info'&&x.motivo);
+  const riesgos=ok?(rs.length?`<ul class="sf-ul">${rs.map(x=>`<li>${esc(x.motivo)}</li>`).join('')}</ul>`:'Ninguno'):null;
+  return `<dl class="eq-dl sf-dl">`
+    +sFila('Teléfono',esc(de.marca_modelo||t.telefono))
+    +sFila('Último latido',`<span${ya?' class="sf-mal"':''}>${esc(sHace(t.ultimo_latido))}</span> · ${esc(sHora(t.ultimo_latido))}`)
+    +sFila('Batería',bat)
+    +sFila('App',t.app?esc(t.app):'No informada (esta versión de la app solo envía batería y latido)')
+    +sFila('Red',red)
+    +sFila('Reenvío de SMS',reen)
+    +(ok&&de.ultimo_sms_ts!=null?sFila('Último SMS recibido',sMs(de.ultimo_sms_ts)?esc(sMs(de.ultimo_sms_ts)):'Ninguno desde que arrancó la app'):'')
+    +(ok&&de.ultimo_reenvio_ok_ts!=null?sFila('Último reenvío exitoso',sMs(de.ultimo_reenvio_ok_ts)?esc(sMs(de.ultimo_reenvio_ok_ts)):'Ninguno todavía'):'')
+    +(ok&&de.permiso_sms!=null?sFila('Permiso para leer SMS',esc(SI3(de.permiso_sms))):'')
+    +(ok&&de.ahorro_bateria!=null?sFila('Ahorro de batería',de.ahorro_bateria?'Encendido':'Apagado'):'')
+    +sFila('Comandos pendientes',esc(String(t.comandos_pendientes||0)))
+    +sFila('Motivos de riesgo',riesgos,'eq-w')
+    +`</dl>`;
+}
+const SI3=v=>v===true?'Sí':v===false?'No':'—';
+function htmlTelefonos(d,emp){
+  const L=(d.sinpe_telefonos||[]).filter(t=>t.empresa===emp);
+  if(!L.length)return `<p class="note sf-n">Ningún teléfono de esta empresa se ha reportado todavía.</p>`;
+  return L.map(htmlTelefono).join('');
+}
+function htmlEquipo(e){
+  if(!e)return '';
+  if(!e.creado_en)return `<p class="note sf-n">Todavía no se ha instalado el kit con latido en esta computadora.</p>`;
+  const de=e.detalle||{},m=de.m||{},min=sMin(e.creado_en),viejo=min!=null&&min>10;
+  const hor=e.horario_abre?esc(String(e.horario_abre).slice(0,5)+' a '+String(e.horario_cierra).slice(0,5))+(e.en_horario?' (ahora: en horario)':' (ahora: fuera de horario)'):'Sin horario: se vigila las 24 horas';
+  const vent=e.ventanas!=null?String(e.ventanas)+(de.ventanas_cliente!=null?' (caja '+Math.max(0,e.ventanas-de.ventanas_cliente)+', pantalla del cliente '+de.ventanas_cliente+')':''):null;
+  return `<dl class="eq-dl sf-dl">`
+    +sFila('Última señal',`<span${viejo?' class="sf-mal"':''}>${esc(sHace(e.creado_en))}</span> · ${esc(sHora(e.creado_en))}`)
+    +(viejo?`<div class="eq-w"><dd class="sf-mal">Lo de abajo es lo que informó en su último latido, ${esc(sHace(e.creado_en))}. No es el estado de ahora.</dd></div>`:'')
+    +sFila('Pantallas conectadas',e.pantallas!=null?esc(String(e.pantallas)):null)
+    +sFila('Caja de facturación',de.caja_abierta===true?'Abierta':de.caja_abierta===false?'Cerrada':null)
+    +sFila('Ventanas del facturador',vent?esc(vent):null)
+    +sFila('Tiempo de respuesta',e.latencia_ms!=null?esc(e.latencia_ms+' ms'):null)
+    +sFila('Internet',e.internet_ok===true?'Con internet':e.internet_ok===false?'<span class="sf-mal">Sin internet</span>':null)
+    +sFila('Versión del kit',e.version_kit?esc(e.version_kit):null)
+    +sFila('Versión del facturador',e.version_facturador?esc(e.version_facturador):null)
+    +sFila('Horario',hor)
+    +sFila('Procesador en uso',m.cpu_pct!=null?esc(m.cpu_pct+' %'):null)
+    +sFila('Memoria libre',m.ram_libre_mb!=null?esc(m.ram_libre_mb+' MB'):null)
+    +sFila('Disco libre',(m.disco_libre_gb??de.disco_libre_gb)!=null?esc((m.disco_libre_gb??de.disco_libre_gb)+' GB'):null)
+    +sFila('Reinicios inesperados (24 h)',de.reinicios_inesperados_24h!=null?esc(String(de.reinicios_inesperados_24h)):null)
+    +sFila('Equipo',de.pc?esc(de.pc):null)
+    +`</dl>`;
+}
 async function pintarSalud(){
   const box=$('sal-base');if(!box)return;
   const my=++SALUD_SEQ;
@@ -677,7 +744,7 @@ async function pintarSalud(){
   const NM={};Object.keys(SALUD_N).forEach(k=>NM[k]=SALUD_N[k]);(d.equipos||[]).forEach(e=>NM['equipo:'+e.estacion]=e.nombre);
   const AH={};(d.ahora||[]).forEach(x=>AH[x.componente]=x);
   const DI={};(d.dias||[]).forEach(x=>{(DI[x.c]=DI[x.c]||{})[x.f]=x.e;});
-  const visibles=k=>!k.startsWith('equipo:')||eqs.some(e=>'equipo:'+e.estacion===k);
+  const visibles=k=>k.startsWith('equipo:')?eqs.some(e=>'equipo:'+e.estacion===k):k.startsWith('sinpe:')?(EMP==='grupo'||EMP===k.slice(6)):true;
   const todos=Object.keys(AH).filter(visibles);
   const nc=todos.filter(k=>AH[k].estado==='caido').length,na=todos.filter(k=>AH[k].estado==='aviso').length,ns=todos.filter(k=>AH[k].estado==='sin_datos').length;
   const est=(nc||d.vigilancia_detenida)?'caido':na?'aviso':'ok';
@@ -691,9 +758,11 @@ async function pintarSalud(){
     const f=ks.filter(k=>AH[k]&&visibles(k));if(!f.length)return;
     let h='';
     h+=`<div class="g" data-c="sistema"><div class="blk"><h2>${esc(gt)}</h2><div class="sc">`+f.map(k=>{
-      const a=AH[k],ms=a.ms!=null&&!k.startsWith('equipo:')?a.ms+' ms':a.ms!=null?'latencia '+a.ms+' ms':'';
+      const a=AH[k],eq=k.startsWith('equipo:')?(d.equipos||[]).find(e=>'equipo:'+e.estacion===k):null,fresco=eq&&eq.creado_en&&sMin(eq.creado_en)<=10;
+      const ms=a.ms!=null&&!k.startsWith('equipo:')?a.ms+' ms':(a.ms!=null&&fresco?'latencia '+a.ms+' ms':'');
+      const info=k.startsWith('equipo:')?htmlEquipo(eq):k==='sinpe:soda'?htmlTelefonos(d,'soda'):k==='sinpe:pollos'?htmlTelefonos(d,'pollos'):'';
       const barra=dias.map(x=>{const e=(DI[k]||{})[x]||'sin_datos';return `<s class="e-${e}" title="${esc(dl(x))}: ${esc(SALUD_E[e])}"></s>`;}).join('');
-      return `<div class="sf"><div class="sft"><i class="e-${a.estado}"></i><b>${esc(NM[k]||k)}</b><em>${esc(SALUD_E[a.estado])}${ms?' · '+esc(ms):''}</em></div><div class="de">${esc(a.detalle||'')}</div><div class="dd" role="img" aria-label="Últimos 30 días de ${esc(NM[k]||k)}: ${dias.filter(x=>((DI[k]||{})[x])==='caido').length} días sin respuesta, ${dias.filter(x=>((DI[k]||{})[x])==='aviso').length} con avisos">${barra}</div><div class="ddl"><span>${esc(dl(dias[0]))}</span><span>Hoy</span></div></div>`;
+      return `<div class="sf"><div class="sft"><i class="e-${a.estado}"></i><b>${esc(NM[k]||k)}</b><em>${esc(SALUD_E[a.estado])}${ms?' · '+esc(ms):''}</em></div><div class="de">${esc(a.detalle||'')}</div><div class="dd" role="img" aria-label="Últimos 30 días de ${esc(NM[k]||k)}: ${dias.filter(x=>((DI[k]||{})[x])==='caido').length} días sin respuesta, ${dias.filter(x=>((DI[k]||{})[x])==='aviso').length} con avisos">${barra}</div><div class="ddl"><span>${esc(dl(dias[0]))}</span><span>Hoy</span></div>${info}</div>`;
     }).join('')+`</div></div></div>`;
 
     if(gt==='Computadoras de caja')hEqG+=h;else hSisG+=h;
@@ -701,8 +770,7 @@ async function pintarSalud(){
   const leyenda=`<p class="note" style="margin:-8px 0 26px">Cada rayita es un día, de izquierda (más antiguo) a derecha (hoy). Verde: sin problemas. Ámbar: hubo avisos. Rojo: estuvo sin respuesta. Gris: sin datos.</p>`;
   // Computadoras: tabla de latidos y eventos de las cajas
   let hEq=hEqG+(hEqG?leyenda:'');
-  if(eqs.length)hEq+=`<div class="g" data-c="sistema">${table('Computadoras de caja',['Equipo','Última vez que respondió','Pantallas conectadas','Cajas abiertas','Tiempo de respuesta','Versión del kit','Horario'],eqs.map(e=>[esc(e.nombre),e.creado_en?esc(sHace(e.creado_en)):'Sin señal todavía',e.pantallas!=null?String(e.pantallas):'—',e.ventanas!=null?String(e.ventanas):'—',e.latencia_ms!=null?e.latencia_ms+' ms':'—',esc(e.version_kit||'—'),e.horario_abre?esc(String(e.horario_abre).slice(0,5)+' a '+String(e.horario_cierra).slice(0,5)):'24 horas']),1)}</div>`;
-  const ev=d.eventos||[];
+  const ev=(d.eventos||[]).filter(v=>visibles('equipo:'+v.estacion));
   if(!ev.length)hEq+=`<div class="g" data-c="sistema"><div class="blk"><h2>Eventos de las computadoras de caja (7 días)</h2><p class="note">Sin eventos en los últimos 7 días.</p></div></div>`;
   if(ev.length)hEq+=`<div class="g" data-c="sistema">${table('Eventos de las computadoras de caja (7 días)',['Cuándo','Equipo','Qué pasó','Detalle'],ev.slice(0,30).map(v=>[esc(sHora(v.creado_en)),esc(NM['equipo:'+v.estacion]||v.estacion),esc(SALUD_EV[v.tipo]||v.tipo),esc(v.detalle||'')]),1)}</div>`;
   // Facturación: último consecutivo emitido por empresa y documento (17 nov 2026)
@@ -715,7 +783,7 @@ async function pintarSalud(){
   // Sistemas: grupos, buzones, incidentes
   let hSis=hb+hSisG+(hSisG?leyenda:'');
   if(typeof bloqueBuzones==='function'){try{hSis+=bloqueBuzones();}catch(e){}}
-  const inc=d.incidentes||[];
+  const inc=(d.incidentes||[]).filter(i=>visibles(i.componente));
   hSis+=`<div class="g" data-c="sistema">`+(inc.length?table('Incidentes de los últimos 30 días',['Componente','Detectado','En atención','Resuelto','Quién'],inc.map(i=>[esc(NM[i.componente]||i.componente),esc(sHora(i.detectado_en)),i.atencion_en?esc(sHora(i.atencion_en)):'—',i.resuelto_en?esc(sHora(i.resuelto_en)):'Abierto',i.resuelto_en?(i.resuelto_por==='Claude'?'Resuelto por Claude':i.resuelto_por==='Emil'?'Resuelto por Emil':'Se resolvió solo'):'Esperando atención']),1):'<div class="blk"><h2>Incidentes de los últimos 30 días</h2><p class="note">Ninguno. Cuando un componente falle tres revisiones seguidas, aquí queda la hora en que se detectó, cuándo se atendió, cuándo se resolvió y quién lo resolvió.</p></div>')+`</div>`;
   hSis+=`<p class="note">Los avisos se envían a admin@dmalabomba.com, al teléfono y a la bandeja del facturador, solo a administradores.</p>`;
   const viv=((av&&av.vivos)||[]).filter(v=>EMP==='grupo'||v.empresa===EMP||v.empresa==='grupo');

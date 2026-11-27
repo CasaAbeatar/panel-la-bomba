@@ -14,21 +14,20 @@ async function traer(forzar){
   if(ocup)return;if(!forzar&&leido&&Date.now()-leido<45000)return;ocup=true;
   try{
     const hoy=HOYCR(),desde=new Date(Date.now()-31*86400000).toISOString();
-    const ids=EQ.map(e=>e.estacion);
     const [d,r,f]=await Promise.all([
       sb.from('equipos_navegacion_detalle').select('estacion,visto_en,url,titulo,sitio,busqueda,permitido').gte('visto_en',desde).order('visto_en',{ascending:false}).limit(MAXF),
       sb.from('equipos_navegacion').select('estacion,dia,sitio,veces,ultima,permitido').gte('dia',addd(hoy,-30)).order('ultima',{ascending:false}).limit(1500),
       sb.from('equipos_ficha').select('estacion,ficha,version_kit,actualizado_en,cambiado_en')]);
     if(d.error)throw d.error;if(r.error)throw r.error;if(f.error)throw f.error;
-    const ok=x=>!ids.length||ids.includes(x.estacion);
-    DET=(d.data||[]).filter(ok);trunc=(d.data||[]).length>=MAXF;RES=(r.data||[]).filter(ok);FIC=(f.data||[]).filter(ok);err=null;leido=Date.now();
+    DET=d.data||[];trunc=DET.length>=MAXF;RES=r.data||[];FIC=f.data||[];err=null;leido=Date.now();   // se guarda todo y se filtra por la empresa elegida al pintar
   }catch(e){err=/no autorizado|jwt|permission/i.test(String(e&&e.message))?'Tu sesión venció. Vuelve a entrar al panel.':'No se pudo cargar la navegación y la ficha de las computadoras. Se reintenta sola cada minuto.';}
   ocup=false;pintar();
 }
+const esMia=e=>!EQ.length||EQ.some(q=>q.estacion===e);
 function enVentana(visto){const hoy=HOYCR(),n=Number(filtro.dias);return diaCR(visto)>=addd(hoy,-(n-1));}
 function filas(){
   const q=filtro.q.trim().toLowerCase();
-  return DET.filter(x=>(filtro.est==='todas'||x.estacion===filtro.est)&&enVentana(x.visto_en)&&(!filtro.fuera||x.permitido===false)&&(!q||[x.url,x.titulo,x.sitio,x.busqueda].some(v=>String(v||'').toLowerCase().includes(q))));
+  return DET.filter(x=>esMia(x.estacion)&&(filtro.est==='todas'||x.estacion===filtro.est)&&enVentana(x.visto_en)&&(!filtro.fuera||x.permitido===false)&&(!q||[x.url,x.titulo,x.sitio,x.busqueda].some(v=>String(v||'').toLowerCase().includes(q))));
 }
 function bloqueNavegacion(){
   const hoy=HOYCR(),F=filas();
@@ -85,7 +84,9 @@ function pintar(){
 function ver(eqs,nm,forzar){
   if(eqs){EQ=eqs;}if(nm){NMQ={};EQ.forEach(e=>NMQ[e.estacion]=e.nombre);}
   if(!document.getElementById('sal-equipos'))return;
+  if(filtro.est!=='todas'&&!esMia(filtro.est))filtro.est='todas';
   if(!EQ.length){pintar();return;}
+  if(!forzar&&leido&&Date.now()-leido<45000){pintar();return;}
   traer(forzar);
 }
 return {ver,pintar};
