@@ -93,7 +93,7 @@ function htmlComputadoras(c){
   const L=c.pend.filter(i=>i.area==='computadoras'),est=estDe(L);
   const sd=Object.keys(c.AH).filter(k=>k.startsWith('equipo:')&&c.visibles(k)&&c.AH[k].estado==='sin_datos');
   let h=`<div class="dayl">Hoy · <b>${esc(sHora(c.d.hora))}</b></div><div class="sb"><i class="e-${est}"></i><b>${L.length?esc(fraseDe(L)):'Las computadoras de caja reportan con normalidad'}</b><span>${sd.length?esc(plural(sd.length,'computadora todavía sin kit instalado','computadoras todavía sin kit instalado'))+'.':'Última revisión '+esc(sHace(c.d.ultima_revision))+'.'}</span></div>`;
-  return h+c.hEq;
+  return h+(typeof controlVista!=='undefined'?controlVista.todo():'')+c.hEq;
 }
 
 /* ---- ALERTAS ---- */

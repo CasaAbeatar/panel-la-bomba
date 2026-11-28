@@ -694,7 +694,8 @@ function htmlTelefono(t){
     +(ok&&de.ahorro_bateria!=null?sFila('Ahorro de batería',de.ahorro_bateria?'Encendido':'Apagado'):'')
     +sFila('Comandos pendientes',esc(String(t.comandos_pendientes||0)))
     +sFila('Motivos de riesgo',riesgos,'eq-w')
-    +`</dl>`;
+    +`</dl>`
+    +(typeof controlVista!=='undefined'?controlVista.tel(t):'');
 }
 const SI3=v=>v===true?'Sí':v===false?'No':'—';
 function htmlTelefonos(d,emp){
@@ -704,7 +705,7 @@ function htmlTelefonos(d,emp){
 }
 function htmlEquipo(e){
   if(!e)return '';
-  if(!e.creado_en)return `<p class="note sf-n">Todavía no se ha instalado el kit con latido en esta computadora.</p>`;
+  if(!e.creado_en)return `<p class="note sf-n">Todavía no se ha instalado el kit con latido en esta computadora.</p>`+(typeof controlVista!=='undefined'?controlVista.eq(e):'');
   const de=e.detalle||{},m=de.m||{},min=sMin(e.creado_en),viejo=min!=null&&min>10;
   const hor=e.horario_abre?esc(String(e.horario_abre).slice(0,5)+' a '+String(e.horario_cierra).slice(0,5))+(e.en_horario?' (ahora: en horario)':' (ahora: fuera de horario)'):'Sin horario: se vigila las 24 horas';
   const vent=e.ventanas!=null?String(e.ventanas)+(de.ventanas_cliente!=null?' (caja '+Math.max(0,e.ventanas-de.ventanas_cliente)+', pantalla del cliente '+de.ventanas_cliente+')':''):null;
@@ -724,7 +725,8 @@ function htmlEquipo(e){
     +sFila('Disco libre',(m.disco_libre_gb??de.disco_libre_gb)!=null?esc((m.disco_libre_gb??de.disco_libre_gb)+' GB'):null)
     +sFila('Reinicios inesperados (24 h)',de.reinicios_inesperados_24h!=null?esc(String(de.reinicios_inesperados_24h)):null)
     +sFila('Equipo',de.pc?esc(de.pc):null)
-    +`</dl>`;
+    +`</dl>`
+    +(typeof controlVista!=='undefined'?controlVista.eq(e):'');
 }
 async function pintarSalud(){
   const box=$('sal-base');if(!box)return;
@@ -738,8 +740,10 @@ async function pintarSalud(){
     return;}
   if(my!==SALUD_SEQ)return;
   let pc=null,av=null;
-  await Promise.all([sb.rpc('panel_punto_de_caida').then(r=>{if(!r.error)pc=r.data;},()=>{}),sb.rpc('panel_atender_lista').then(r=>{if(!r.error)av=r.data;},()=>{})]);
+  let ctl=null;
+  await Promise.all([sb.rpc('panel_punto_de_caida').then(r=>{if(!r.error)pc=r.data;},()=>{}),sb.rpc('panel_atender_lista').then(r=>{if(!r.error)av=r.data;},()=>{}),sb.rpc('panel_control').then(r=>{if(!r.error)ctl=r.data;},()=>{})]);   // panel_control: lista de teléfonos y computadoras para «Control desde aquí» (si falla, los bloques salen sin esos datos)
   if(my!==SALUD_SEQ)return;
+  if(typeof controlVista!=='undefined')controlVista.datos(ctl);
   const eqs=(d.equipos||[]).filter(e=>EMP==='grupo'||e.empresa===EMP);
   const NM={};Object.keys(SALUD_N).forEach(k=>NM[k]=SALUD_N[k]);(d.equipos||[]).forEach(e=>NM['equipo:'+e.estacion]=e.nombre);
   const AH={};(d.ahora||[]).forEach(x=>AH[x.componente]=x);
@@ -781,7 +785,7 @@ async function pintarSalud(){
     hFac=`<div class="g" data-c="sistema">${table('Último consecutivo emitido (si el sistema se cae, retoma desde aquí)',['Empresa','Documento','Terminal','Último número','Cuándo se emitió','Números salteados'],pc.consecutivos.map(c=>[esc(emp(c.sociedad)),esc(TD[c.tipo_doc]||('Tipo '+c.tipo_doc)),esc(String(parseInt(String(c.serie||'').slice(3,8),10)||'—')),esc(String(c.ultimo_numero_emitido)),esc(sHora(c.ultima_emision)),(c.faltantes||[]).length?esc(c.faltantes.join(', ')):'Ninguno']),1)}<p class="note">Para saber cuándo y por qué se cayó algo, mira «Incidentes» en Sistemas y compara su hora con la columna «Cuándo se emitió». Los correos enviados a Microsoft 365 sirven para cotejar estos números.</p></div>`;
   }
   // Sistemas: grupos, buzones, incidentes
-  let hSis=hb+hSisG+(hSisG?leyenda:'');
+  let hSis=hb+(typeof controlVista!=='undefined'?controlVista.todo():'')+hSisG+(hSisG?leyenda:'');
   if(typeof bloqueBuzones==='function'){try{hSis+=bloqueBuzones();}catch(e){}}
   const inc=(d.incidentes||[]).filter(i=>visibles(i.componente));
   hSis+=`<div class="g" data-c="sistema">`+(inc.length?table('Incidentes de los últimos 30 días',['Componente','Detectado','En atención','Resuelto','Quién'],inc.map(i=>[esc(NM[i.componente]||i.componente),esc(sHora(i.detectado_en)),i.atencion_en?esc(sHora(i.atencion_en)):'—',i.resuelto_en?esc(sHora(i.resuelto_en)):'Abierto',i.resuelto_en?(i.resuelto_por==='Claude'?'Resuelto por Claude':i.resuelto_por==='Emil'?'Resuelto por Emil':'Se resolvió solo'):'Esperando atención']),1):'<div class="blk"><h2>Incidentes de los últimos 30 días</h2><p class="note">Ninguno. Cuando un componente falle tres revisiones seguidas, aquí queda la hora en que se detectó, cuándo se atendió, cuándo se resolvió y quién lo resolvió.</p></div>')+`</div>`;
